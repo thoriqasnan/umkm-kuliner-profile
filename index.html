@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Warung Sari Rasa - Kuliner Rumahan Enak & Terjangkau</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ======================= NAVBAR ======================= -->
+  <header class="navbar" id="navbar">
+    <div class="container navbar-inner">
+      <a href="#beranda" class="logo">Sari<span>Rasa</span></a>
+
+      <div class="navbar-right">
+        <!-- Menu navigasi. Class "nav-menu" ini yang akan disembunyikan/ditampilkan di mobile lewat JS -->
+        <ul class="nav-menu" id="navMenu">
+          <li><a href="#beranda" class="nav-link" data-i18n="nav.beranda">Beranda</a></li>
+          <li><a href="#tentang" class="nav-link" data-i18n="nav.tentang">Tentang</a></li>
+          <li><a href="#menu" class="nav-link" data-i18n="nav.menu">Menu/Produk</a></li>
+          <li><a href="#testimoni" class="nav-link" data-i18n="nav.testimoni">Testimoni</a></li>
+          <li><a href="#kontak" class="nav-link" data-i18n="nav.kontak">Kontak</a></li>
+        </ul>
+
+        <!-- Pengganti bahasa manual: klik ID/EN untuk ganti seluruh teks lewat JS (lihat script.js) -->
+        <div class="lang-switch" id="langSwitch">
+          <button class="lang-btn active" data-lang="id" aria-label="Bahasa Indonesia">ID</button>
+          <button class="lang-btn" data-lang="en" aria-label="English">EN</button>
+        </div>
+
+        <!-- Tombol hamburger, hanya muncul di layar kecil (diatur lewat CSS) -->
+        <button class="hamburger" id="hamburger" aria-label="Buka menu navigasi">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================= HERO ======================= -->
+  <section id="beranda" class="hero">
+    <div class="container hero-inner">
+      <div class="hero-text">
+        <p class="eyebrow" data-i18n="hero.eyebrow">Warung Kuliner Rumahan</p>
+        <h1 data-i18n="hero.title">Cita Rasa Rumahan, <br>Kualitas Istimewa</h1>
+        <p class="hero-desc" data-i18n="hero.desc">
+          Sari Rasa menghadirkan makanan dan minuman rumahan favorit keluarga,
+          dibuat dari bahan segar setiap hari dengan resep turun-temurun.
+        </p>
+        <a
+          href="https://wa.me/6281325132360?text=Halo%20Sari%20Rasa%2C%20saya%20mau%20pesan"
+          target="_blank"
+          rel="noopener"
+          class="btn btn-primary"
+          data-i18n="hero.cta"
+        >
+          Pesan Sekarang
+        </a>
+      </div>
+
+      <div class="hero-image">
+        <img
+          class="hero-photo"
+          src="images/soto-ayam-kampung-hero.jpg"
+          alt="Soto Ayam Kampung, produk unggulan Sari Rasa"
+          width="900"
+          height="675"
+        />
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= TENTANG KAMI ======================= -->
+  <section id="tentang" class="section tentang">
+    <div class="container tentang-inner">
+      <img
+        class="tentang-photo"
+        src="images/dapur.jpg"
+        alt="Dapur Warung Sari Rasa"
+        width="720"
+        height="900"
+      />
+
+      <div class="tentang-text">
+        <p class="section-label" data-i18n="tentang.label">Tentang Kami</p>
+        <h2 data-i18n="tentang.title">Berawal dari Dapur Rumahan</h2>
+        <p data-i18n="tentang.p1">
+          Sari Rasa berdiri sejak tahun 2015, dimulai dari dapur rumahan kecil
+          yang melayani pesanan tetangga sekitar. Berkat rasa yang konsisten
+          dan bahan-bahan pilihan, kini Sari Rasa menjadi warung favorit warga
+          sekitar untuk menikmati makanan dan minuman rumahan sehari-hari.
+        </p>
+        <p data-i18n="tentang.p2">
+          Kami percaya bahwa makanan enak tidak harus mahal. Setiap menu
+          dimasak dengan resep keluarga yang dijaga kualitasnya dari waktu
+          ke waktu.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= MENU / PRODUK ======================= -->
+  <section id="menu" class="section menu-section">
+    <div class="container">
+      <p class="section-label center" data-i18n="menu.label">Menu Kami</p>
+      <h2 class="center" data-i18n="menu.title">Pilihan Favorit Pelanggan</h2>
+
+      <!-- Tombol filter kategori. Atribut data-filter dicocokkan dengan data-category tiap card lewat JS -->
+      <div class="filter-bar" id="filterBar">
+        <button class="filter-btn active" data-filter="semua" data-i18n="filter.semua">Semua</button>
+        <button class="filter-btn" data-filter="makanan" data-i18n="filter.makanan">Makanan</button>
+        <button class="filter-btn" data-filter="minuman" data-i18n="filter.minuman">Minuman</button>
+        <button class="filter-btn" data-filter="snack" data-i18n="filter.snack">Snack</button>
+      </div>
+
+      <div class="menu-grid" id="menuGrid">
+        <!-- ===== MAKANAN ===== -->
+        <div class="menu-card" data-category="makanan">
+          <img class="card-photo" src="images/nasi-goreng-spesial.jpg" alt="Nasi Goreng Spesial" loading="lazy" width="700" height="467" />
+          <div class="menu-card-body">
+            <div class="menu-card-top">
+              <h3 data-i18n="product.nasigoreng.name">Nasi Goreng Spesial</h3>
+              <span class="price">Rp 20.000</span>
+            </div>
+            <p data-i18n="product.nasigoreng.desc">Nasi goreng dengan telur, ayam suwir, dan acar segar.</p>
+          </div>
+        </div>
+
+        <div class="menu-card" data-category="makanan">
+          <img class="card-photo" src="images/ayam-geprek-sambal-matah.jpg" alt="Ayam Geprek Sambal Matah" loading="lazy" width="700" height="467" />
+          <div class="menu-card-body">
+            <div class="menu-card-top">
+              <h3 data-i18n="product.ayamgeprek.name">Ayam Geprek Sambal Matah</h3>
+              <span class="price">Rp 22.000</span>
+            </div>
+            <p data-i18n="product.ayamgeprek.desc">Ayam crispy disiram sambal matah khas dengan tingkat kepedasan pilihan.</p>
+          </div>
+        </div>
+
+        <div class="menu-card" data-category="makanan">
+          <img class="card-photo" src="images/soto-ayam-kampung.jpg" alt="Soto Ayam Kampung" loading="lazy" width="700" height="467" />
+          <div class="menu-card-body">
+            <div class="menu-card-top">
+              <h3 data-i18n="product.sotoayam.name">Soto Ayam Kampung</h3>
+              <span class="price">Rp 20.000</span>
+            </div>
+            <p data-i18n="product.sotoayam.desc">Kuah bening gurih dengan suwiran ayam kampung dan pelengkap lengkap.</p>
+          </div>
+        </div>
+
+        <div class="menu-card" data-category="makanan">
+          <img class="card-photo" src="images/mie-ayam-bakso.jpg" alt="Mie Ayam Bakso" loading="lazy" width="700" height="467" />
+          <div class="menu-card-body">
+            <div class="menu-card-top">
+              <h3 data-i18n="product.mieayam.name">Mie Ayam Bakso</h3>
+              <span class="price">Rp 18.000</span>
+            </div>
+            <p data-i18n="product.mieayam.desc">Mie ayam dengan topping bakso sapi dan pangsit renyah.</p>
+          </div>
+        </div>
+
+        <!-- ===== MINUMAN ===== -->
+        <div class="menu-card" data-category="minuman">
+          <img class="card-photo" src="images/es-teh-manis.jpg" alt="Es Teh Manis" loading="lazy" width="700" height="467" />
+          <div class="menu-card-body">
+            <div class="menu-card-top">
+              <h3 data-i18n="product.esteh.name">Es Teh Manis</h3>
+              <span class="price">Rp 5.000</span>
+            </div>
+            <p data-i18n="product.esteh.desc">Teh manis segar dengan es batu, pas untuk menemani makan siang.</p>
+          </div>
+        </div>
+
+        <div class="menu-card" data-category="minuman">
+          <img class="card-photo" src="images/es-jeruk-peras.jpg" alt="Es Jeruk Peras" loading="lazy" width="700" height="467" />
+          <div class="menu-card-body">
+            <div class="menu-card-top">
+              <h3 data-i18n="product.esjeruk.name">Es Jeruk Peras</h3>
+              <span class="price">Rp 8.000</span>
+            </div>
+            <p data-i18n="product.esjeruk.desc">Jeruk peras asli tanpa pemanis buatan, menyegarkan.</p>
+          </div>
+        </div>
+
+        <div class="menu-card" data-category="minuman">
+          <img class="card-photo" src="images/kopi-susu-gula-aren.jpg" alt="Kopi Susu Gula Aren" loading="lazy" width="700" height="467" />
+          <div class="menu-card-body">
+            <div class="menu-card-top">
+              <h3 data-i18n="product.kopisusu.name">Kopi Susu Gula Aren</h3>
+              <span class="price">Rp 15.000</span>
+            </div>
+            <p data-i18n="product.kopisusu.desc">Kopi susu dengan manis alami dari gula aren pilihan.</p>
+          </div>
+        </div>
+
+        <div class="menu-card" data-category="minuman">
+          <img class="card-photo" src="images/es-kelapa-muda.jpg" alt="Es Kelapa Muda" loading="lazy" width="700" height="467" />
+          <div class="menu-card-body">
+            <div class="menu-card-top">
+              <h3 data-i18n="product.eskelapa.name">Es Kelapa Muda</h3>
+              <span class="price">Rp 12.000</span>
+            </div>
+            <p data-i18n="product.eskelapa.desc">Kelapa muda asli dengan sedikit sirup gula merah.</p>
+          </div>
+        </div>
+
+        <!-- ===== SNACK ===== -->
+        <div class="menu-card" data-category="snack">
+          <img class="card-photo" src="images/pisang-goreng-crispy.jpg" alt="Pisang Goreng Crispy" loading="lazy" width="700" height="467" />
+          <div class="menu-card-body">
+            <div class="menu-card-top">
+              <h3 data-i18n="product.pisanggoreng.name">Pisang Goreng Crispy</h3>
+              <span class="price">Rp 10.000</span>
+            </div>
+            <p data-i18n="product.pisanggoreng.desc">Pisang goreng renyah di luar, lembut di dalam. Isi 5 pcs.</p>
+          </div>
+        </div>
+
+        <div class="menu-card" data-category="snack">
+          <img class="card-photo" src="images/risoles-mayo.jpg" alt="Risoles Mayo" loading="lazy" width="700" height="467" />
+          <div class="menu-card-body">
+            <div class="menu-card-top">
+              <h3 data-i18n="product.risoles.name">Risoles Mayo</h3>
+              <span class="price">Rp 12.000</span>
+            </div>
+            <p data-i18n="product.risoles.desc">Risoles isi sayuran dan mayo, cocok untuk camilan sore.</p>
+          </div>
+        </div>
+
+        <div class="menu-card" data-category="snack">
+          <img class="card-photo" src="images/tahu-isi.jpg" alt="Tahu Isi" loading="lazy" width="700" height="467" />
+          <div class="menu-card-body">
+            <div class="menu-card-top">
+              <h3 data-i18n="product.tahuisi.name">Tahu Isi</h3>
+              <span class="price">Rp 8.000</span>
+            </div>
+            <p data-i18n="product.tahuisi.desc">Tahu isi sayuran, digoreng renyah, disajikan dengan cabai rawit.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= KEUNGGULAN ======================= -->
+  <section class="section keunggulan">
+    <div class="container">
+      <p class="section-label center" data-i18n="keunggulan.label">Keunggulan Kami</p>
+      <h2 class="center" data-i18n="keunggulan.title">Kenapa Pilih Sari Rasa?</h2>
+
+      <div class="keunggulan-grid">
+        <div class="keunggulan-card">
+          <div class="icon-circle">🌿</div>
+          <h3 data-i18n="keunggulan.bahan.title">Bahan Segar</h3>
+          <p data-i18n="keunggulan.bahan.desc">Belanja bahan baku setiap pagi agar rasa dan kualitas terjaga.</p>
+        </div>
+        <div class="keunggulan-card">
+          <div class="icon-circle">👩‍🍳</div>
+          <h3 data-i18n="keunggulan.resep.title">Resep Rumahan</h3>
+          <p data-i18n="keunggulan.resep.desc">Diolah dengan resep keluarga yang sudah teruji rasanya sejak 2015.</p>
+        </div>
+        <div class="keunggulan-card">
+          <div class="icon-circle">💰</div>
+          <h3 data-i18n="keunggulan.harga.title">Harga Terjangkau</h3>
+          <p data-i18n="keunggulan.harga.desc">Harga sahabat kantong tanpa mengurangi porsi dan kualitas rasa.</p>
+        </div>
+        <div class="keunggulan-card">
+          <div class="icon-circle">🛵</div>
+          <h3 data-i18n="keunggulan.delivery.title">Bisa Delivery</h3>
+          <p data-i18n="keunggulan.delivery.desc">Pesan lewat WhatsApp, kami antar langsung ke lokasi kamu.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= TESTIMONI ======================= -->
+  <section id="testimoni" class="section testimoni">
+    <div class="container">
+      <p class="section-label center" data-i18n="testimoni.label">Testimoni</p>
+      <h2 class="center" data-i18n="testimoni.title">Kata Pelanggan Kami</h2>
+
+      <!-- Carousel sederhana: "track" digeser ke kiri/kanan lewat JS dengan transform: translateX -->
+      <div class="carousel">
+        <button class="carousel-btn prev" id="prevBtn" aria-label="Sebelumnya">&#10094;</button>
+
+        <div class="carousel-viewport">
+          <div class="carousel-track" id="carouselTrack">
+            <div class="testimoni-card">
+              <p class="quote" data-i18n="testimoni1.quote">"Nasi gorengnya juara, rasanya pas banget kaya masakan rumah! Jadi langganan tiap minggu."</p>
+              <p class="author">— Rina W.</p>
+            </div>
+            <div class="testimoni-card">
+              <p class="quote" data-i18n="testimoni2.quote">"Kopi susu gula arennya bikin nagih, harganya juga ramah kantong. Recommended!"</p>
+              <p class="author">— Andi P.</p>
+            </div>
+            <div class="testimoni-card">
+              <p class="quote" data-i18n="testimoni3.quote">"Pelayanan ramah dan pesanan selalu cepat sampai. Ayam gepreknya pedasnya pas."</p>
+              <p class="author">— Siti K.</p>
+            </div>
+            <div class="testimoni-card">
+              <p class="quote" data-i18n="testimoni4.quote">"Tempatnya bersih, menunya variatif, dan yang penting rasanya konsisten enak."</p>
+              <p class="author">— Budi S.</p>
+            </div>
+          </div>
+        </div>
+
+        <button class="carousel-btn next" id="nextBtn" aria-label="Selanjutnya">&#10095;</button>
+      </div>
+
+      <!-- Titik indikator slide, dibuat otomatis lewat JS -->
+      <div class="carousel-dots" id="carouselDots"></div>
+    </div>
+  </section>
+
+  <!-- ======================= KONTAK ======================= -->
+  <section id="kontak" class="section kontak">
+    <div class="container kontak-inner">
+      <div class="kontak-info">
+        <p class="section-label" data-i18n="kontak.label">Kontak</p>
+        <h2 data-i18n="kontak.title">Hubungi & Kunjungi Kami</h2>
+
+        <ul class="kontak-list">
+          <li>
+            <strong>WhatsApp</strong>
+            <a href="https://wa.me/6281325132360" target="_blank" rel="noopener">0813-2513-2360</a>
+          </li>
+          <li>
+            <strong data-i18n="kontak.alamat">Alamat</strong>
+            <span>Perumahan Pesona Vista, A11 No. 6, Dayeuh, Cileungsi, Kabupaten Bogor, Jawa Barat</span>
+          </li>
+          <li>
+            <strong data-i18n="kontak.jam">Jam Buka</strong>
+            <span data-i18n="kontak.jam.value">Setiap Hari, 08.00 - 21.00 WIB</span>
+          </li>
+        </ul>
+
+        <div class="social-links">
+          <a href="#" target="_blank" rel="noopener" aria-label="Instagram">Instagram</a>
+          <a href="#" target="_blank" rel="noopener" aria-label="Facebook">Facebook</a>
+          <a href="#" target="_blank" rel="noopener" aria-label="TikTok">TikTok</a>
+        </div>
+      </div>
+
+      <div class="kontak-map">
+        <iframe
+          title="Lokasi Warung Sari Rasa"
+          src="https://www.google.com/maps?q=-6.4211126,106.9839664&output=embed"
+          width="100%"
+          height="320"
+          style="border:0;"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= FOOTER ======================= -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <p>&copy; <span id="year"></span> Sari Rasa. <span data-i18n="footer.copyright">Seluruh hak cipta dilindungi.</span></p>
+      <ul class="footer-links">
+        <li><a href="#beranda" data-i18n="nav.beranda">Beranda</a></li>
+        <li><a href="#tentang" data-i18n="nav.tentang">Tentang</a></li>
+        <li><a href="#menu" data-i18n="nav.menu">Menu/Produk</a></li>
+        <li><a href="#testimoni" data-i18n="nav.testimoni">Testimoni</a></li>
+        <li><a href="#kontak" data-i18n="nav.kontak">Kontak</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
