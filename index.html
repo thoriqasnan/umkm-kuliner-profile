@@ -4,6 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Warung Sari Rasa - Kuliner Rumahan Enak & Terjangkau</title>
+  <meta
+    name="description"
+    content="Warung Sari Rasa - kuliner rumahan enak dan terjangkau di Cileungsi, Bogor. Nasi goreng, ayam geprek, soto ayam, aneka minuman & snack. Pesan langsung via WhatsApp."
+  />
+  <meta property="og:title" content="Warung Sari Rasa - Kuliner Rumahan Enak & Terjangkau" />
+  <meta
+    property="og:description"
+    content="Makanan dan minuman rumahan favorit keluarga, resep turun-temurun, bisa delivery via WhatsApp."
+  />
+  <meta property="og:image" content="images/soto-ayam-kampung-hero.jpg" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="images/favicon.svg" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -30,7 +42,7 @@
         </div>
 
         <!-- Tombol hamburger, hanya muncul di layar kecil (diatur lewat CSS) -->
-        <button class="hamburger" id="hamburger" aria-label="Buka menu navigasi">
+        <button class="hamburger" id="hamburger" aria-label="Buka menu navigasi" aria-expanded="false">
           <span></span>
           <span></span>
           <span></span>
@@ -64,6 +76,9 @@
         <img
           class="hero-photo"
           src="images/soto-ayam-kampung-hero.jpg"
+          srcset="images/soto-ayam-kampung-hero-480w.jpg 480w, images/soto-ayam-kampung-hero.jpg 900w"
+          sizes="(max-width: 768px) 100vw, 500px"
+          fetchpriority="high"
           alt="Soto Ayam Kampung, produk unggulan Sari Rasa"
           width="900"
           height="675"
@@ -109,15 +124,22 @@
 
       <!-- Tombol filter kategori. Atribut data-filter dicocokkan dengan data-category tiap card lewat JS -->
       <div class="filter-bar" id="filterBar">
-        <button class="filter-btn active" data-filter="semua" data-i18n="filter.semua">Semua</button>
-        <button class="filter-btn" data-filter="makanan" data-i18n="filter.makanan">Makanan</button>
-        <button class="filter-btn" data-filter="minuman" data-i18n="filter.minuman">Minuman</button>
-        <button class="filter-btn" data-filter="snack" data-i18n="filter.snack">Snack</button>
+        <button class="filter-btn active" data-filter="semua" data-i18n="filter.semua" aria-pressed="true">Semua</button>
+        <button class="filter-btn" data-filter="makanan" data-i18n="filter.makanan" aria-pressed="false">Makanan</button>
+        <button class="filter-btn" data-filter="minuman" data-i18n="filter.minuman" aria-pressed="false">Minuman</button>
+        <button class="filter-btn" data-filter="snack" data-i18n="filter.snack" aria-pressed="false">Snack</button>
       </div>
 
+      <!-- PENTING kalau mengubah harga atau menambah menu baru: setiap .menu-card
+           di bawah punya harga di DUA tempat yang harus SELALU sama nilainya:
+           (1) teks yang tampil di <span class="price"> untuk pelanggan, dan
+           (2) atribut data-price (angka polos, TANPA titik/koma, contoh: 20000
+           bukan "20.000") yang dipakai script.js untuk menghitung total keranjang.
+           Kalau cuma salah satu yang diubah, tampilan harga dan total pesanan
+           yang terkirim ke WhatsApp akan berbeda tanpa ada peringatan apa pun. -->
       <div class="menu-grid" id="menuGrid">
         <!-- ===== MAKANAN ===== -->
-        <div class="menu-card" data-category="makanan">
+        <div class="menu-card" data-category="makanan" data-price="20000">
           <img class="card-photo" src="images/nasi-goreng-spesial.jpg" alt="Nasi Goreng Spesial" loading="lazy" width="700" height="467" />
           <div class="menu-card-body">
             <div class="menu-card-top">
@@ -125,10 +147,15 @@
               <span class="price">Rp 20.000</span>
             </div>
             <p data-i18n="product.nasigoreng.desc">Nasi goreng dengan telur, ayam suwir, dan acar segar.</p>
+            <div class="cart-controls" role="group" aria-label="Jumlah pesanan" data-i18n-aria="cart.qtyGroup">
+              <button type="button" class="qty-btn qty-decrease" aria-label="Kurangi jumlah" data-i18n-aria="cart.decrease">&minus;</button>
+              <span class="qty-value" aria-live="polite">0</span>
+              <button type="button" class="qty-btn qty-increase" aria-label="Tambah jumlah" data-i18n-aria="cart.increase">+</button>
+            </div>
           </div>
         </div>
 
-        <div class="menu-card" data-category="makanan">
+        <div class="menu-card" data-category="makanan" data-price="22000">
           <img class="card-photo" src="images/ayam-geprek-sambal-matah.jpg" alt="Ayam Geprek Sambal Matah" loading="lazy" width="700" height="467" />
           <div class="menu-card-body">
             <div class="menu-card-top">
@@ -136,112 +163,207 @@
               <span class="price">Rp 22.000</span>
             </div>
             <p data-i18n="product.ayamgeprek.desc">Ayam crispy disiram sambal matah khas dengan tingkat kepedasan pilihan.</p>
+            <div class="cart-controls" role="group" aria-label="Jumlah pesanan" data-i18n-aria="cart.qtyGroup">
+              <button type="button" class="qty-btn qty-decrease" aria-label="Kurangi jumlah" data-i18n-aria="cart.decrease">&minus;</button>
+              <span class="qty-value" aria-live="polite">0</span>
+              <button type="button" class="qty-btn qty-increase" aria-label="Tambah jumlah" data-i18n-aria="cart.increase">+</button>
+            </div>
           </div>
         </div>
 
-        <div class="menu-card" data-category="makanan">
-          <img class="card-photo" src="images/soto-ayam-kampung.jpg" alt="Soto Ayam Kampung" loading="lazy" width="700" height="467" />
+        <div class="menu-card" data-category="makanan" data-price="20000">
+          <img class="card-photo" src="images/soto-ayam-kampung.jpg" srcset="images/soto-ayam-kampung-480w.jpg 480w, images/soto-ayam-kampung.jpg 700w" sizes="(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px" alt="Soto Ayam Kampung" loading="lazy" width="700" height="467" />
           <div class="menu-card-body">
             <div class="menu-card-top">
               <h3 data-i18n="product.sotoayam.name">Soto Ayam Kampung</h3>
               <span class="price">Rp 20.000</span>
             </div>
             <p data-i18n="product.sotoayam.desc">Kuah bening gurih dengan suwiran ayam kampung dan pelengkap lengkap.</p>
+            <div class="cart-controls" role="group" aria-label="Jumlah pesanan" data-i18n-aria="cart.qtyGroup">
+              <button type="button" class="qty-btn qty-decrease" aria-label="Kurangi jumlah" data-i18n-aria="cart.decrease">&minus;</button>
+              <span class="qty-value" aria-live="polite">0</span>
+              <button type="button" class="qty-btn qty-increase" aria-label="Tambah jumlah" data-i18n-aria="cart.increase">+</button>
+            </div>
           </div>
         </div>
 
-        <div class="menu-card" data-category="makanan">
-          <img class="card-photo" src="images/mie-ayam-bakso.jpg" alt="Mie Ayam Bakso" loading="lazy" width="700" height="467" />
+        <div class="menu-card" data-category="makanan" data-price="18000">
+          <img class="card-photo" src="images/mie-ayam-bakso.jpg" srcset="images/mie-ayam-bakso-480w.jpg 480w, images/mie-ayam-bakso.jpg 559w" sizes="(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px" alt="Mie Ayam Bakso" loading="lazy" width="700" height="467" />
           <div class="menu-card-body">
             <div class="menu-card-top">
               <h3 data-i18n="product.mieayam.name">Mie Ayam Bakso</h3>
               <span class="price">Rp 18.000</span>
             </div>
             <p data-i18n="product.mieayam.desc">Mie ayam dengan topping bakso sapi dan pangsit renyah.</p>
+            <div class="cart-controls" role="group" aria-label="Jumlah pesanan" data-i18n-aria="cart.qtyGroup">
+              <button type="button" class="qty-btn qty-decrease" aria-label="Kurangi jumlah" data-i18n-aria="cart.decrease">&minus;</button>
+              <span class="qty-value" aria-live="polite">0</span>
+              <button type="button" class="qty-btn qty-increase" aria-label="Tambah jumlah" data-i18n-aria="cart.increase">+</button>
+            </div>
           </div>
         </div>
 
         <!-- ===== MINUMAN ===== -->
-        <div class="menu-card" data-category="minuman">
-          <img class="card-photo" src="images/es-teh-manis.jpg" alt="Es Teh Manis" loading="lazy" width="700" height="467" />
+        <div class="menu-card" data-category="minuman" data-price="5000">
+          <img class="card-photo" src="images/es-teh-manis.jpg" srcset="images/es-teh-manis-480w.jpg 480w, images/es-teh-manis.jpg 700w" sizes="(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px" alt="Es Teh Manis" loading="lazy" width="700" height="467" />
           <div class="menu-card-body">
             <div class="menu-card-top">
               <h3 data-i18n="product.esteh.name">Es Teh Manis</h3>
               <span class="price">Rp 5.000</span>
             </div>
             <p data-i18n="product.esteh.desc">Teh manis segar dengan es batu, pas untuk menemani makan siang.</p>
+            <div class="cart-controls" role="group" aria-label="Jumlah pesanan" data-i18n-aria="cart.qtyGroup">
+              <button type="button" class="qty-btn qty-decrease" aria-label="Kurangi jumlah" data-i18n-aria="cart.decrease">&minus;</button>
+              <span class="qty-value" aria-live="polite">0</span>
+              <button type="button" class="qty-btn qty-increase" aria-label="Tambah jumlah" data-i18n-aria="cart.increase">+</button>
+            </div>
           </div>
         </div>
 
-        <div class="menu-card" data-category="minuman">
-          <img class="card-photo" src="images/es-jeruk-peras.jpg" alt="Es Jeruk Peras" loading="lazy" width="700" height="467" />
+        <div class="menu-card" data-category="minuman" data-price="8000">
+          <img class="card-photo" src="images/es-jeruk-peras.jpg" srcset="images/es-jeruk-peras-480w.jpg 480w, images/es-jeruk-peras.jpg 700w" sizes="(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px" alt="Es Jeruk Peras" loading="lazy" width="700" height="467" />
           <div class="menu-card-body">
             <div class="menu-card-top">
               <h3 data-i18n="product.esjeruk.name">Es Jeruk Peras</h3>
               <span class="price">Rp 8.000</span>
             </div>
             <p data-i18n="product.esjeruk.desc">Jeruk peras asli tanpa pemanis buatan, menyegarkan.</p>
+            <div class="cart-controls" role="group" aria-label="Jumlah pesanan" data-i18n-aria="cart.qtyGroup">
+              <button type="button" class="qty-btn qty-decrease" aria-label="Kurangi jumlah" data-i18n-aria="cart.decrease">&minus;</button>
+              <span class="qty-value" aria-live="polite">0</span>
+              <button type="button" class="qty-btn qty-increase" aria-label="Tambah jumlah" data-i18n-aria="cart.increase">+</button>
+            </div>
           </div>
         </div>
 
-        <div class="menu-card" data-category="minuman">
-          <img class="card-photo" src="images/kopi-susu-gula-aren.jpg" alt="Kopi Susu Gula Aren" loading="lazy" width="700" height="467" />
+        <div class="menu-card" data-category="minuman" data-price="15000">
+          <img class="card-photo" src="images/kopi-susu-gula-aren.jpg" srcset="images/kopi-susu-gula-aren-480w.jpg 480w, images/kopi-susu-gula-aren.jpg 700w" sizes="(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px" alt="Kopi Susu Gula Aren" loading="lazy" width="700" height="467" />
           <div class="menu-card-body">
             <div class="menu-card-top">
               <h3 data-i18n="product.kopisusu.name">Kopi Susu Gula Aren</h3>
               <span class="price">Rp 15.000</span>
             </div>
             <p data-i18n="product.kopisusu.desc">Kopi susu dengan manis alami dari gula aren pilihan.</p>
+            <div class="cart-controls" role="group" aria-label="Jumlah pesanan" data-i18n-aria="cart.qtyGroup">
+              <button type="button" class="qty-btn qty-decrease" aria-label="Kurangi jumlah" data-i18n-aria="cart.decrease">&minus;</button>
+              <span class="qty-value" aria-live="polite">0</span>
+              <button type="button" class="qty-btn qty-increase" aria-label="Tambah jumlah" data-i18n-aria="cart.increase">+</button>
+            </div>
           </div>
         </div>
 
-        <div class="menu-card" data-category="minuman">
-          <img class="card-photo" src="images/es-kelapa-muda.jpg" alt="Es Kelapa Muda" loading="lazy" width="700" height="467" />
+        <div class="menu-card" data-category="minuman" data-price="12000">
+          <img class="card-photo" src="images/es-kelapa-muda.jpg" srcset="images/es-kelapa-muda-480w.jpg 480w, images/es-kelapa-muda.jpg 700w" sizes="(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px" alt="Es Kelapa Muda" loading="lazy" width="700" height="467" />
           <div class="menu-card-body">
             <div class="menu-card-top">
               <h3 data-i18n="product.eskelapa.name">Es Kelapa Muda</h3>
               <span class="price">Rp 12.000</span>
             </div>
             <p data-i18n="product.eskelapa.desc">Kelapa muda asli dengan sedikit sirup gula merah.</p>
+            <div class="cart-controls" role="group" aria-label="Jumlah pesanan" data-i18n-aria="cart.qtyGroup">
+              <button type="button" class="qty-btn qty-decrease" aria-label="Kurangi jumlah" data-i18n-aria="cart.decrease">&minus;</button>
+              <span class="qty-value" aria-live="polite">0</span>
+              <button type="button" class="qty-btn qty-increase" aria-label="Tambah jumlah" data-i18n-aria="cart.increase">+</button>
+            </div>
           </div>
         </div>
 
         <!-- ===== SNACK ===== -->
-        <div class="menu-card" data-category="snack">
-          <img class="card-photo" src="images/pisang-goreng-crispy.jpg" alt="Pisang Goreng Crispy" loading="lazy" width="700" height="467" />
+        <div class="menu-card" data-category="snack" data-price="10000">
+          <img class="card-photo" src="images/pisang-goreng-crispy.jpg" srcset="images/pisang-goreng-crispy-480w.jpg 480w, images/pisang-goreng-crispy.jpg 524w" sizes="(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px" alt="Pisang Goreng Crispy" loading="lazy" width="700" height="467" />
           <div class="menu-card-body">
             <div class="menu-card-top">
               <h3 data-i18n="product.pisanggoreng.name">Pisang Goreng Crispy</h3>
               <span class="price">Rp 10.000</span>
             </div>
             <p data-i18n="product.pisanggoreng.desc">Pisang goreng renyah di luar, lembut di dalam. Isi 5 pcs.</p>
+            <div class="cart-controls" role="group" aria-label="Jumlah pesanan" data-i18n-aria="cart.qtyGroup">
+              <button type="button" class="qty-btn qty-decrease" aria-label="Kurangi jumlah" data-i18n-aria="cart.decrease">&minus;</button>
+              <span class="qty-value" aria-live="polite">0</span>
+              <button type="button" class="qty-btn qty-increase" aria-label="Tambah jumlah" data-i18n-aria="cart.increase">+</button>
+            </div>
           </div>
         </div>
 
-        <div class="menu-card" data-category="snack">
-          <img class="card-photo" src="images/risoles-mayo.jpg" alt="Risoles Mayo" loading="lazy" width="700" height="467" />
+        <div class="menu-card" data-category="snack" data-price="12000">
+          <img class="card-photo" src="images/risoles-mayo.jpg" srcset="images/risoles-mayo-480w.jpg 480w, images/risoles-mayo.jpg 700w" sizes="(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px" alt="Risoles Mayo" loading="lazy" width="700" height="467" />
           <div class="menu-card-body">
             <div class="menu-card-top">
               <h3 data-i18n="product.risoles.name">Risoles Mayo</h3>
               <span class="price">Rp 12.000</span>
             </div>
             <p data-i18n="product.risoles.desc">Risoles isi sayuran dan mayo, cocok untuk camilan sore.</p>
+            <div class="cart-controls" role="group" aria-label="Jumlah pesanan" data-i18n-aria="cart.qtyGroup">
+              <button type="button" class="qty-btn qty-decrease" aria-label="Kurangi jumlah" data-i18n-aria="cart.decrease">&minus;</button>
+              <span class="qty-value" aria-live="polite">0</span>
+              <button type="button" class="qty-btn qty-increase" aria-label="Tambah jumlah" data-i18n-aria="cart.increase">+</button>
+            </div>
           </div>
         </div>
 
-        <div class="menu-card" data-category="snack">
-          <img class="card-photo" src="images/tahu-isi.jpg" alt="Tahu Isi" loading="lazy" width="700" height="467" />
+        <div class="menu-card" data-category="snack" data-price="8000">
+          <img class="card-photo" src="images/tahu-isi.jpg" srcset="images/tahu-isi-480w.jpg 480w, images/tahu-isi.jpg 525w" sizes="(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px" alt="Tahu Isi" loading="lazy" width="700" height="467" />
           <div class="menu-card-body">
             <div class="menu-card-top">
               <h3 data-i18n="product.tahuisi.name">Tahu Isi</h3>
               <span class="price">Rp 8.000</span>
             </div>
             <p data-i18n="product.tahuisi.desc">Tahu isi sayuran, digoreng renyah, disajikan dengan cabai rawit.</p>
+            <div class="cart-controls" role="group" aria-label="Jumlah pesanan" data-i18n-aria="cart.qtyGroup">
+              <button type="button" class="qty-btn qty-decrease" aria-label="Kurangi jumlah" data-i18n-aria="cart.decrease">&minus;</button>
+              <span class="qty-value" aria-live="polite">0</span>
+              <button type="button" class="qty-btn qty-increase" aria-label="Tambah jumlah" data-i18n-aria="cart.increase">+</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- ======================= KERANJANG PESANAN (BAR MENGAMBANG) =======================
+       Bar ini "fixed" di bawah layar (lihat style.css), jadi tetap terlihat walau
+       pengunjung sedang scroll baca menu/testimoni/kontak. Isinya cuma ringkasan:
+       jumlah item, total harga, tombol "Lihat Pesanan" (buka panel detail di bawah),
+       dan tombol checkout ke WhatsApp (lihat script.js). -->
+  <div class="cart-bar" id="cartBar">
+    <div class="container cart-bar-inner">
+      <div class="cart-summary">
+        <p class="cart-totals">
+          <strong id="cartCount">0</strong> <span data-i18n="cart.items">item</span>
+          <span class="cart-sep" aria-hidden="true">&middot;</span>
+          <strong id="cartTotal">Rp 0</strong>
+        </p>
+        <p class="cart-hint" id="cartHint" data-i18n="cart.emptyHint">Keranjang masih kosong. Tambahkan menu untuk mulai pesan.</p>
+      </div>
+      <button type="button" id="cartViewBtn" class="cart-view-btn" aria-haspopup="dialog" data-i18n="cart.viewOrder">
+        Lihat Pesanan
+      </button>
+      <button type="button" id="cartCheckoutBtn" class="btn btn-primary" disabled data-i18n="cart.checkout">
+        Pesan via WhatsApp
+      </button>
+    </div>
+  </div>
+
+  <!-- Teks tersembunyi secara visual, hanya untuk diumumkan screen reader saat isi keranjang berubah -->
+  <p class="visually-hidden" id="cartStatus" aria-live="polite"></p>
+
+  <!-- ======================= PANEL DETAIL PESANAN =======================
+       Dipicu oleh tombol "Lihat Pesanan" di atas. Memakai elemen <dialog>
+       bawaan browser (bukan div + class "active" seperti menu hamburger),
+       supaya kita dapat "gratis": tombol Escape untuk menutup, fokus keyboard
+       yang otomatis terkunci di dalam panel selama terbuka, dan ::backdrop
+       (lapisan gelap di belakang panel) - lihat komentar lebih lengkap di
+       script.js bagian "PANEL DETAIL PESANAN". Isi <ul> di bawah selalu
+       dibuat ulang lewat JS setiap panel dibuka, jadi HTML di sini sengaja
+       dikosongkan dulu. -->
+  <dialog id="cartPanel" class="cart-panel" aria-labelledby="cartPanelTitle">
+    <div class="cart-panel-header">
+      <h2 id="cartPanelTitle" data-i18n="cart.panelTitle">Pesanan Kamu</h2>
+      <button type="button" id="cartPanelCloseBtn" class="cart-panel-close" aria-label="Tutup" data-i18n-aria="cart.close">&times;</button>
+    </div>
+    <p class="cart-panel-empty hide" id="cartPanelEmpty" data-i18n="cart.emptyHint">Keranjang masih kosong. Tambahkan menu untuk mulai pesan.</p>
+    <ul class="cart-panel-list" id="cartPanelList"></ul>
+  </dialog>
 
   <!-- ======================= KEUNGGULAN ======================= -->
   <section class="section keunggulan">
@@ -251,22 +373,22 @@
 
       <div class="keunggulan-grid">
         <div class="keunggulan-card">
-          <div class="icon-circle">🌿</div>
+          <div class="icon-circle" aria-hidden="true">🌿</div>
           <h3 data-i18n="keunggulan.bahan.title">Bahan Segar</h3>
           <p data-i18n="keunggulan.bahan.desc">Belanja bahan baku setiap pagi agar rasa dan kualitas terjaga.</p>
         </div>
         <div class="keunggulan-card">
-          <div class="icon-circle">👩‍🍳</div>
+          <div class="icon-circle" aria-hidden="true">👩‍🍳</div>
           <h3 data-i18n="keunggulan.resep.title">Resep Rumahan</h3>
           <p data-i18n="keunggulan.resep.desc">Diolah dengan resep keluarga yang sudah teruji rasanya sejak 2015.</p>
         </div>
         <div class="keunggulan-card">
-          <div class="icon-circle">💰</div>
+          <div class="icon-circle" aria-hidden="true">💰</div>
           <h3 data-i18n="keunggulan.harga.title">Harga Terjangkau</h3>
           <p data-i18n="keunggulan.harga.desc">Harga sahabat kantong tanpa mengurangi porsi dan kualitas rasa.</p>
         </div>
         <div class="keunggulan-card">
-          <div class="icon-circle">🛵</div>
+          <div class="icon-circle" aria-hidden="true">🛵</div>
           <h3 data-i18n="keunggulan.delivery.title">Bisa Delivery</h3>
           <p data-i18n="keunggulan.delivery.desc">Pesan lewat WhatsApp, kami antar langsung ke lokasi kamu.</p>
         </div>
@@ -310,6 +432,9 @@
 
       <!-- Titik indikator slide, dibuat otomatis lewat JS -->
       <div class="carousel-dots" id="carouselDots"></div>
+
+      <!-- Teks tersembunyi secara visual, hanya untuk diumumkan oleh screen reader saat slide berganti -->
+      <p class="visually-hidden" id="carouselStatus" aria-live="polite"></p>
     </div>
   </section>
 
@@ -336,9 +461,9 @@
         </ul>
 
         <div class="social-links">
-          <a href="#" target="_blank" rel="noopener" aria-label="Instagram">Instagram</a>
-          <a href="#" target="_blank" rel="noopener" aria-label="Facebook">Facebook</a>
-          <a href="#" target="_blank" rel="noopener" aria-label="TikTok">TikTok</a>
+          <a href="#" class="disabled" aria-disabled="true" aria-label="Instagram (segera hadir)" title="Segera hadir">Instagram</a>
+          <a href="#" class="disabled" aria-disabled="true" aria-label="Facebook (segera hadir)" title="Segera hadir">Facebook</a>
+          <a href="#" class="disabled" aria-disabled="true" aria-label="TikTok (segera hadir)" title="Segera hadir">TikTok</a>
         </div>
       </div>
 
@@ -348,7 +473,6 @@
           src="https://www.google.com/maps?q=-6.4211126,106.9839664&output=embed"
           width="100%"
           height="320"
-          style="border:0;"
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
         ></iframe>

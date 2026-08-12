@@ -29,6 +29,9 @@ body {
   background-color: var(--color-bg);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  /* Jarak kosong seukuran tinggi bar keranjang (lihat section 10 - CART) di
+     bawah, supaya konten terakhir (footer) tidak ikut tertutup bar yang fixed. */
+  padding-bottom: 84px;
 }
 
 img {
@@ -45,6 +48,17 @@ ul {
   list-style: none;
 }
 
+/* Teks yang tetap ada di DOM (untuk dibaca screen reader) tapi tidak
+   ditampilkan secara visual. Dipakai untuk pengumuman carousel. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .container {
   width: 100%;
   max-width: var(--container-width);
@@ -57,7 +71,7 @@ ul {
 }
 
 .section-label {
-  color: var(--color-accent);
+  color: var(--color-accent-dark);
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -87,12 +101,12 @@ h2 {
 }
 
 .btn-primary {
-  background-color: var(--color-accent);
+  background-color: var(--color-accent-dark);
   color: #fff;
 }
 
 .btn-primary:hover {
-  background-color: var(--color-accent-dark);
+  filter: brightness(0.9);
   transform: translateY(-2px);
 }
 
@@ -153,7 +167,7 @@ h2 {
 
 .nav-link:hover,
 .nav-link.active-link {
-  color: var(--color-accent);
+  color: var(--color-accent-dark);
 }
 
 /* Pengganti bahasa: dua tombol pill ID/EN, yang aktif ditandai warna aksen */
@@ -178,7 +192,7 @@ h2 {
 }
 
 .lang-btn.active {
-  background-color: var(--color-accent);
+  background-color: var(--color-accent-dark);
   color: #fff;
 }
 
@@ -230,7 +244,7 @@ h2 {
 }
 
 .eyebrow {
-  color: var(--color-accent);
+  color: var(--color-accent-dark);
   font-weight: 600;
   margin-bottom: 12px;
 }
@@ -297,12 +311,12 @@ h2 {
 
 .filter-btn:hover {
   border-color: var(--color-accent);
-  color: var(--color-accent);
+  color: var(--color-accent-dark);
 }
 
 .filter-btn.active {
-  background-color: var(--color-accent);
-  border-color: var(--color-accent);
+  background-color: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
   color: #fff;
 }
 
@@ -349,7 +363,7 @@ h2 {
 }
 
 .price {
-  color: var(--color-accent);
+  color: var(--color-accent-dark);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -443,7 +457,7 @@ h2 {
 
 .author {
   font-weight: 600;
-  color: var(--color-accent);
+  color: var(--color-accent-dark);
 }
 
 .carousel-btn {
@@ -459,7 +473,7 @@ h2 {
 }
 
 .carousel-btn:hover {
-  background-color: var(--color-accent);
+  background-color: var(--color-accent-dark);
   color: #fff;
 }
 
@@ -515,7 +529,7 @@ h2 {
 }
 
 .kontak-list a {
-  color: var(--color-accent);
+  color: var(--color-accent-dark);
   font-weight: 600;
 }
 
@@ -535,16 +549,300 @@ h2 {
 
 .social-links a:hover {
   border-color: var(--color-accent);
-  color: var(--color-accent);
+  color: var(--color-accent-dark);
+}
+
+/* Ditandai untuk link yang belum punya URL asli (lihat social-links di index.html) */
+.social-links a.disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
 }
 
 .kontak-map iframe {
   border-radius: var(--radius);
-  border: 1px solid var(--color-border);
+  border: 0;
 }
 
 /* ==========================================================
-   9. FOOTER
+   10. KERANJANG PESANAN (CART)
+   Dua bagian: (1) stepper +/- yang ditambahkan di dalam tiap
+   menu-card, dan (2) bar ringkasan yang "fixed" di bawah layar
+   supaya total pesanan tetap terlihat walau pengunjung sedang
+   scroll baca bagian lain di halaman.
+   ========================================================== */
+.cart-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.qty-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-soft);
+  color: var(--color-accent-dark);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qty-btn:hover {
+  background-color: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
+  color: #fff;
+}
+
+.qty-value {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Bar keranjang: fixed di bawah layar. z-index dibuat lebih kecil dari
+   navbar (100) karena bar ini tidak perlu menutupi navbar saat scroll ke atas. */
+.cart-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  background-color: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.cart-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+}
+
+.cart-totals {
+  font-size: 1rem;
+}
+
+.cart-sep {
+  margin: 0 6px;
+  color: var(--color-text-muted);
+}
+
+.cart-hint {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* Class "hide" ditambahkan lewat JS begitu ada item di keranjang, supaya
+   pesan "keranjang masih kosong" ini hilang begitu tidak relevan lagi.
+   (Beda dengan .menu-card.hide di bagian Menu/Produk di atas - class "hide"
+   di sini sengaja dibuat generik karena dipakai di elemen yang berbeda.) */
+.cart-hint.hide {
+  display: none;
+}
+
+/* Tombol checkout memakai class .btn .btn-primary yang sudah ada di hero,
+   tapi khusus di sini tombolnya bisa berstatus disabled (saat keranjang
+   masih kosong), makanya perlu style tambahan yang belum ada sebelumnya. */
+.cart-bar .btn-primary:disabled {
+  background-color: var(--color-border);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cart-bar .btn-primary:disabled:hover {
+  filter: none;
+  transform: none;
+}
+
+/* Tombol pemicu panel detail pesanan. Dibuat sebagai link/pill sederhana
+   (bukan tombol besar seperti checkout) supaya hierarki visual tetap jelas:
+   checkout adalah aksi utama, "Lihat Pesanan" cuma aksi bantu untuk mengecek. */
+.cart-view-btn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-accent-dark);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.cart-view-btn:hover {
+  background-color: var(--color-bg-soft);
+  border-color: var(--color-accent-dark);
+}
+
+/* ----- Panel detail pesanan (elemen <dialog> bawaan browser) -----
+   showModal() (dipanggil di script.js) otomatis menyediakan ::backdrop,
+   mengunci fokus di dalam panel, dan menutup panel lewat tombol Escape.
+   Kita di sini cuma mengatur tampilannya saja. */
+/* display:flex + flex-direction:column di sini yang membuat .cart-panel-list
+   di bawah bisa otomatis mengisi SISA tinggi panel (lewat "flex: 1" di
+   aturannya) tanpa perlu dihitung manual pakai angka tinggi header yang
+   ditebak-tebak - kalau tinggi header berubah nanti (misal judulnya jadi
+   2 baris), list-nya otomatis menyesuaikan, tidak perlu diubah manual.
+   PENTING: "height" (bukan cuma "max-height") WAJIB dipasang di sini -
+   tanpa tinggi yang pasti, flex child dengan "flex: 1" di bawah tidak
+   punya "sisa ruang" yang jelas untuk diisi dan malah collapse ke 0px.
+   Konsekuensinya: panel selalu setinggi ini walau isi keranjang cuma
+   1-2 item (ada sedikit ruang kosong di bawah list) - trade-off yang
+   diambil demi list tetap otomatis menyesuaikan tinggi header. */
+/* "[open]" WAJIB di selector ini - tanpanya, "display: flex" di sini (aturan
+   milik kita, origin "author") menang lawan aturan bawaan browser
+   "dialog:not([open]) { display: none }" (origin "user agent") walau kalah
+   spesifisitas, karena author selalu menang atas user-agent di CSS cascade.
+   Akibatnya panel tetap tampil walau sudah ditutup (open attribute sudah
+   dilepas oleh .close()) - persis bug "tidak bisa ditutup & backdrop hilang". */
+.cart-panel[open] {
+  display: flex;
+  flex-direction: column;
+  width: min(480px, 92vw);
+  height: min(600px, 85vh);
+  margin: auto; /* "margin: 0" dari reset "*" di atas mematikan auto-centering bawaan showModal() - dikembalikan di sini */
+  border: none;
+  border-radius: var(--radius);
+  padding: 24px;
+  background-color: var(--color-bg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.cart-panel::backdrop {
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+.cart-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-shrink: 0; /* header tidak boleh ikut mengecil, hanya .cart-panel-list yang scroll */
+}
+
+.cart-panel-header h2 {
+  font-size: 1.2rem;
+}
+
+.cart-panel-close {
+  background: none;
+  border: none;
+  padding: 4px;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.cart-panel-close:hover {
+  color: var(--color-text);
+}
+
+.cart-panel-empty {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+/* Sama seperti .cart-hint.hide: dipakai untuk menyembunyikan pesan "keranjang
+   kosong" begitu ada isinya, atau sebaliknya menyembunyikan list-nya begitu
+   keranjang kosong. Dua class terpisah (bukan satu class "hide" generik)
+   karena masing-masing menyembunyikan elemen yang berbeda. */
+.cart-panel-empty.hide,
+.cart-panel-list.hide {
+  display: none;
+}
+
+.cart-panel-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* "flex: 1" bikin list ini mengisi sisa tinggi .cart-panel setelah dikurangi
+     header (lihat komentar di .cart-panel) - tidak ada angka tinggi yang
+     ditebak manual. "min-height: 0" WAJIB ada di sini: tanpanya, flex child
+     yang overflow-nya "auto" akan cenderung membesar mengikuti isinya alih-alih
+     dipotong dan di-scroll - salah satu jebakan CSS Flexbox yang paling umum. */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* Biar scroll di dalam list ini tidak "bocor" lanjut ke halaman di belakang modal. */
+  overscroll-behavior-y: contain;
+  padding-right: 4px;
+}
+
+.cart-panel-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cart-panel-item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.cart-panel-item-info {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cart-panel-item-name {
+  font-weight: 600;
+}
+
+.cart-panel-item-subtotal {
+  font-weight: 600;
+  color: var(--color-accent-dark);
+  white-space: nowrap;
+}
+
+/* Tombol +/- di dalam panel memakai class .cart-controls yang sama dengan
+   di menu-card, tapi di sini tidak perlu garis pembatas atas karena sudah
+   ada gap antar elemen dari .cart-panel-item, dan diratakan ke kiri (bukan
+   ke tengah) karena lebar panel lebih sempit dari card menu. */
+.cart-panel-item .cart-controls {
+  justify-content: flex-start;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Sekarang <textarea>, bukan <input type="text"> lagi, supaya pelanggan
+   bisa menekan Enter untuk catatan lebih dari satu baris (dibuat di
+   script.js, lihat renderCartPanel()). min-height dan resize: vertical
+   dipasang biar tetap ringkas untuk MVP (dua baris cukup kelihatan lewat
+   rows={2}) tapi pelanggan tetap bisa menariknya lebih besar sendiri
+   kalau catatannya panjang. */
+.cart-panel-item-note {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  min-height: 48px;
+  resize: vertical;
+}
+
+/* ==========================================================
+   11. FOOTER
    ========================================================== */
 .footer {
   background-color: var(--color-text);
@@ -576,7 +874,27 @@ h2 {
 }
 
 /* ==========================================================
-   10. RESPONSIVE (MOBILE)
+   12. FOCUS STATES (KEYBOARD NAVIGATION)
+   ========================================================== */
+.filter-btn:focus-visible,
+.lang-btn:focus-visible,
+.carousel-btn:focus-visible,
+.dot:focus-visible,
+.hamburger:focus-visible,
+.nav-link:focus-visible,
+.social-links a:focus-visible,
+.footer-links a:focus-visible,
+.qty-btn:focus-visible,
+#cartCheckoutBtn:focus-visible,
+.cart-view-btn:focus-visible,
+.cart-panel-close:focus-visible,
+.cart-panel-item-note:focus-visible {
+  outline: 2px solid var(--color-accent-dark);
+  outline-offset: 2px;
+}
+
+/* ==========================================================
+   13. RESPONSIVE (MOBILE)
    ========================================================== */
 @media (max-width: 900px) {
   .menu-grid {
@@ -607,14 +925,18 @@ h2 {
     gap: 20px;
     transform: translateY(-8px);
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
   }
 
-  /* Class "active" ditambahkan lewat JS saat hamburger diklik */
+  /* Class "active" ditambahkan lewat JS saat hamburger diklik.
+     "visibility: hidden" di atas mencegah link di dalam menu tertutup
+     ikut kena Tab (fokus keyboard) walau sudah transparan. */
   .nav-menu.active {
     transform: translateY(0);
     opacity: 1;
+    visibility: visible;
     pointer-events: auto;
   }
 
@@ -642,5 +964,38 @@ h2 {
 
   .section {
     padding: 56px 0;
+  }
+
+  /* Layar sempit: ringkasan teks dan tombol checkout tidak cukup berjajar
+     satu baris, jadi disusun bertumpuk (column) dan tombol dilebarkan penuh
+     supaya tetap mudah disentuh (tap target besar) di HP. */
+  .cart-bar-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  .cart-summary {
+    text-align: center;
+  }
+
+  /* Tombol "Lihat Pesanan" tetap dibuat sebagai pill kecil di tengah (bukan
+     ikut melebar seperti tombol checkout), supaya tetap terlihat sebagai
+     aksi sekunder walau tampilan bar berubah jadi bertumpuk di HP. */
+  .cart-view-btn {
+    align-self: center;
+  }
+
+  .cart-bar .btn-primary {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Bar keranjang jadi lebih tinggi karena bertumpuk (lihat .cart-bar-inner
+     di atas), jadi jarak kosong di bawah body juga perlu diperbesar supaya
+     footer tidak tertutup. */
+  body {
+    padding-bottom: 150px;
   }
 }
