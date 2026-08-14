@@ -7,6 +7,19 @@
 // - class "active" di hamburger diatur di CSS untuk mengubah ikon jadi bentuk silang (X)
 const hamburger = document.getElementById("hamburger");
 const navMenu = document.getElementById("navMenu");
+const navbarRight = document.querySelector(".navbar-right"); // pembungkus hamburger + nav-menu
+
+// Ditulis sebagai fungsi berdiri sendiri karena dipakai di TIGA tempat yang
+// harus selalu menutup menu dengan cara yang persis sama (class "active" di
+// hamburger & nav-menu, dan aria-expanded): klik salah satu link menu, tekan
+// Escape, dan klik di luar area navbar-right (lihat di bawah). Kalau logika
+// ini ditulis ulang terpisah di tiap tempat, gampang lupa salah satu (misal
+// lupa update aria-expanded di satu tempat tapi tidak di tempat lain).
+function closeMobileMenu() {
+  hamburger.classList.remove("active");
+  navMenu.classList.remove("active");
+  hamburger.setAttribute("aria-expanded", "false");
+}
 
 hamburger.addEventListener("click", () => {
   const isOpen = hamburger.classList.toggle("active");
@@ -20,9 +33,42 @@ hamburger.addEventListener("click", () => {
 const navLinks = document.querySelectorAll(".nav-link");
 navLinks.forEach((link) => {
   link.addEventListener("click", () => {
-    hamburger.classList.remove("active");
-    navMenu.classList.remove("active");
+    closeMobileMenu();
   });
+});
+
+// Tombol Escape menutup menu mobile kalau sedang terbuka - kebiasaan umum
+// untuk elemen yang bisa dibuka/ditutup (mirip <dialog> panel keranjang yang
+// otomatis dapat perilaku ini gratis dari browser; menu hamburger di sini
+// bukan <dialog>, jadi perilakunya perlu ditulis manual).
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (!navMenu.classList.contains("active")) return;
+
+  closeMobileMenu();
+  hamburger.focus(); // kembalikan fokus ke tombol pemicu, supaya pengguna keyboard tidak "kehilangan" posisi
+});
+
+// Klik di mana pun DI LUAR area navbar-right (pembungkus tombol hamburger +
+// menu) menutup menu kalau sedang terbuka - pola umum untuk dropdown/menu
+// yang seharusnya tertutup begitu pengguna mengalihkan perhatian ke tempat
+// lain di halaman.
+//
+// PENTING soal urutan event: listener ini didaftarkan SEKALI saja di sini
+// (bukan didaftarkan ulang di dalam handler klik hamburger di atas setiap
+// menu dibuka) - itu justru pola yang gampang bikin bug "menu langsung
+// tertutup lagi begitu dibuka", karena listener yang didaftarkan di tengah
+// proses klik masih bisa ikut kebagian giliran event klik yang sama lewat
+// bubbling. Karena listener ini selalu aktif dari awal, satu-satunya
+// penjagaan yang perlu adalah mengecek APAKAH klik terjadi di dalam
+// navbar-right lewat contains(): klik pada tombol hamburger sendiri (baik
+// yang MEMBUKA atau MENUTUP menu) selalu dianggap "di dalam" navbar-right,
+// jadi baris di bawah tidak akan pernah menutup menu tepat saat baru dibuka.
+document.addEventListener("click", (event) => {
+  if (!navMenu.classList.contains("active")) return;
+  if (navbarRight.contains(event.target)) return;
+
+  closeMobileMenu();
 });
 
 // ==========================================================
@@ -500,6 +546,15 @@ let currentSlide = 0;
 const totalSlides = slides.length;
 const AUTO_SLIDE_INTERVAL_MS = 5000;
 
+// Dicek SEKALI saat halaman dimuat (bukan tiap kali auto-slide mau jalan),
+// karena preferensi ini praktis tidak pernah berubah selama satu kunjungan -
+// pengguna mengaturnya di level OS, bukan di halaman ini. Kalau hasilnya
+// true, berarti pengguna sudah bilang ke OS-nya "kurangi animasi/gerakan"
+// (misal supaya tidak pusing/terganggu), jadi carousel TIDAK BOLEH bergeser
+// otomatis sendiri - navigasi manual lewat tombol prev/next/dot tetap harus
+// berfungsi seperti biasa, cuma auto-slide-nya saja yang dimatikan.
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 // Buat titik indikator (dot) secara otomatis, jumlahnya sesuai jumlah slide.
 // Dibuat lewat JS (bukan ditulis manual di HTML) supaya jumlah dot selalu
 // sinkron dengan jumlah slide, walau nanti testimoni ditambah/dikurangi.
@@ -556,20 +611,30 @@ function startAutoSlide() {
   }, AUTO_SLIDE_INTERVAL_MS);
 }
 
-let autoSlideInterval = startAutoSlide();
+// Kalau prefersReducedMotion true, auto-slide tidak pernah dimulai sama
+// sekali sejak awal - autoSlideInterval sengaja dibiarkan null (bukan
+// dipanggil startAutoSlide()). clearInterval(null) aman dipanggil (tidak
+// error), jadi handler mouseleave/focusout di bawah tidak perlu logika
+// tambahan untuk kasus ini.
+let autoSlideInterval = prefersReducedMotion ? null : startAutoSlide();
 
 // Auto-slide dihentikan saat mouse ATAU fokus keyboard berada di area carousel
 // (supaya user tidak terganggu saat membaca, dan pengguna keyboard yang men-Tab
 // ke tombol carousel juga tidak kehilangan konten karena tergeser otomatis),
-// lalu dilanjutkan lagi saat mouse/fokus keluar dari area carousel.
+// lalu dilanjutkan lagi saat mouse/fokus keluar dari area carousel - TAPI
+// hanya kalau prefersReducedMotion false. Kalau tidak dijaga di sini juga
+// (bukan cuma di baris startAutoSlide() awal di atas), auto-slide akan tetap
+// menyala lagi begitu mouse/fokus meninggalkan carousel walau pengguna sudah
+// minta gerakan dikurangi - makanya guard yang sama perlu diulang di kedua
+// handler ini.
 const carousel = document.querySelector(".carousel");
 carousel.addEventListener("mouseenter", () => clearInterval(autoSlideInterval));
 carousel.addEventListener("mouseleave", () => {
-  autoSlideInterval = startAutoSlide();
+  if (!prefersReducedMotion) autoSlideInterval = startAutoSlide();
 });
 carousel.addEventListener("focusin", () => clearInterval(autoSlideInterval));
 carousel.addEventListener("focusout", () => {
-  autoSlideInterval = startAutoSlide();
+  if (!prefersReducedMotion) autoSlideInterval = startAutoSlide();
 });
 
 // ==========================================================
@@ -668,6 +733,8 @@ const translations = {
     "cart.viewOrder": "Lihat Pesanan",
     "cart.panelTitle": "Pesanan Kamu",
     "cart.close": "Tutup",
+
+    "backToTop.aria": "Kembali ke atas",
   },
   en: {
     "nav.beranda": "Home",
@@ -751,6 +818,8 @@ const translations = {
     "cart.viewOrder": "View Order",
     "cart.panelTitle": "Your Order",
     "cart.close": "Close",
+
+    "backToTop.aria": "Back to top",
   },
 };
 
@@ -831,3 +900,62 @@ const sectionObserver = new IntersectionObserver(
 );
 
 sections.forEach((section) => sectionObserver.observe(section));
+
+// ==========================================================
+// 8. TOMBOL KEMBALI KE ATAS (BACK TO TOP)
+// ==========================================================
+// Tombol kecil yang muncul begitu pengunjung sudah scroll melewati hero
+// (#beranda), supaya tidak perlu scroll manual jauh-jauh untuk balik ke
+// atas. Memakai IntersectionObserver lagi (pola yang sama seperti "MENU
+// NAVIGASI AKTIF SAAT SCROLL" di bagian 7 di atas) - lebih ringan daripada
+// mendengarkan event "scroll" manual yang bisa terpicu ratusan kali per
+// detik. Sengaja dibuat observer BARU (bukan menumpang di sectionObserver
+// yang sudah ada), karena rootMargin yang dibutuhkan beda tujuan: observer
+// di bagian 7 memakai pita tipis di tengah layar untuk nav highlight,
+// sedangkan di sini kita cuma perlu tahu satu hal sederhana - apakah hero
+// masih terlihat di layar atau tidak.
+const backToTopBtn = document.getElementById("backToTopBtn");
+const heroSection = document.getElementById("beranda");
+
+const heroObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    // Tombol ditampilkan begitu hero TIDAK LAGI terlihat (berarti pengunjung
+    // sudah scroll melewatinya), disembunyikan lagi kalau hero terlihat
+    // kembali (misal pengunjung scroll balik ke atas).
+    backToTopBtn.classList.toggle("is-visible", !entry.isIntersecting);
+  });
+});
+
+heroObserver.observe(heroSection);
+
+// Klik tombol -> scroll halus ke paling atas halaman.
+//
+// CATATAN PENTING: "scroll-behavior: smooth" di CSS (lihat style.css bagian
+// 1) HANYA berlaku untuk scroll yang dipicu lewat link anchor atau navigasi
+// keyboard, BUKAN untuk scroll yang dipicu lewat JavaScript seperti
+// window.scrollTo() di bawah ini - jadi opsi "behavior"-nya perlu diatur
+// manual di sini, dengan tetap menghormati preferensi prefers-reduced-motion
+// pengguna (persis seperti alasan yang sama dipakai untuk auto-slide
+// carousel di bagian 4).
+backToTopBtn.addEventListener("click", () => {
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  window.scrollTo({
+    top: 0,
+    behavior: prefersReducedMotion ? "auto" : "smooth",
+  });
+});
+
+// Dua percobaan sebelumnya di sini mencoba membuat tombol ini "berlabuh"
+// (pindah dari position:fixed ke position:absolute) begitu footer terlihat,
+// supaya tidak menimpa link "Kontak" di .footer-links. Keduanya malah
+// menimbulkan bug baru (tombol "terbang"/menghilang sesaat saat discroll),
+// karena mengubah SKEMA POSISI tombol di tengah-tengah scroll itu sendiri
+// yang rumit untuk dibuat mulus tanpa terlihat "melompat".
+//
+// Solusi yang jauh lebih sederhana: tombol TETAP "position: fixed" selamanya
+// (tidak pernah berpindah skema posisi sama sekali) - lihat style.css bagian
+// 8/10. Ruang aman di sana dihitung supaya posisi tombol yang tetap itu
+// (94px dari dasar layar di desktop, 160px di mobile) selalu berada di
+// celah kosong antara .cart-bar di bawahnya dan baris teks .footer-links di
+// atasnya, di breakpoint manapun - jadi tidak perlu logika scroll/observer
+// tambahan sama sekali untuk masalah ini.

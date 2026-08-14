@@ -17,6 +17,55 @@
   <meta property="og:type" content="website" />
   <link rel="icon" type="image/svg+xml" href="images/favicon.svg" />
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Data terstruktur schema.org, supaya mesin pencari (Google, dll) bisa
+       memahami Sari Rasa sebagai bisnis kuliner secara langsung (nama,
+       alamat, jam buka, dst) dan menampilkannya lebih kaya di hasil
+       pencarian (misal kartu info di samping hasil pencarian Google).
+       Semua nilai di bawah diambil apa adanya dari konten section Kontak &
+       Menu di halaman ini (bukan karangan) - kalau data di section Kontak
+       berubah, ingat untuk menyamakan juga nilainya di sini.
+       Ditulis statis dalam Bahasa Indonesia saja (tidak lewat sistem i18n),
+       karena data terstruktur ini murni untuk dibaca mesin, bukan
+       ditampilkan/diumumkan ke pengunjung, dan lang="id" adalah bahasa
+       utama situs ini. -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      "name": "Sari Rasa",
+      "image": "images/soto-ayam-kampung-hero.jpg",
+      "servesCuisine": "Indonesian",
+      "priceRange": "Rp 5.000 - Rp 22.000",
+      "telephone": "+6281325132360",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Perumahan Pesona Vista, A11 No. 6, Dayeuh",
+        "addressLocality": "Cileungsi, Kabupaten Bogor",
+        "addressRegion": "Jawa Barat",
+        "addressCountry": "ID"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": -6.4211126,
+        "longitude": 106.9839664
+      },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ],
+        "opens": "08:00",
+        "closes": "21:00"
+      }
+    }
+  </script>
 </head>
 <body>
 
@@ -94,6 +143,7 @@
         class="tentang-photo"
         src="images/dapur.jpg"
         alt="Dapur Warung Sari Rasa"
+        loading="lazy"
         width="720"
         height="900"
       />
@@ -492,6 +542,26 @@
         <li><a href="#kontak" data-i18n="nav.kontak">Kontak</a></li>
       </ul>
     </div>
+
+    <!-- ======================= TOMBOL KEMBALI KE ATAS =======================
+         Tombol mengambang "position: fixed", default tersembunyi (lihat
+         style.css bagian 10), baru ditampilkan lewat JS begitu pengunjung
+         sudah scroll melewati hero (#beranda). Posisinya dihitung supaya
+         selalu jatuh di celah aman antara .cart-bar dan .footer-links, jadi
+         tetap letaknya di dalam <footer> di sini pun tidak masalah - karena
+         "position: fixed" tidak dipengaruhi elemen induknya di HTML.
+         Isinya cuma simbol panah (bukan teks), jadi aria-label WAJIB ada
+         supaya pengguna screen reader tetap tahu fungsi tombol ini - sama
+         seperti tombol +/- keranjang atau panah carousel. -->
+    <button
+      type="button"
+      id="backToTopBtn"
+      class="back-to-top-btn"
+      aria-label="Kembali ke atas"
+      data-i18n-aria="backToTop.aria"
+    >
+      &#8593;
+    </button>
   </footer>
 
   <script src="script.js"></script>

@@ -66,6 +66,32 @@ ul {
   padding: 0 24px;
 }
 
+/* Navbar "sticky" (lihat bagian 2) tingginya 72px dan selalu menempel di atas
+   viewport. Tanpa scroll-margin-top ini, klik link navigasi (misal "#menu")
+   akan menggeser bagian atas section persis ke garis paling atas viewport -
+   yaitu tepat di BELAKANG navbar, jadi judul section jadi ketutupan. Nilai
+   88px = tinggi navbar (72px) + sedikit jarak napas, supaya judul section
+   masih terlihat jelas di bawah navbar setelah discroll. Aman juga dipasang
+   di #beranda (section paling atas): karena tidak ada apa pun di atasnya
+   untuk "diungkap", browser otomatis membatasi (clamp) scroll-nya ke posisi
+   paling atas seperti biasa. */
+section[id] {
+  scroll-margin-top: 88px;
+}
+
+/* Scroll halus tiap kali pindah section lewat link anchor (nav navbar, link
+   footer, atau logo "SariRasa" yang menuju "#beranda") - dibanding lompatan
+   instan bawaan browser. Sengaja dibungkus media query prefers-reduced-motion
+   supaya pengunjung yang sudah mengatur di OS-nya "kurangi animasi/gerakan"
+   (misal karena mudah pusing/mual melihat scroll animasi) tetap dapat
+   lompatan instan seperti biasa - kita hanya menyalakan efek smooth untuk
+   pengunjung yang TIDAK punya preferensi itu ("no-preference"). */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 .section {
   padding: 80px 0;
 }
@@ -462,8 +488,10 @@ h2 {
 
 .carousel-btn {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  /* 44px supaya nyaman disentuh di HP (target minimum yang umum dianjurkan
+     untuk elemen interaktif di layar sentuh adalah sekitar 44x44px) */
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--color-border);
   background-color: #fff;
@@ -565,7 +593,7 @@ h2 {
 }
 
 /* ==========================================================
-   10. KERANJANG PESANAN (CART)
+   9. KERANJANG PESANAN (CART)
    Dua bagian: (1) stepper +/- yang ditambahkan di dalam tiap
    menu-card, dan (2) bar ringkasan yang "fixed" di bawah layar
    supaya total pesanan tetap terlihat walau pengunjung sedang
@@ -582,8 +610,11 @@ h2 {
 }
 
 .qty-btn {
-  width: 32px;
-  height: 32px;
+  /* 44px: tombol +/- ini adalah interaksi inti dari seluruh sistem pemesanan
+     di situs ini, jadi ukurannya dinaikkan dari 32px supaya nyaman disentuh
+     jari di HP (target minimum yang umum dianjurkan sekitar 44x44px) */
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--color-border);
   background-color: var(--color-bg-soft);
@@ -842,12 +873,85 @@ h2 {
 }
 
 /* ==========================================================
+   10. TOMBOL KEMBALI KE ATAS (BACK TO TOP)
+   Tombol kecil yang mengambang di pojok kanan bawah, cuma muncul begitu
+   pengunjung sudah scroll melewati hero (lihat IntersectionObserver di
+   script.js bagian 8). Ditampilkan/disembunyikan lewat transisi opacity +
+   transform (pola yang sama seperti .nav-menu di bagian 13 RESPONSIVE),
+   bukan lewat "display: none", supaya kemunculannya terasa halus.
+   ========================================================== */
+.back-to-top-btn {
+  position: fixed;
+  right: 24px;
+  /* Dua percobaan sebelumnya mencoba mengubah tombol ini jadi "position:
+     absolute" begitu footer terlihat (lihat riwayat komentar di git), supaya
+     tidak menimpa .footer-links ("Kontak") - keduanya malah bikin tombol
+     terlihat "melompat"/menghilang sesaat saat discroll, karena mengganti
+     skema posisi di tengah animasi scroll itu sendiri sulit dibuat mulus.
+
+     Solusinya disederhanakan: tombol ini SELALU "position: fixed", tidak
+     pernah berubah skema. Angka 94px di bawah ini dipilih supaya, begitu
+     discroll sampai paling bawah, tombol selalu jatuh tepat di celah kosong
+     antara dua elemen yang sama-sama "fixed"/selalu ada di bawah layar:
+     - .cart-bar (bar keranjang): tepi atasnya ada di 84px dari dasar layar
+       (lihat "padding-bottom: 84px" pada body di bagian 1).
+     - .footer-links ("Kontak" dkk): baris teks ini baru mulai kelihatan di
+       148px dari dasar layar, berkat padding-bottom footer yang sengaja
+       dilebihkan jadi 64px (lihat komentar di ".footer" di bagian 11).
+     Celah kosong di antara keduanya = 148 - 84 = 64px, sedangkan tombol
+     tingginya 44px - jadi 94px (tepat di tengah celah itu: 84 + (64-44)/2)
+     memberi jarak aman ~10px ke KEDUA sisi, bukan cuma nempel di satu sisi.
+     Perhitungan sama juga berlaku di breakpoint mobile (lihat override di
+     bagian RESPONSIVE), karena rasio jarak yang dipakai di sana sengaja
+     dibuat serupa. */
+  bottom: 94px;
+  z-index: 95; /* di atas .cart-bar (90), tapi di bawah .navbar (100) */
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--color-accent-dark);
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+
+  /* Default: tersembunyi. "visibility: hidden" + "pointer-events: none"
+     (bukan cuma opacity: 0) supaya tombol tidak bisa di-Tab ke fokus atau
+     diklik selagi belum ditampilkan - sama alasannya seperti .nav-menu. */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease, filter 0.15s ease;
+}
+
+/* Class "is-visible" ditambahkan/dilepas lewat JS oleh IntersectionObserver
+   begitu hero (#beranda) keluar/masuk area pandang. */
+.back-to-top-btn.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.back-to-top-btn:hover {
+  filter: brightness(0.9);
+}
+
+/* ==========================================================
    11. FOOTER
    ========================================================== */
 .footer {
   background-color: var(--color-text);
   color: #fff;
-  padding: 32px 0;
+  /* Padding bawah dilebihkan (32px -> 64px, bukan simetris dengan padding
+     atas) supaya baris teks .footer-links baru mulai kelihatan agak jauh
+     dari dasar layar - memberi ruang aman untuk tombol kembali ke atas yang
+     posisinya tetap (lihat perhitungan lengkap di komentar ".back-to-top-btn"
+     di bagian 10) supaya tidak pernah menimpanya. */
+  padding: 32px 0 64px;
 }
 
 .footer-inner {
@@ -888,7 +992,8 @@ h2 {
 #cartCheckoutBtn:focus-visible,
 .cart-view-btn:focus-visible,
 .cart-panel-close:focus-visible,
-.cart-panel-item-note:focus-visible {
+.cart-panel-item-note:focus-visible,
+.back-to-top-btn:focus-visible {
   outline: 2px solid var(--color-accent-dark);
   outline-offset: 2px;
 }
@@ -997,5 +1102,16 @@ h2 {
      footer tidak tertutup. */
   body {
     padding-bottom: 150px;
+  }
+
+  /* Sama seperti perhitungan versi desktop (lihat komentar lengkap di
+     ".back-to-top-btn" di bagian 10): di layar sempit, .cart-bar jadi lebih
+     tinggi (tepi atasnya di 150px, samakan dengan "padding-bottom" body di
+     atas) dan baris teks .footer-links yang wrap jadi 2 baris juga baru
+     kelihatan lebih jauh dari dasar layar (~214px). 160px dipilih di
+     tengah-tengah celah itu supaya tetap dapat jarak aman ~10px ke kedua sisi. */
+  .back-to-top-btn {
+    bottom: 160px;
+    right: 16px;
   }
 }
