@@ -1,1 +1,8 @@
 node_modules/
+
+# File database SQLite adalah hasil GENERATE (dibuat otomatis oleh
+# db/database.js saat server pertama kali jalan, lalu diisi seed data).
+# Tidak perlu dan tidak sebaiknya ikut di-commit ke git - sama seperti
+# node_modules/, siapa pun yang clone project ini akan otomatis dapat
+# file .db yang sama persis begitu menjalankan `node server.js`.
+data/*.db

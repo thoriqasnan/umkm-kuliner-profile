@@ -5,6 +5,7 @@
 
 const express = require('express');
 const cors = require('cors');
+const { db } = require('./db/database');
 
 const app = express();
 const PORT = 3000;
@@ -48,188 +49,43 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Backend is running' });
 });
 
-// --- Route Phase 2B: daftar produk (masih data hardcoded, belum database) ---
-// Diperluas dari 7 item generik menjadi PERSIS 11 produk yang sebelumnya
-// ditulis statis di index.html, supaya frontend bisa render menu grid dari
-// data ini lewat fetch() tanpa mengubah tampilan sama sekali.
+// --- Route Phase 3A: daftar produk, sekarang diambil dari SQLite ---
+// Bedanya dengan Phase 2B: dulu array 11 produk ditulis LANGSUNG di sini
+// (hardcoded). Sekarang datanya sudah dipindah & disimpan di table
+// `products` pada file database data/umkm.db (lihat db/database.js untuk
+// schema table & proses seeding-nya).
 //
-// `slug` HARUS sama persis dengan key i18n di dictionary `translations` pada
-// script.js (contoh: slug "nasigoreng" berpasangan dengan key
-// "product.nasigoreng.name" / "product.nasigoreng.desc") - ini yang
-// menghubungkan produk hasil fetch dengan sistem ganti bahasa ID/EN yang
-// sudah ada, tanpa perlu duplikasi teks di backend.
+// `db.prepare(sql)` menyiapkan SQL statement, `.all()` menjalankannya dan
+// mengembalikan SEMUA baris hasil sebagai array of objects (satu object per
+// baris, key-nya = nama kolom). `ORDER BY id` memastikan urutan produk yang
+// dikirim ke frontend tetap 1-11 seperti sebelumnya (SQLite tidak menjamin
+// urutan baris tanpa ORDER BY eksplisit).
 //
-// `image.srcset`/`image.sizes` sengaja null kalau produk itu tidak punya
-// varian ukuran gambar (dulu juga tidak ditulis di HTML aslinya) - frontend
-// akan skip atribut srcset/sizes kalau nilainya null.
+// Kolom image_* di table (flat/rata) disusun ULANG di sini jadi object
+// bersarang `image: { src, srcset, sizes, alt, width, height }` - supaya
+// bentuk JSON yang dikirim ke frontend PERSIS SAMA seperti response Phase 2B.
+// script.js (lihat createMenuCardElement()) mengakses product.image.src,
+// product.image.srcset, dst, jadi struktur bersarang ini WAJIB dipertahankan
+// walaupun di database-nya rata/flat.
 app.get('/api/products', (req, res) => {
-  const products = [
-    {
-      id: 1,
-      slug: 'nasigoreng',
-      name: 'Nasi Goreng Spesial',
-      price: 20000,
-      category: 'makanan',
-      image: {
-        src: 'images/nasi-goreng-spesial.jpg',
-        srcset: null,
-        sizes: null,
-        alt: 'Nasi Goreng Spesial',
-        width: 700,
-        height: 467,
-      },
+  const rows = db.prepare('SELECT * FROM products ORDER BY id').all();
+
+  const products = rows.map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    price: row.price,
+    category: row.category,
+    image: {
+      src: row.image_src,
+      srcset: row.image_srcset, // NULL di SQLite otomatis jadi `null` di JS
+      sizes: row.image_sizes,   // sama seperti nilai asli hardcoded dulu
+      alt: row.image_alt,
+      width: row.image_width,
+      height: row.image_height,
     },
-    {
-      id: 2,
-      slug: 'ayamgeprek',
-      name: 'Ayam Geprek Sambal Matah',
-      price: 22000,
-      category: 'makanan',
-      image: {
-        src: 'images/ayam-geprek-sambal-matah.jpg',
-        srcset: null,
-        sizes: null,
-        alt: 'Ayam Geprek Sambal Matah',
-        width: 700,
-        height: 467,
-      },
-    },
-    {
-      id: 3,
-      slug: 'sotoayam',
-      name: 'Soto Ayam Kampung',
-      price: 20000,
-      category: 'makanan',
-      image: {
-        src: 'images/soto-ayam-kampung.jpg',
-        srcset: 'images/soto-ayam-kampung-480w.jpg 480w, images/soto-ayam-kampung.jpg 700w',
-        sizes: '(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px',
-        alt: 'Soto Ayam Kampung',
-        width: 700,
-        height: 467,
-      },
-    },
-    {
-      id: 4,
-      slug: 'mieayam',
-      name: 'Mie Ayam Bakso',
-      price: 18000,
-      category: 'makanan',
-      image: {
-        src: 'images/mie-ayam-bakso.jpg',
-        srcset: 'images/mie-ayam-bakso-480w.jpg 480w, images/mie-ayam-bakso.jpg 559w',
-        sizes: '(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px',
-        alt: 'Mie Ayam Bakso',
-        width: 700,
-        height: 467,
-      },
-    },
-    {
-      id: 5,
-      slug: 'esteh',
-      name: 'Es Teh Manis',
-      price: 5000,
-      category: 'minuman',
-      image: {
-        src: 'images/es-teh-manis.jpg',
-        srcset: 'images/es-teh-manis-480w.jpg 480w, images/es-teh-manis.jpg 700w',
-        sizes: '(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px',
-        alt: 'Es Teh Manis',
-        width: 700,
-        height: 467,
-      },
-    },
-    {
-      id: 6,
-      slug: 'esjeruk',
-      name: 'Es Jeruk Peras',
-      price: 8000,
-      category: 'minuman',
-      image: {
-        src: 'images/es-jeruk-peras.jpg',
-        srcset: 'images/es-jeruk-peras-480w.jpg 480w, images/es-jeruk-peras.jpg 700w',
-        sizes: '(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px',
-        alt: 'Es Jeruk Peras',
-        width: 700,
-        height: 467,
-      },
-    },
-    {
-      id: 7,
-      slug: 'kopisusu',
-      name: 'Kopi Susu Gula Aren',
-      price: 15000,
-      category: 'minuman',
-      image: {
-        src: 'images/kopi-susu-gula-aren.jpg',
-        srcset: 'images/kopi-susu-gula-aren-480w.jpg 480w, images/kopi-susu-gula-aren.jpg 700w',
-        sizes: '(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px',
-        alt: 'Kopi Susu Gula Aren',
-        width: 700,
-        height: 467,
-      },
-    },
-    {
-      id: 8,
-      slug: 'eskelapa',
-      name: 'Es Kelapa Muda',
-      price: 12000,
-      category: 'minuman',
-      image: {
-        src: 'images/es-kelapa-muda.jpg',
-        srcset: 'images/es-kelapa-muda-480w.jpg 480w, images/es-kelapa-muda.jpg 700w',
-        sizes: '(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px',
-        alt: 'Es Kelapa Muda',
-        width: 700,
-        height: 467,
-      },
-    },
-    {
-      id: 9,
-      slug: 'pisanggoreng',
-      name: 'Pisang Goreng Crispy',
-      price: 10000,
-      category: 'snack',
-      image: {
-        src: 'images/pisang-goreng-crispy.jpg',
-        srcset: 'images/pisang-goreng-crispy-480w.jpg 480w, images/pisang-goreng-crispy.jpg 524w',
-        sizes: '(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px',
-        alt: 'Pisang Goreng Crispy',
-        width: 700,
-        height: 467,
-      },
-    },
-    {
-      id: 10,
-      slug: 'risoles',
-      name: 'Risoles Mayo',
-      price: 12000,
-      category: 'snack',
-      image: {
-        src: 'images/risoles-mayo.jpg',
-        srcset: 'images/risoles-mayo-480w.jpg 480w, images/risoles-mayo.jpg 700w',
-        sizes: '(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px',
-        alt: 'Risoles Mayo',
-        width: 700,
-        height: 467,
-      },
-    },
-    {
-      id: 11,
-      slug: 'tahuisi',
-      name: 'Tahu Isi',
-      price: 8000,
-      category: 'snack',
-      image: {
-        src: 'images/tahu-isi.jpg',
-        srcset: 'images/tahu-isi-480w.jpg 480w, images/tahu-isi.jpg 525w',
-        sizes: '(max-width: 768px) 100vw, (max-width: 900px) 50vw, 360px',
-        alt: 'Tahu Isi',
-        width: 700,
-        height: 467,
-      },
-    },
-  ];
+  }));
+
   res.json(products);
 });
 
