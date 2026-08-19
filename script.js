@@ -84,7 +84,15 @@ document.addEventListener("click", (event) => {
 //       Jika filter = "semua" ATAU kategori cocok -> tampilkan card.
 //       Jika tidak cocok -> sembunyikan card dengan menambahkan class "hide".
 const filterButtons = document.querySelectorAll(".filter-btn");
-const menuCards = document.querySelectorAll(".menu-card");
+// "let" (bukan "const") karena saat baris ini pertama kali jalan, kartu menu
+// BELUM ada di DOM (masih menunggu fetch() ke backend selesai - lihat
+// loadMenu() di bagian 3c). NodeList ini sengaja kosong dulu, lalu di-assign
+// ULANG (query ulang ke DOM) di dalam loadMenu() begitu kartu-kartu hasil
+// fetch selesai disisipkan. Semua kode di bawah yang memakai menuCards lewat
+// closure (filter kategori, updateCartSummary, buildOrderMessage, dst) aman
+// karena mereka membaca variabel ini SETIAP dipanggil, bukan menyimpan
+// salinannya sendiri saat didaftarkan.
+let menuCards = document.querySelectorAll(".menu-card");
 
 filterButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -231,13 +239,22 @@ function changeCardQty(card, delta) {
 }
 
 // Pasang tombol +/- di setiap card menu di grid utama.
-menuCards.forEach((card) => {
-  const decreaseBtn = card.querySelector(".qty-decrease");
-  const increaseBtn = card.querySelector(".qty-increase");
+// Dibungkus jadi fungsi (bukan langsung dijalankan di sini seperti versi
+// sebelumnya), karena baris ini butuh kartu-kartu menu SUDAH ada fisik di
+// DOM supaya querySelector(".qty-decrease"/".qty-increase") menemukan
+// sesuatu. Sejak Phase 2B, kartu baru ada setelah fetch() ke backend
+// selesai - jadi fungsi ini dipanggil dari dalam loadMenu() (bagian 3c),
+// TEPAT SETELAH kartu-kartu hasil fetch selesai disisipkan ke #menuGrid,
+// bukan lagi dijalankan di sini di top-level saat kartu belum ada.
+function wireMenuCardQtyButtons() {
+  menuCards.forEach((card) => {
+    const decreaseBtn = card.querySelector(".qty-decrease");
+    const increaseBtn = card.querySelector(".qty-increase");
 
-  decreaseBtn.addEventListener("click", () => changeCardQty(card, -1));
-  increaseBtn.addEventListener("click", () => changeCardQty(card, 1));
-});
+    decreaseBtn.addEventListener("click", () => changeCardQty(card, -1));
+    increaseBtn.addEventListener("click", () => changeCardQty(card, 1));
+  });
+}
 
 // Susun pesan pesanan yang rapi untuk dikirim ke WhatsApp: nama item,
 // jumlah, subtotal per baris, lalu grand total di baris terakhir.
@@ -322,9 +339,147 @@ cartCheckoutBtn.addEventListener("click", () => {
   window.open(url, "_blank", "noopener");
 });
 
-// Tampilkan kondisi awal (keranjang kosong, tombol checkout nonaktif)
-// saat halaman pertama kali dimuat.
-updateCartSummary();
+// ----------------------------------------------------------
+// 3c. AMBIL DATA PRODUK DARI BACKEND (fetch) & RENDER MENU GRID
+// ----------------------------------------------------------
+// Alamat backend Express (lihat server.js) - sengaja ditulis eksplisit
+// (bukan path relatif seperti "/api/products") karena frontend dan backend
+// jalan di ORIGIN yang berbeda (frontend di :5500 lewat Live Server, backend
+// di :3000), jadi fetch() perlu tahu persis ke mana harus mengirim request.
+const API_BASE_URL = "http://localhost:3000";
+
+// Bikin SATU elemen <div class="menu-card"> dari satu objek produk (hasil
+// fetch dari /api/products). Strukturnya dibuat SAMA PERSIS seperti kartu
+// statis yang dulu ditulis manual di index.html (class, atribut ARIA,
+// data-i18n, dst) supaya style.css tetap apply tanpa perlu diubah sama
+// sekali, dan supaya fitur lain (filter kategori baca data-category, cart
+// baca data-price & .qty-value, i18n baca data-i18n) semuanya tetap jalan
+// persis seperti sebelumnya - kartu ini "menyamar" jadi kartu statis di mata
+// kode-kode itu.
+function createMenuCardElement(product) {
+  const card = document.createElement("div");
+  card.className = "menu-card";
+  card.dataset.category = product.category;
+  card.dataset.price = product.price;
+
+  const img = document.createElement("img");
+  img.className = "card-photo";
+  img.src = product.image.src;
+  // srcset/sizes hanya dipasang kalau memang ada nilainya (beberapa produk
+  // tidak punya varian ukuran gambar, sama seperti di HTML aslinya dulu).
+  if (product.image.srcset) img.srcset = product.image.srcset;
+  if (product.image.sizes) img.sizes = product.image.sizes;
+  img.alt = product.image.alt;
+  img.loading = "lazy";
+  img.width = product.image.width;
+  img.height = product.image.height;
+
+  const body = document.createElement("div");
+  body.className = "menu-card-body";
+
+  const top = document.createElement("div");
+  top.className = "menu-card-top";
+
+  const h3 = document.createElement("h3");
+  h3.setAttribute("data-i18n", `product.${product.slug}.name`);
+  h3.textContent = product.name;
+
+  const priceEl = document.createElement("span");
+  priceEl.className = "price";
+  priceEl.textContent = formatRupiah(product.price);
+
+  top.append(h3, priceEl);
+
+  const desc = document.createElement("p");
+  desc.setAttribute("data-i18n", `product.${product.slug}.desc`);
+  // Diisi teks bahasa Indonesia dulu sebagai fallback (sama seperti kartu
+  // statis lama, teksnya ditulis di HTML sebagai default sebelum JS ganti
+  // bahasa) - applyLanguage() akan langsung menimpanya begitu dipanggil di
+  // akhir loadMenu().
+  desc.textContent = translations.id[`product.${product.slug}.desc`] || "";
+
+  const controls = document.createElement("div");
+  controls.className = "cart-controls";
+  controls.setAttribute("role", "group");
+  controls.setAttribute("data-i18n-aria", "cart.qtyGroup");
+  controls.setAttribute("aria-label", "Jumlah pesanan");
+
+  const decreaseBtn = document.createElement("button");
+  decreaseBtn.type = "button";
+  decreaseBtn.className = "qty-btn qty-decrease";
+  decreaseBtn.setAttribute("data-i18n-aria", "cart.decrease");
+  decreaseBtn.setAttribute("aria-label", "Kurangi jumlah");
+  decreaseBtn.innerHTML = "&minus;";
+
+  const qtyValue = document.createElement("span");
+  qtyValue.className = "qty-value";
+  qtyValue.setAttribute("aria-live", "polite");
+  qtyValue.textContent = "0";
+
+  const increaseBtn = document.createElement("button");
+  increaseBtn.type = "button";
+  increaseBtn.className = "qty-btn qty-increase";
+  increaseBtn.setAttribute("data-i18n-aria", "cart.increase");
+  increaseBtn.setAttribute("aria-label", "Tambah jumlah");
+  increaseBtn.innerHTML = "+";
+
+  controls.append(decreaseBtn, qtyValue, increaseBtn);
+  body.append(top, desc, controls);
+  card.append(img, body);
+  return card;
+}
+
+// Ambil daftar produk dari backend, lalu render jadi kartu-kartu di
+// #menuGrid. Dipanggil sekali saat halaman dimuat (lihat pemanggilan di
+// bawah fungsi ini).
+//
+// Urutan penting di dalam try setelah render:
+// 1. Query ulang ".menu-card" (sekarang sudah ADA di DOM) -> assign ulang ke
+//    variabel "menuCards" yang dipakai fitur filter/cart/panel di atas.
+// 2. wireMenuCardQtyButtons() -> pasang listener +/- ke kartu-kartu yang baru
+//    saja dibuat (kartu lama tidak pernah punya listener ini sama sekali).
+// 3. updateCartSummary() -> hitung ulang bar keranjang (sebelumnya dipanggil
+//    langsung di top-level, sekarang dipindah ke sini karena harus menunggu
+//    kartu ada dulu).
+// 4. applyLanguage() -> isi teks nama/deskripsi produk sesuai bahasa aktif,
+//    karena kartu baru dibuat dengan teks default Indonesia di atas.
+async function loadMenu() {
+  const menuGrid = document.getElementById("menuGrid");
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/products`);
+    if (!response.ok) throw new Error(`Request gagal dengan status ${response.status}`);
+
+    const products = await response.json();
+
+    menuGrid.innerHTML = "";
+    products.forEach((product) => {
+      menuGrid.appendChild(createMenuCardElement(product));
+    });
+
+    menuCards = document.querySelectorAll(".menu-card");
+    wireMenuCardQtyButtons();
+    updateCartSummary();
+    applyLanguage(document.documentElement.lang);
+  } catch (error) {
+    // Error TIDAK disembunyikan dari user - ditampilkan pesan sederhana di
+    // area menu (bukan crash/blank), sekaligus dicatat ke console supaya
+    // developer bisa lihat detail error aslinya saat debugging.
+    console.error("Gagal memuat menu dari backend:", error);
+    const isEnglish = document.documentElement.lang === "en";
+    menuGrid.innerHTML = `<p class="menu-error">${
+      isEnglish
+        ? "Failed to load menu. Please make sure the backend server is running."
+        : "Gagal memuat menu. Pastikan server backend sedang berjalan."
+    }</p>`;
+  }
+}
+
+// Ambil & render menu saat halaman pertama kali dimuat. Menggantikan
+// pemanggilan updateCartSummary() yang dulu ada di sini langsung - sekarang
+// updateCartSummary() dipanggil DARI DALAM loadMenu() (lihat di atas),
+// setelah kartu-kartu produk selesai dirender, bukan lagi dipanggil di sini
+// saat kartu belum tentu ada.
+loadMenu();
 
 // ----------------------------------------------------------
 // 3b. PANEL DETAIL PESANAN (LIHAT ISI KERANJANG)
@@ -670,6 +825,7 @@ const translations = {
 
     "menu.label": "Menu Kami",
     "menu.title": "Pilihan Favorit Pelanggan",
+    "menu.loading": "Memuat menu...",
     "filter.semua": "Semua",
     "filter.makanan": "Makanan",
     "filter.minuman": "Minuman",
@@ -755,6 +911,7 @@ const translations = {
 
     "menu.label": "Our Menu",
     "menu.title": "Customer Favorites",
+    "menu.loading": "Loading menu...",
     "filter.semua": "All",
     "filter.makanan": "Food",
     "filter.minuman": "Drinks",
@@ -824,13 +981,17 @@ const translations = {
 };
 
 const langButtons = document.querySelectorAll(".lang-btn");
-const i18nElements = document.querySelectorAll("[data-i18n]");
-// Beberapa elemen (misalnya tombol +/- kuantitas keranjang) tidak punya teks
-// biasa untuk diganti innerHTML-nya - teksnya justru disimpan di atribut
-// aria-label supaya terbaca oleh screen reader (tombolnya sendiri hanya
-// berisi simbol "−"/"+"). Elemen seperti ini diberi atribut data-i18n-aria
-// sebagai pasangan dari data-i18n, supaya tetap ikut berganti bahasa.
-const i18nAriaElements = document.querySelectorAll("[data-i18n-aria]");
+// CATATAN: dulu di sini ada i18nElements/i18nAriaElements yang di-query
+// SEKALI saja lewat querySelectorAll (dicache di variabel top-level). Itu
+// masalah sejak Phase 2B: kartu produk (dan atribut data-i18n/data-i18n-aria
+// di dalamnya) baru muncul di DOM belakangan, setelah fetch() ke backend
+// selesai (lihat loadMenu()) - jauh SETELAH baris ini pertama kali jalan.
+// NodeList lama itu tidak akan pernah "melihat" elemen yang baru muncul
+// kemudian. Solusinya: applyLanguage() di bawah sekarang query ULANG
+// document.querySelectorAll("[data-i18n]"/"[data-i18n-aria]") secara LIVE
+// setiap kali dipanggil, supaya selalu menemukan elemen yang ada di DOM
+// SAAT ITU JUGA - baik elemen statis dari awal maupun kartu produk yang baru
+// disisipkan loadMenu().
 
 // localStorage bisa melempar error di beberapa browser (misal Safari Private Browsing),
 // jadi dibungkus try/catch supaya fitur ganti bahasa tidak ikut rusak kalau itu terjadi.
@@ -851,15 +1012,18 @@ function setStoredLang(lang) {
 }
 
 function applyLanguage(lang) {
-  i18nElements.forEach((el) => {
+  // Query ULANG setiap kali dipanggil (bukan pakai NodeList yang di-cache di
+  // top-level) - lihat catatan di atas deklarasi langButtons untuk alasannya.
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
     const text = translations[lang][key];
     if (text !== undefined) el.innerHTML = text;
   });
 
   // Sama seperti di atas, tapi hasilnya dipasang ke atribut aria-label,
-  // bukan innerHTML (lihat komentar pada deklarasi i18nAriaElements).
-  i18nAriaElements.forEach((el) => {
+  // bukan innerHTML (dipakai elemen seperti tombol +/- kuantitas keranjang
+  // yang teksnya cuma simbol "−"/"+", bukan teks biasa untuk screen reader).
+  document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
     const key = el.getAttribute("data-i18n-aria");
     const text = translations[lang][key];
     if (text !== undefined) el.setAttribute("aria-label", text);

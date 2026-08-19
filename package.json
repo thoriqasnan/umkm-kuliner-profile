@@ -1,0 +1,15 @@
+{
+  "name": "umkm-kuliner-profile",
+  "version": "1.0.0",
+  "description": "Backend Node.js + Express untuk UMKM Sari Rasa",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
+}
