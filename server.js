@@ -84,10 +84,17 @@ app.get('/api/health', (req, res) => {
 // script.js (lihat createMenuCardElement()) mengakses product.image.src,
 // product.image.srcset, dst, jadi struktur bersarang ini WAJIB dipertahankan
 // walaupun di database-nya rata/flat.
-app.get('/api/products', (req, res) => {
-  const rows = db.prepare('SELECT * FROM products ORDER BY id').all();
-
-  const products = rows.map((row) => ({
+// --- Helper Phase 3B-2: susun ulang satu row database jadi bentuk product ---
+// Baik GET /api/products (banyak baris) maupun GET /api/products/:id (satu
+// baris) BUTUH transformasi yang SAMA PERSIS: kolom flat image_* di table
+// disusun ulang jadi object bersarang `image: {...}`. Daripada tulis ulang
+// object literal ini dua kali (dan berisiko suatu saat cuma salah satu yang
+// diupdate kalau ada perubahan struktur), logikanya di-extract jadi satu
+// function kecil yang dipanggil dari dua tempat. Ini BUKAN "refactor besar" -
+// cuma memindahkan literal object yang sudah ada ke sebuah function, tanpa
+// mengubah sedikit pun nilai/urutan field yang dihasilkan.
+function mapRowToProduct(row) {
+  return {
     id: row.id,
     slug: row.slug,
     name: row.name,
@@ -101,9 +108,70 @@ app.get('/api/products', (req, res) => {
       width: row.image_width,
       height: row.image_height,
     },
-  }));
+  };
+}
 
+app.get('/api/products', (req, res) => {
+  const rows = db.prepare('SELECT * FROM products ORDER BY id').all();
+  const products = rows.map(mapRowToProduct);
   res.json(products);
+});
+
+// --- Route Phase 3B-2: ambil SATU produk berdasarkan ID (READ single) ---
+// Bedanya dengan GET /api/products di atas (yang ambil SEMUA produk): route
+// ini menerima id lewat URL, misal GET /api/products/5, lalu cuma
+// mengembalikan SATU product yang id-nya cocok (atau 404 kalau tidak ada).
+//
+// `:id` di path adalah ROUTE PARAMETER - placeholder di URL yang nilainya
+// ditangkap Express dan dimasukkan ke `req.params.id`. Kalau client request
+// GET /api/products/5, maka req.params.id === '5' (STRING, bukan number -
+// semua bagian URL selalu berupa teks, walaupun isinya kelihatan seperti
+// angka).
+app.get('/api/products/:id', (req, res) => {
+  // --- Validasi format id SEBELUM dipakai untuk query database ---
+  // req.params.id masih berupa string mentah dari URL, jadi harus dicek dulu
+  // apakah dia representasi angka bulat positif yang valid, sebelum dipakai
+  // sebagai primary key integer. Ditolak semua yang: bukan angka sama sekali
+  // ("abc"), desimal ("1.5"), negatif ("-1"), atau nol ("0") - karena kolom
+  // `id` di table adalah INTEGER PRIMARY KEY yang di-generate mulai dari 1.
+  //
+  // Number(...) mengubah string jadi number ("abc" -> NaN, "1.5" -> 1.5,
+  // "-1" -> -1, "5" -> 5). Number.isInteger menolak NaN dan desimal
+  // sekaligus. Ditambah cek `> 0` untuk menolak 0/negatif.
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: `ID produk '${req.params.id}' tidak valid, harus berupa angka bulat positif` });
+  }
+
+  try {
+    // --- Parameterized query, ambil SATU baris saja ---
+    // Bedanya dengan `.all()` di GET /api/products: `.get()` cuma
+    // mengembalikan baris PERTAMA yang cocok (atau `undefined` kalau tidak
+    // ada baris yang cocok sama sekali) - cocok karena `id` adalah PRIMARY
+    // KEY, jadi paling banyak cuma ada satu baris yang bisa match.
+    //
+    // `WHERE id = ?` + argumen terpisah di `.get(id)` (BUKAN ditempel
+    // langsung ke string SQL) - prinsip yang sama seperti INSERT di POST
+    // /api/products: mencegah SQL injection, karena nilai `id` diperlakukan
+    // murni sebagai DATA oleh SQLite, bukan bagian dari perintah SQL.
+    const row = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+
+    if (!row) {
+      // 404 Not Found: format id-nya VALID (angka bulat positif), tapi
+      // tidak ada produk dengan id tersebut di database. Beda dengan 400 di
+      // atas (format request-nya sendiri yang salah).
+      return res.status(404).json({ error: `Produk dengan id ${id} tidak ditemukan` });
+    }
+
+    res.json(mapRowToProduct(row));
+  } catch (err) {
+    // Konsisten dengan pola error handling di POST /api/products: detail
+    // error database di-log ke console server saja, client cukup dapat
+    // pesan generik + 500, supaya tidak membocorkan detail internal.
+    console.error('[GET /api/products/:id] Gagal ambil produk:', err);
+    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
+  }
 });
 
 // --- Route Phase 3B-1: tambah produk baru (CREATE) ---
