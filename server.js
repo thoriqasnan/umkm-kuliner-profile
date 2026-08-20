@@ -508,6 +508,77 @@ app.put('/api/products/:id', (req, res) => {
   }
 });
 
+// --- Route Phase 3B-4: hapus produk berdasarkan ID (DELETE) ---
+// Bedanya dengan GET/POST/PUT di atas: route ini MENGHAPUS baris dari table
+// secara PERMANEN (bukan cuma "menandai" produk sebagai tidak aktif/soft-
+// delete). Method HTTP yang dipakai untuk "hapus resource" secara konvensi
+// adalah DELETE. Dengan ini, keempat operasi CRUD (Create/Read/Update/
+// Delete) sudah lengkap: POST=Create, GET=Read, PUT=Update, DELETE=Delete.
+//
+// DELETE tidak butuh request body sama sekali - satu-satunya informasi yang
+// dibutuhkan cuma "produk MANA yang mau dihapus", dan itu sudah cukup
+// didapat dari id di URL (req.params.id).
+app.delete('/api/products/:id', (req, res) => {
+  // --- Validasi format id, SAMA PERSIS dengan GET/PUT /api/products/:id ---
+  // Dilakukan PALING AWAL, SEBELUM menyentuh database sama sekali - kalau id
+  // di URL saja sudah tidak valid formatnya, tidak ada gunanya (dan tidak
+  // aman) lanjut ke query apa pun, apalagi query DELETE.
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: `ID produk '${req.params.id}' tidak valid, harus berupa angka bulat positif` });
+  }
+
+  // PENTING: `id` yang dipakai di seluruh route ini SELALU berasal dari
+  // req.params.id (URL), TIDAK PERNAH dari req.body. Client BOLEH saja
+  // mengirim body seperti `{"id": 9999}` di request DELETE, tapi body itu
+  // TIDAK PERNAH dibaca sama sekali di route ini - req.body bahkan tidak
+  // disentuh di bawah. Kalau client kirim DELETE /api/products/5 dengan
+  // body `{"id": 9999}`, yang dihapus tetap produk id=5 (dari URL), BUKAN
+  // id=9999 (dari body).
+
+  try {
+    // --- Existence check SEBELUM delete ---
+    // Sama seperti PUT: tanpa cek ini, `DELETE FROM products WHERE id = ?`
+    // terhadap id yang tidak ada di database TIDAK akan error - SQLite cuma
+    // diam-diam "menghapus 0 baris". Supaya bisa membedakan dengan jelas
+    // "404 produk tidak ada" vs "204 berhasil dihapus", kita SELECT dulu di
+    // sini untuk memastikan produknya benar-benar ada SEBELUM DELETE
+    // dijalankan.
+    const existingRow = db.prepare('SELECT id FROM products WHERE id = ?').get(id);
+
+    if (!existingRow) {
+      return res.status(404).json({ error: `Produk dengan id ${id} tidak ditemukan` });
+    }
+
+    // --- Parameterized DELETE (WAJIB, anti SQL injection) ---
+    // Sama seperti INSERT/UPDATE di POST/PUT: `WHERE id = ?` + argumen
+    // terpisah di `.run(id)` (BUKAN ditempel langsung ke string SQL/string
+    // concatenation). Nilai `id` diperlakukan MURNI sebagai data oleh
+    // SQLite, bukan bagian dari perintah SQL - jadi walaupun ada yang
+    // mencoba mengirim sesuatu seperti "1;DROP TABLE products--" di URL,
+    // nilai itu akan gagal di validasi Number.isInteger di atas (bukan
+    // angka murni) dan tidak akan pernah sampai ke query ini.
+    db.prepare('DELETE FROM products WHERE id = ?').run(id);
+
+    // --- 204 No Content: sukses, TANPA body sama sekali ---
+    // Beda dengan 200/201 yang biasanya diikuti JSON body berisi data hasil
+    // operasi: 204 secara konvensi HTTP berarti "berhasil, tapi memang tidak
+    // ada apa pun yang perlu dikirim balik" - masuk akal untuk DELETE, karena
+    // resource-nya sudah tidak ada lagi untuk ditampilkan. res.status(204)
+    // .end() memastikan response BENAR-BENAR tidak punya body (beda dengan
+    // res.status(204).json(...) yang tetap mengisi body walau statusnya 204,
+    // yang menyalahi konvensi HTTP untuk status 204).
+    res.status(204).end();
+  } catch (err) {
+    // Error database lain yang tak terduga: JANGAN kirim err.message/stack ke
+    // client, cukup log ke console server + pesan generik + 500, konsisten
+    // dengan pola GET/POST/PUT di atas.
+    console.error('[DELETE /api/products/:id] Gagal hapus produk:', err);
+    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
+  }
+});
+
 // --- 404 handler ---
 // Jalan kalau tidak ada route di atas yang cocok dengan request-nya.
 app.use((req, res) => {
