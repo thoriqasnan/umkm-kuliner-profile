@@ -336,6 +336,178 @@ app.post('/api/products', (req, res) => {
   }
 });
 
+// --- Route Phase 3B-3: update produk yang SUDAH ADA (UPDATE / full replace) ---
+// Bedanya dengan POST di atas (yang MEMBUAT baris baru): route ini MENGUBAH
+// baris yang sudah ada, dicari berdasarkan id di URL. Method HTTP yang
+// dipakai untuk "ubah resource yang sudah ada" secara konvensi adalah PUT
+// (atau PATCH untuk update sebagian - tapi PATCH SENGAJA belum dibuat di
+// phase ini, di luar scope).
+//
+// PUT secara konvensi HTTP berarti FULL REPLACE: client WAJIB mengirim
+// SEMUA field (slug, name, price, category, image lengkap), bukan cuma
+// field yang mau diubah. Kalau cuma mau ubah price saja tapi lupa mengirim
+// name, request ini akan DITOLAK 400 (bukan dianggap "name tidak berubah").
+// Itu sebabnya validasi di bawah PERSIS memakai pola "wajib" yang sama
+// seperti POST /api/products - bukan validasi yang lebih longgar.
+app.put('/api/products/:id', (req, res) => {
+  // --- Validasi format id, SAMA PERSIS dengan GET /api/products/:id ---
+  // Dilakukan PALING AWAL, sebelum menyentuh database sama sekali - kalau
+  // id di URL saja sudah tidak valid, tidak ada gunanya lanjut query.
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: `ID produk '${req.params.id}' tidak valid, harus berupa angka bulat positif` });
+  }
+
+  try {
+    // --- Pastikan produk dengan id ini benar-benar ada, SEBELUM update ---
+    // Tanpa cek ini, UPDATE ... WHERE id = ? terhadap id yang tidak ada di
+    // database tidak akan error - SQLite cuma diam-diam "mengubah 0 baris"
+    // (info.changes === 0), yang kalau tidak dicek akan terkesan seperti
+    // sukses padahal tidak ada apa-apa yang terjadi. SELECT dulu di sini
+    // memastikan kita bisa balas 404 yang jelas SEBELUM melakukan UPDATE
+    // apa pun, konsisten dengan pola GET /api/products/:id.
+    const existingRow = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+
+    if (!existingRow) {
+      return res.status(404).json({ error: `Produk dengan id ${id} tidak ditemukan` });
+    }
+
+    // req.body bisa `undefined`/`{}` kalau client tidak mengirim body sama
+    // sekali - fallback ke {} supaya destructuring di bawah tidak error.
+    const body = req.body || {};
+    const { slug, name, price, category, image } = body;
+
+    // PENTING: `id` dari req.body (kalau client mengirimnya) SENGAJA TIDAK
+    // PERNAH dibaca/dipakai di route ini. Satu-satunya sumber kebenaran
+    // untuk "produk mana yang di-update" adalah `req.params.id` (dari URL)
+    // yang sudah divalidasi & dipakai di atas. Kalau client mengirim
+    // `{"id": 9999, ...}` ke PUT /api/products/5, baris yang berubah tetap
+    // id=5 - nilai 9999 di body diabaikan total (tidak pernah muncul lagi
+    // di kode di bawah ini).
+
+    const isNonEmptyString = (v) => typeof v === 'string' && v.trim().length > 0;
+    const isPositiveNumber = (v) => typeof v === 'number' && Number.isFinite(v) && v > 0;
+
+    // --- Validasi field wajib, SAMA PERSIS pola/semangatnya dengan POST ---
+    // PUT = full replace, jadi SEMUA field ini tetap wajib diisi lengkap
+    // (bukan partial/opsional seperti PATCH yang belum ada di phase ini).
+    const errors = [];
+
+    if (!isNonEmptyString(slug)) {
+      errors.push('slug wajib diisi berupa teks dan tidak boleh kosong/spasi saja');
+    }
+    if (!isNonEmptyString(name)) {
+      errors.push('name wajib diisi berupa teks dan tidak boleh kosong/spasi saja');
+    }
+    if (!isNonEmptyString(category)) {
+      errors.push('category wajib diisi berupa teks dan tidak boleh kosong/spasi saja');
+    }
+    if (typeof price !== 'number' || !Number.isFinite(price) || price < 0) {
+      errors.push('price wajib berupa angka (number), tidak boleh negatif, dan tidak boleh NaN');
+    }
+    if (!image || typeof image !== 'object') {
+      errors.push('image wajib diisi berupa object berisi src, alt, width, height');
+    } else {
+      if (!isNonEmptyString(image.src)) {
+        errors.push('image.src wajib diisi berupa teks dan tidak boleh kosong/spasi saja');
+      }
+      if (!isNonEmptyString(image.alt)) {
+        errors.push('image.alt wajib diisi berupa teks dan tidak boleh kosong/spasi saja');
+      }
+      if (!isPositiveNumber(image.width)) {
+        errors.push('image.width wajib berupa angka positif');
+      }
+      if (!isPositiveNumber(image.height)) {
+        errors.push('image.height wajib berupa angka positif');
+      }
+    }
+
+    // Kalau ADA SATU SAJA field yang tidak valid, HENTIKAN di sini - jangan
+    // lanjut ke UPDATE sama sekali (all-or-nothing, bukan partial update).
+    // Baris existingRow yang sudah di-SELECT di atas TIDAK disentuh/ditulis
+    // ulang ke database - jadi data lama otomatis tetap utuh tanpa perlu
+    // rollback apa pun.
+    if (errors.length > 0) {
+      return res.status(400).json({ error: 'Validasi gagal', details: errors });
+    }
+
+    // --- Cek slug unik SEBELUM update, TAPI kecualikan produk ini sendiri ---
+    // Bedanya dengan cek slug di POST: di POST tidak ada "diri sendiri" untuk
+    // dikecualikan (produknya belum ada). Di PUT, produk yang SEDANG
+    // di-update boleh saja "update ke slug yang sama seperti sebelumnya"
+    // (misal client kirim ulang slug lama tanpa berubah) - itu BUKAN
+    // konflik. Makanya query di bawah pakai `AND id != ?`: cari slug yang
+    // sama tapi DIMILIKI PRODUK LAIN (id berbeda). Kalau ketemu, baru
+    // dianggap konflik.
+    const slugConflict = db.prepare('SELECT id FROM products WHERE slug = ? AND id != ?').get(slug, id);
+    if (slugConflict) {
+      return res.status(409).json({ error: `Produk dengan slug '${slug}' sudah dipakai` });
+    }
+
+    // --- Parameterized UPDATE (WAJIB, anti SQL injection) ---
+    // Sama seperti INSERT di POST: SQL string di bawah HANYA berisi
+    // placeholder (@slug, @name, dst, @id), nilai sebenarnya dikirim
+    // TERPISAH lewat object di `.run({...})` - bukan ditempel langsung ke
+    // string SQL. `WHERE id = @id` memastikan HANYA baris dengan id ini
+    // yang berubah, baris produk lain tidak tersentuh sama sekali.
+    const update = db.prepare(`
+      UPDATE products SET
+        slug = @slug,
+        name = @name,
+        price = @price,
+        category = @category,
+        image_src = @image_src,
+        image_srcset = @image_srcset,
+        image_sizes = @image_sizes,
+        image_alt = @image_alt,
+        image_width = @image_width,
+        image_height = @image_height
+      WHERE id = @id
+    `);
+
+    update.run({
+      id,
+      slug,
+      name,
+      price,
+      category,
+      image_src: image.src,
+      // ?? null: konsisten dengan POST - srcset/sizes yang tidak dikirim
+      // (undefined) atau eksplisit null, dua-duanya disimpan sebagai NULL.
+      image_srcset: image.srcset ?? null,
+      image_sizes: image.sizes ?? null,
+      image_alt: image.alt,
+      image_width: image.width,
+      image_height: image.height,
+    });
+
+    // SELECT ulang baris yang baru saja di-update, supaya response ke
+    // client berisi data PERSIS seperti yang tersimpan di database.
+    // mapRowToProduct() dipakai lagi di sini (helper yang sama yang dipakai
+    // GET /api/products & GET /api/products/:id) - TIDAK menulis ulang
+    // logic penyusunan object image dari nol.
+    const updatedRow = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+
+    res.json({ message: 'Produk berhasil diupdate', product: mapRowToProduct(updatedRow) });
+  } catch (err) {
+    // Lapis kedua jaga-jaga race condition: dua request PUT dengan slug
+    // baru yang sama nyaris bersamaan bisa lolos cek slugConflict di atas
+    // tapi bentrok saat UPDATE benar-benar dijalankan. better-sqlite3
+    // melempar error dengan `code === 'SQLITE_CONSTRAINT_UNIQUE'` kalau
+    // constraint UNIQUE pada kolom slug dilanggar.
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return res.status(409).json({ error: `Produk dengan slug '${req.body?.slug}' sudah dipakai` });
+    }
+
+    // Error database lain yang tak terduga: JANGAN kirim err.message/stack
+    // ke client, cukup log ke console server + pesan generik + 500,
+    // konsisten dengan pola POST /api/products.
+    console.error('[PUT /api/products/:id] Gagal update produk:', err);
+    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
+  }
+});
+
 // --- 404 handler ---
 // Jalan kalau tidak ada route di atas yang cocok dengan request-nya.
 app.use((req, res) => {
