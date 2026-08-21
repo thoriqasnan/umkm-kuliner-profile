@@ -112,9 +112,22 @@ function mapRowToProduct(row) {
 }
 
 app.get('/api/products', (req, res) => {
-  const rows = db.prepare('SELECT * FROM products ORDER BY id').all();
-  const products = rows.map(mapRowToProduct);
-  res.json(products);
+  // --- Phase 3B-5: dibungkus try/catch supaya KONSISTEN dengan endpoint lain ---
+  // Sebelumnya route ini TIDAK punya try/catch sama sekali (beda dengan
+  // GET/POST/PUT/DELETE /api/products/:id yang semuanya sudah punya). Kalau
+  // query di bawah gagal (misal file database korup/terkunci), tanpa
+  // try/catch ini Express 5 tetap otomatis menangkapnya lewat error handler
+  // global di akhir file - TAPI supaya pesan log-nya jelas menyebut endpoint
+  // mana yang gagal (sama seperti pola di endpoint lain), errornya ditangkap
+  // eksplisit di sini juga.
+  try {
+    const rows = db.prepare('SELECT * FROM products ORDER BY id').all();
+    const products = rows.map(mapRowToProduct);
+    res.json(products);
+  } catch (err) {
+    console.error('[GET /api/products] Gagal ambil daftar produk:', err);
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
+  }
 });
 
 // --- Route Phase 3B-2: ambil SATU produk berdasarkan ID (READ single) ---
@@ -141,7 +154,7 @@ app.get('/api/products/:id', (req, res) => {
   const id = Number(req.params.id);
 
   if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ error: `ID produk '${req.params.id}' tidak valid, harus berupa angka bulat positif` });
+    return res.status(400).json({ status: 'error', message: `ID produk '${req.params.id}' tidak valid, harus berupa angka bulat positif` });
   }
 
   try {
@@ -161,7 +174,7 @@ app.get('/api/products/:id', (req, res) => {
       // 404 Not Found: format id-nya VALID (angka bulat positif), tapi
       // tidak ada produk dengan id tersebut di database. Beda dengan 400 di
       // atas (format request-nya sendiri yang salah).
-      return res.status(404).json({ error: `Produk dengan id ${id} tidak ditemukan` });
+      return res.status(404).json({ status: 'error', message: `Produk dengan id ${id} tidak ditemukan` });
     }
 
     res.json(mapRowToProduct(row));
@@ -170,7 +183,7 @@ app.get('/api/products/:id', (req, res) => {
     // error database di-log ke console server saja, client cukup dapat
     // pesan generik + 500, supaya tidak membocorkan detail internal.
     console.error('[GET /api/products/:id] Gagal ambil produk:', err);
-    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
   }
 });
 
@@ -245,7 +258,7 @@ app.post('/api/products', (req, res) => {
   // INSERT sama sekali. HTTP 400 Bad Request = "request kamu salah/tidak
   // lengkap", beda dengan 500 yang berarti "server kami yang error".
   if (errors.length > 0) {
-    return res.status(400).json({ error: 'Validasi gagal', details: errors });
+    return res.status(400).json({ status: 'error', message: 'Validasi gagal', details: errors });
   }
 
   // --- Cek slug unik SEBELUM insert ---
@@ -254,7 +267,7 @@ app.post('/api/products', (req, res) => {
   // ambil SATU baris (atau `undefined` kalau tidak ketemu).
   const existing = db.prepare('SELECT id FROM products WHERE slug = ?').get(slug);
   if (existing) {
-    return res.status(409).json({ error: `Produk dengan slug '${slug}' sudah dipakai` });
+    return res.status(409).json({ status: 'error', message: `Produk dengan slug '${slug}' sudah dipakai` });
   }
 
   try {
@@ -323,7 +336,7 @@ app.post('/api/products', (req, res) => {
     // melempar error dengan `code === 'SQLITE_CONSTRAINT_UNIQUE'` kalau
     // constraint UNIQUE dilanggar.
     if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      return res.status(409).json({ error: `Produk dengan slug '${slug}' sudah dipakai` });
+      return res.status(409).json({ status: 'error', message: `Produk dengan slug '${slug}' sudah dipakai` });
     }
 
     // Untuk error database lain yang tak terduga: JANGAN kirim err.message
@@ -332,7 +345,7 @@ app.post('/api/products', (req, res) => {
     // dimanfaatkan orang jahat). Detail lengkapnya cukup di-log ke console
     // server untuk kita debug sendiri; client cuma dapat pesan aman + 500.
     console.error('[POST /api/products] Gagal insert produk:', err);
-    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
   }
 });
 
@@ -356,7 +369,7 @@ app.put('/api/products/:id', (req, res) => {
   const id = Number(req.params.id);
 
   if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ error: `ID produk '${req.params.id}' tidak valid, harus berupa angka bulat positif` });
+    return res.status(400).json({ status: 'error', message: `ID produk '${req.params.id}' tidak valid, harus berupa angka bulat positif` });
   }
 
   try {
@@ -370,7 +383,7 @@ app.put('/api/products/:id', (req, res) => {
     const existingRow = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
 
     if (!existingRow) {
-      return res.status(404).json({ error: `Produk dengan id ${id} tidak ditemukan` });
+      return res.status(404).json({ status: 'error', message: `Produk dengan id ${id} tidak ditemukan` });
     }
 
     // req.body bisa `undefined`/`{}` kalau client tidak mengirim body sama
@@ -429,7 +442,7 @@ app.put('/api/products/:id', (req, res) => {
     // ulang ke database - jadi data lama otomatis tetap utuh tanpa perlu
     // rollback apa pun.
     if (errors.length > 0) {
-      return res.status(400).json({ error: 'Validasi gagal', details: errors });
+      return res.status(400).json({ status: 'error', message: 'Validasi gagal', details: errors });
     }
 
     // --- Cek slug unik SEBELUM update, TAPI kecualikan produk ini sendiri ---
@@ -442,7 +455,7 @@ app.put('/api/products/:id', (req, res) => {
     // dianggap konflik.
     const slugConflict = db.prepare('SELECT id FROM products WHERE slug = ? AND id != ?').get(slug, id);
     if (slugConflict) {
-      return res.status(409).json({ error: `Produk dengan slug '${slug}' sudah dipakai` });
+      return res.status(409).json({ status: 'error', message: `Produk dengan slug '${slug}' sudah dipakai` });
     }
 
     // --- Parameterized UPDATE (WAJIB, anti SQL injection) ---
@@ -497,14 +510,14 @@ app.put('/api/products/:id', (req, res) => {
     // melempar error dengan `code === 'SQLITE_CONSTRAINT_UNIQUE'` kalau
     // constraint UNIQUE pada kolom slug dilanggar.
     if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      return res.status(409).json({ error: `Produk dengan slug '${req.body?.slug}' sudah dipakai` });
+      return res.status(409).json({ status: 'error', message: `Produk dengan slug '${req.body?.slug}' sudah dipakai` });
     }
 
     // Error database lain yang tak terduga: JANGAN kirim err.message/stack
     // ke client, cukup log ke console server + pesan generik + 500,
     // konsisten dengan pola POST /api/products.
     console.error('[PUT /api/products/:id] Gagal update produk:', err);
-    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
   }
 });
 
@@ -526,7 +539,7 @@ app.delete('/api/products/:id', (req, res) => {
   const id = Number(req.params.id);
 
   if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ error: `ID produk '${req.params.id}' tidak valid, harus berupa angka bulat positif` });
+    return res.status(400).json({ status: 'error', message: `ID produk '${req.params.id}' tidak valid, harus berupa angka bulat positif` });
   }
 
   // PENTING: `id` yang dipakai di seluruh route ini SELALU berasal dari
@@ -548,7 +561,7 @@ app.delete('/api/products/:id', (req, res) => {
     const existingRow = db.prepare('SELECT id FROM products WHERE id = ?').get(id);
 
     if (!existingRow) {
-      return res.status(404).json({ error: `Produk dengan id ${id} tidak ditemukan` });
+      return res.status(404).json({ status: 'error', message: `Produk dengan id ${id} tidak ditemukan` });
     }
 
     // --- Parameterized DELETE (WAJIB, anti SQL injection) ---
@@ -575,22 +588,56 @@ app.delete('/api/products/:id', (req, res) => {
     // client, cukup log ke console server + pesan generik + 500, konsisten
     // dengan pola GET/POST/PUT di atas.
     console.error('[DELETE /api/products/:id] Gagal hapus produk:', err);
-    res.status(500).json({ error: 'Terjadi kesalahan pada server' });
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
   }
 });
 
 // --- 404 handler ---
-// Jalan kalau tidak ada route di atas yang cocok dengan request-nya.
+// Jalan kalau tidak ada route di atas yang cocok dengan request-nya (baik
+// route API seperti GET /api/nonexistent atau GET /api/products/unknown/
+// endpoint, MAUPUN route non-API sembarangan seperti GET /apa-saja). Sengaja
+// TIDAK dibedakan "API vs bukan API" di sini - route non-API yang memang ada
+// (/, /menu, /about, /api/health) sudah didefinisikan lebih dulu di atas dan
+// tidak pernah sampai ke handler ini; yang sampai ke sini pasti benar-benar
+// tidak dikenal, jadi format JSON konsisten ini aman dipakai untuk semuanya
+// (Phase 3B-5: sebelumnya `{ error: 'Not Found' }`, sekarang diseragamkan
+// dengan format error di seluruh endpoint /api/products).
 app.use((req, res) => {
-  res.status(404).json({ error: 'Not Found' });
+  res.status(404).json({ status: 'error', message: 'Route tidak ditemukan' });
 });
 
 // --- Error handler ---
-// Jalan kalau ada route yang melempar error (lewat `next(err)` atau exception).
-// Middleware ini dikenali Express karena punya 4 parameter (err, req, res, next).
+// Jalan kalau ada middleware/route yang melempar error (lewat `next(err)`
+// atau exception - termasuk exception SINKRON, yang di Express 5 otomatis
+// diteruskan ke sini tanpa perlu try/catch manual di setiap route). Express
+// mengenali middleware ini SEBAGAI error handler karena punya 4 parameter
+// (err, req, res, next) - bukan karena namanya atau urutan definisinya.
 app.use((err, req, res, next) => {
+  // --- Phase 3B-5: tangani malformed JSON body secara spesifik ---
+  // express.json() (dipasang di baris atas) memakai body-parser di baliknya.
+  // Kalau client mengirim body yang MENGAKU Content-Type: application/json
+  // tapi isinya bukan JSON valid (misal `{"name":"Nasi Goreng",` - koma
+  // menggantung tanpa penutup), body-parser melempar SyntaxError dengan ciri
+  // khas: `err.type === 'entity.parse.failed'` (dan `err.status === 400`).
+  // Error ini otomatis lompat ke sini (skip semua route/404 handler di atas)
+  // karena dilempar dari MIDDLEWARE (express.json()), bukan dari dalam route.
+  //
+  // Sebelum diperbaiki, handler ini SELALU membalas 500 - padahal ini murni
+  // kesalahan CLIENT (body yang dikirim rusak), bukan kesalahan server. Kalau
+  // dibiarkan, client jadi salah paham "server error" padahal yang perlu
+  // diperbaiki adalah JSON yang dikirimnya. Makanya di sini dibedakan jadi
+  // 400, konsisten dengan aturan: 400 = request/input tidak valid.
+  if (err.type === 'entity.parse.failed' && err.status === 400) {
+    console.error('[JSON parse error]', err.message);
+    return res.status(400).json({ status: 'error', message: 'Body request bukan JSON yang valid' });
+  }
+
+  // Error lain yang tak terduga (bukan malformed JSON, bukan error yang
+  // sudah ditangani try/catch di masing-masing route): tetap JANGAN kirim
+  // err.message/err.stack ke client (bisa membocorkan detail internal).
+  // Log lengkap ke console server, client cukup dapat pesan generik + 500.
   console.error(err);
-  res.status(500).json({ error: 'Internal Server Error' });
+  res.status(500).json({ status: 'error', message: 'Internal Server Error' });
 });
 
 app.listen(PORT, () => {
