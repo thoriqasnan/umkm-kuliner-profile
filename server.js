@@ -6,9 +6,36 @@
 const express = require('express');
 const cors = require('cors');
 const { db } = require('./db/database');
+const { hashPassword, verifyPassword } = require('./lib/password');
+const { normalizeEmail, findUserByEmail } = require('./lib/user');
 
 const app = express();
 const PORT = 3000;
+
+// --- Dummy hash untuk timing-safety anti-enumeration email (Phase 3C-2) ---
+// Dipakai di POST /api/auth/login: kalau email yang di-submit TIDAK ADA di
+// database, kita tetap menjalankan bcrypt.compare() (dengan hash dummy ini)
+// alih-alih langsung membalas 401 lebih cepat. Tanpa ini, "email tidak
+// terdaftar" akan konsisten lebih CEPAT dibalas dibanding "email ada tapi
+// password salah" (yang harus menunggu bcrypt.compare selesai) - selisih
+// waktu ini bisa dimanfaatkan penyerang untuk menebak/enumerasi email mana
+// saja yang terdaftar, tanpa perlu tahu passwordnya sama sekali.
+//
+// Hash ini BUKAN milik akun/user nyata siapa pun - dihasilkan sekali secara
+// terpisah dari string acak "dummy-password-for-timing-safety-check" (lihat
+// cara generate di komentar bawah), jadi aman ditulis langsung di kode
+// (bukan secret, tidak perlu di .env). bcrypt.compare() terhadap hash ini
+// akan SELALU false untuk password apa pun - tujuannya cuma supaya durasi
+// pemrosesannya sebanding dengan bcrypt.compare() yang sesungguhnya.
+//
+// Cost factor di hash ini (terlihat dari segmen "$2b$12$...") HARUS SAMA
+// dengan SALT_ROUNDS di lib/password.js (=12) - kalau beda, waktu proses
+// bcrypt.compare() untuk dummy ini tidak akan sebanding dengan yang asli,
+// dan tujuan anti-timing-attack di atas jadi tidak tercapai.
+//
+// Cara generate ulang kalau perlu:
+//   node -e "require('bcrypt').hash('dummy-password-for-timing-safety-check', 12).then(console.log)"
+const DUMMY_HASH_FOR_TIMING_SAFETY = '$2b$12$tCZ5/9bVxxS72ULyLr8aUupeZ9np8eAciQ8xf0ZD7luJF11V3iqDG';
 
 // --- CORS (Cross-Origin Resource Sharing) ---
 // Frontend jalan di http://localhost:5500 (Live Server), backend ini di
@@ -588,6 +615,223 @@ app.delete('/api/products/:id', (req, res) => {
     // client, cukup log ke console server + pesan generik + 500, konsisten
     // dengan pola GET/POST/PUT di atas.
     console.error('[DELETE /api/products/:id] Gagal hapus produk:', err);
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
+  }
+});
+
+// --- Route Phase 3C-2: registrasi akun baru (CREATE user) ---
+// Bedanya dengan CRUD /api/products di atas: yang disimpan di sini adalah
+// KREDENSIAL akun (email + password), jadi ada dua langkah tambahan yang
+// tidak ada di /api/products: (1) password TIDAK PERNAH disimpan
+// apa adanya - selalu di-hash dulu lewat hashPassword() (lib/password.js,
+// Phase 3C-1) sebelum masuk ke kolom password_hash; (2) email dinormalisasi
+// (normalizeEmail(), lib/user.js) supaya "User@Mail.com" dan "user@mail.com"
+// dianggap akun yang sama, konsisten dengan constraint UNIQUE di kolom email.
+app.post('/api/auth/register', async (req, res) => {
+  // req.body bisa `undefined`/`{}` kalau client tidak mengirim body sama
+  // sekali - fallback ke {} supaya destructuring di bawah tidak error,
+  // konsisten dengan pola di POST/PUT /api/products.
+  const { email, password } = req.body || {};
+
+  // --- Validasi field, pola SAMA PERSIS seperti POST /api/products: ---
+  // kumpulkan semua pesan error ke array `errors`, baru dibalas SEKALIGUS
+  // sebagai 400 kalau ada yang tidak valid (bukan berhenti di error pertama)
+  // - supaya client langsung tahu SEMUA yang perlu diperbaiki dalam satu
+  // response, tidak perlu coba-coba berkali-kali satu per satu.
+  const errors = [];
+
+  // Regex email di bawah SENGAJA sederhana (cuma cek ada "sesuatu@sesuatu.
+  // sesuatu", tanpa spasi) - bukan validasi RFC 5322 lengkap yang super rumit.
+  // Cukup untuk menyaring input yang jelas-jelas bukan email, validasi
+  // "beneran ada"/deliverable tetap lewat proses lain (verifikasi email) yang
+  // di luar scope Phase 3C-2 ini.
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (email === undefined || email === null) {
+    errors.push('email wajib diisi');
+  } else if (typeof email !== 'string') {
+    errors.push('email wajib berupa teks');
+  } else if (email.trim().length === 0) {
+    errors.push('email tidak boleh kosong/spasi saja');
+  } else if (!EMAIL_REGEX.test(email.trim())) {
+    errors.push('email harus berformat valid, contoh: nama@contoh.com');
+  }
+
+  // Password SENGAJA TIDAK di-trim sebelum divalidasi/disimpan - beda dengan
+  // email di atas. Spasi di awal/akhir password BISA jadi bagian yang
+  // sengaja diketik user (password manager sering menghasilkan password
+  // dengan karakter apa saja termasuk spasi), jadi menghapusnya diam-diam
+  // sama saja mengubah password yang sebenarnya dimaksud user.
+  if (password === undefined || password === null) {
+    errors.push('password wajib diisi');
+  } else if (typeof password !== 'string') {
+    errors.push('password wajib berupa teks');
+  } else if (password.length === 0) {
+    errors.push('password tidak boleh kosong');
+  } else if (password.trim().length === 0) {
+    // `.trim()` di sini CUMA dipakai untuk pengecekan ini - password yang
+    // isinya cuma spasi (misal 8 spasi) tetap punya `.length >= 8` sehingga
+    // lolos dua cek di atas maupun cek panjang minimum di bawah, padahal
+    // secara efektif kosong. Nilai `password` ASLI (belum di-trim) tetap
+    // yang dipakai untuk hashPassword()/disimpan - konsisten dengan
+    // keputusan di atas bahwa spasi di awal/akhir password TIDAK dihapus
+    // diam-diam.
+    errors.push('password tidak boleh kosong (hanya berisi spasi)');
+  } else if (password.length < 8) {
+    // Catatan: `.length` biasa di sini (BUKAN Buffer.byteLength seperti di
+    // lib/password.js) - ini aturan bisnis yang BEDA: batas MINIMUM panjang
+    // password (supaya tidak terlalu lemah), bukan batas MAKSIMUM byte
+    // bcrypt (72 byte, yang sudah ditangani sendiri oleh hashPassword()).
+    // Dua aturan ini sengaja tidak digabung supaya masing-masing tetap jelas
+    // tanggung jawabnya.
+    errors.push('password minimal 8 karakter');
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ status: 'error', message: 'Validasi gagal', details: errors });
+  }
+
+  const normalizedEmail = normalizeEmail(email);
+
+  // --- Cek duplikat email SEBELUM hashing & insert ---
+  // Dicek manual dulu di sini (mirip pola cek slug unik di POST /api/products)
+  // supaya pesan errornya jelas/ramah DAN supaya kita tidak buang waktu
+  // nge-hash password (operasi yang sengaja lambat, lihat lib/password.js)
+  // untuk request yang toh akan ditolak.
+  const existing = findUserByEmail(db, normalizedEmail);
+  if (existing) {
+    return res.status(409).json({ status: 'error', message: 'Email sudah terdaftar' });
+  }
+
+  try {
+    let passwordHash;
+    try {
+      passwordHash = await hashPassword(password);
+    } catch (hashErr) {
+      // hashPassword() melempar Error kalau password >72 byte (pesan menyebut
+      // jumlah byte), atau TypeError kalau bukan string (seharusnya sudah
+      // ditangkap validasi di atas, tapi jaga-jaga). Untuk kasus >72 byte,
+      // ini SEBENARNYA kesalahan INPUT USER (password kepanjangan), bukan
+      // kesalahan server - jadi dibalas 400 informatif, BUKAN 500 generik.
+      // Deteksi ini TANPA menduplikasi Buffer.byteLength check dari
+      // lib/password.js - cukup baca pesan errornya.
+      if (hashErr.message && hashErr.message.includes('byte')) {
+        return res.status(400).json({ status: 'error', message: 'Password terlalu panjang. Maksimal 72 byte.' });
+      }
+      throw hashErr; // error tak terduga lain -> jatuh ke catch luar -> 500
+    }
+
+    // --- Parameterized INSERT (WAJIB, anti SQL injection) ---
+    // Sama seperti INSERT di POST /api/products: placeholder @email/
+    // @password_hash, nilainya dikirim terpisah lewat object di `.run({...})`.
+    const insert = db.prepare('INSERT INTO users (email, password_hash) VALUES (@email, @password_hash)');
+    const info = insert.run({ email: normalizedEmail, password_hash: passwordHash });
+
+    // Response SENGAJA hanya berisi id & email - TIDAK PERNAH password atau
+    // password_hash, walaupun keduanya "ada" di memori/database saat ini.
+    // Membocorkan hash sekalipun (bukan plaintext) tetap berisiko (hash bisa
+    // jadi target brute-force offline kalau bocor).
+    res.status(201).json({
+      status: 'success',
+      message: 'Registrasi berhasil',
+      user: { id: info.lastInsertRowid, email: normalizedEmail },
+    });
+  } catch (err) {
+    // Jaga-jaga race condition: dua request register dengan email sama nyaris
+    // bersamaan bisa lolos cek `existing` di atas tapi bentrok saat INSERT
+    // benar-benar dijalankan - constraint UNIQUE di kolom email (db/database.js)
+    // jadi garis pertahanan terakhir.
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return res.status(409).json({ status: 'error', message: 'Email sudah terdaftar' });
+    }
+
+    console.error('[POST /api/auth/register] Gagal registrasi:', err);
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
+  }
+});
+
+// --- Route Phase 3C-2: login (verifikasi kredensial) ---
+// Bedanya dengan register di atas: route ini TIDAK menulis apa pun ke
+// database, cuma MEMBACA lalu membandingkan password yang diketik user
+// dengan hash yang tersimpan. Validasi input di sini SENGAJA lebih minimal
+// dibanding register (cuma cek "ada isinya", bukan format email/panjang
+// password) - karena tujuannya beda: register memastikan DATA BARU yang
+// masuk berkualitas baik, login cuma perlu tahu "ada dua field untuk
+// dicocokkan atau tidak".
+//
+// TIDAK ADA token/session/JWT yang dibuat di sini - fase ini cuma
+// membuktikan kredensial valid atau tidak (di luar scope Phase 3C-2).
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body || {};
+
+  const errors = [];
+  if (email === undefined || email === null || typeof email !== 'string' || email.trim().length === 0) {
+    errors.push('email wajib diisi');
+  }
+  if (password === undefined || password === null || typeof password !== 'string' || password.length === 0) {
+    errors.push('password wajib diisi');
+  }
+
+  if (errors.length > 0) {
+    // 400, BUKAN 401 - ini request yang CACAT (field kosong/tidak ada sama
+    // sekali), beda kelas masalah dari 401 (field-nya ADA tapi kredensialnya
+    // salah). Klien perlu tahu beda ini supaya bisa membedakan "form belum
+    // diisi" vs "email/password yang diisi salah".
+    return res.status(400).json({ status: 'error', message: 'Validasi gagal', details: errors });
+  }
+
+  const normalizedEmail = normalizeEmail(email);
+
+  try {
+    const user = findUserByEmail(db, normalizedEmail);
+
+    let isValid;
+    try {
+      if (user) {
+        isValid = await verifyPassword(password, user.password_hash);
+      } else {
+        // --- Anti-enumeration: tetap jalankan bcrypt.compare walau user tidak ada ---
+        // Kalau baris ini di-skip (langsung lompat ke 401 saat user tidak
+        // ditemukan), respons untuk "email tidak terdaftar" akan konsisten
+        // lebih CEPAT dibanding "email terdaftar tapi password salah" (yang
+        // menunggu bcrypt.compare selesai, operasi yang sengaja lambat).
+        // Selisih waktu itu bisa dipakai penyerang untuk menebak email mana
+        // saja yang terdaftar tanpa perlu tahu passwordnya - walau tidak
+        // pernah dibalas ke client (dua-duanya tetap 401 sama persis di bawah).
+        // Hasil verifyPassword() di sini PASTI false (DUMMY_HASH_FOR_TIMING_SAFETY
+        // bukan hash dari password apa pun), tapi bcrypt.compare tetap harus
+        // benar-benar DIJALANKAN, bukan di-skip.
+        isValid = await verifyPassword(password, DUMMY_HASH_FOR_TIMING_SAFETY);
+      }
+    } catch (verifyErr) {
+      // password >72 byte (atau tipe lain yang lolos validasi awal) tidak
+      // mungkin cocok dengan hash manapun - hashPassword() tidak pernah
+      // menghasilkan hash dari password sepanjang itu saat register. Jadi
+      // ini diperlakukan sama seperti kredensial salah biasa (401 generik
+      // lewat pengecekan `if (!user || !isValid)` di bawah), BUKAN error
+      // server (500) - dan pesannya TIDAK dibedakan dari "password salah"
+      // biasa, supaya tidak membocorkan informasi baru ke client soal
+      // alasan gagalnya (konsisten dengan prinsip anti-enumeration di atas).
+      isValid = false;
+    }
+
+    if (!user || !isValid) {
+      // Pesan generik yang SAMA PERSIS untuk "email tidak ada" maupun "email
+      // ada tapi password salah" - kalau dibedakan (misal "email tidak
+      // ditemukan" vs "password salah"), penyerang bisa memakai pesan error
+      // itu sendiri untuk enumerasi email mana yang terdaftar.
+      return res.status(401).json({ status: 'error', message: 'Email atau password salah' });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Login berhasil',
+      user: { id: user.id, email: user.email },
+      // TIDAK ADA token/session/jwt di response - fase ini cuma membuktikan
+      // kredensialnya valid, belum membuat mekanisme "tetap login" apa pun.
+    });
+  } catch (err) {
+    console.error('[POST /api/auth/login] Gagal login:', err);
     res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
   }
 });
