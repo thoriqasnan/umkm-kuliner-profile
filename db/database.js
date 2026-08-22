@@ -61,6 +61,30 @@ db.exec(`
   );
 `);
 
+// --- 1b. Buat table `users` kalau belum ada (Phase 3C-1: fondasi auth) ---
+// Kolomnya sengaja `password_hash`, BUKAN `password` - penamaan ini jadi
+// pengingat permanen di schema bahwa yang disimpan SELAMANYA cuma hasil hash
+// (lewat bcrypt, lihat lib/password.js), TIDAK PERNAH plaintext. Kalau nama
+// kolomnya cuma `password`, gampang lupa/salah nanti pas nulis query INSERT
+// dan tanpa sadar nyimpen plaintext langsung.
+//
+// `email TEXT NOT NULL UNIQUE` - UNIQUE di level database (bukan cuma dicek
+// manual di kode) supaya tidak mungkin ada dua akun dengan email sama,
+// bahkan kalau suatu saat ada race condition (dua request register barengan
+// dengan email sama) atau ada bug di validasi sisi aplikasi. Database jadi
+// garis pertahanan terakhir yang tidak bisa "kelewatan".
+//
+// Endpoint untuk insert ke table ini (register/login) BELUM dibuat di fase
+// ini - table-nya disiapkan dulu di 3C-1, endpoint-nya menyusul di 3C-2.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
 // --- 2. Data seed: PERSIS 11 produk yang dulu hardcoded di server.js ---
 // Disalin apa adanya (id, slug, name, price, category, image.*) - TIDAK ada
 // data baru yang dikarang, supaya konsisten 100% dengan Phase 2B.
