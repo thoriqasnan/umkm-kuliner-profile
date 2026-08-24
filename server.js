@@ -6,14 +6,24 @@
 const express = require('express');
 const cors = require('cors');
 const { db } = require('./db/database');
-const { hashPassword, verifyPassword } = require('./lib/password');
+const { hashPassword, verifyPassword, SALT_ROUNDS } = require('./lib/password');
 const { normalizeEmail, findUserByEmail } = require('./lib/user');
 const { sign, COOKIE_NAME, MAX_AGE_MS } = require('./lib/session');
 const { requireAuth } = require('./middleware/auth');
 const { requireAdmin } = require('./middleware/authorize');
+const { loginRateLimiter, registerRateLimiter } = require('./middleware/rateLimit');
 
 const app = express();
 const PORT = 3000;
+
+// --- Phase 3C-4: matikan header X-Powered-By ---
+// Express secara default menambahkan header response `X-Powered-By: Express`
+// di SETIAP response - ini bukan celah keamanan langsung, tapi memberi tahu
+// penyerang framework apa yang dipakai server ini secara cuma-cuma (sedikit
+// mempermudah reconnaissance/pencarian celah yang spesifik ke Express).
+// app.disable('x-powered-by') mematikan header ini - bukan perubahan
+// fungsional apa pun, murni pengurangan informasi yang dibocorkan.
+app.disable('x-powered-by');
 
 // --- Dummy hash untuk timing-safety anti-enumeration email (Phase 3C-2) ---
 // Dipakai di POST /api/auth/login: kalau email yang di-submit TIDAK ADA di
@@ -39,6 +49,49 @@ const PORT = 3000;
 // Cara generate ulang kalau perlu:
 //   node -e "require('bcrypt').hash('dummy-password-for-timing-safety-check', 12).then(console.log)"
 const DUMMY_HASH_FOR_TIMING_SAFETY = '$2b$12$tCZ5/9bVxxS72ULyLr8aUupeZ9np8eAciQ8xf0ZD7luJF11V3iqDG';
+
+// --- Phase 3C-4: assertion startup - cost factor dummy hash HARUS sama dengan SALT_ROUNDS ---
+// Komentar panjang di atas SUDAH menjelaskan (dalam bentuk PROSE) kenapa cost
+// factor di DUMMY_HASH_FOR_TIMING_SAFETY (segmen "$2b$12$...") harus SAMA
+// dengan SALT_ROUNDS di lib/password.js - tapi sampai sebelum perubahan ini,
+// itu murni "aturan yang harus diingat manual", tidak pernah benar-benar
+// DITEGAKKAN oleh kode. Kalau suatu saat SALT_ROUNDS diubah (misal dari 12
+// jadi 14) tapi orang yang mengubahnya LUPA meregenerasi hash dummy ini
+// (lihat perintah regenerasinya di komentar atas), bug-nya akan DIAM-DIAM
+// lolos: server tetap jalan normal, tidak ada error apa pun - cuma celah
+// timing-attack anti-enumeration email yang dijelaskan panjang di atas
+// diam-diam terbuka lagi, karena bcrypt.compare() ke hash dummy yang cost
+// factor-nya sudah tidak sama lagi tidak lagi makan waktu yang sebanding
+// dengan bcrypt.compare() ke hash asli.
+//
+// Assertion di bawah mengubah invariant itu dari "prosa yang harus diingat"
+// jadi "ditegakkan paksa saat startup" - fail-loud, semangat yang sama persis
+// seperti guard SESSION_SECRET di lib/session.js. Format hash bcrypt adalah
+// `$2b$NN$...` - split di karakter "$" menghasilkan array
+// ['', '2b', 'NN', <sisanya>], jadi cost factor-nya ada di index [2].
+//
+// PENTING: ini BUKAN alasan untuk TIDAK PERNAH mengubah SALT_ROUNDS - kalau
+// memang sengaja mau menaikkan/menurunkan SALT_ROUNDS, itu keputusan yang sah
+// (lihat komentar SALT_ROUNDS di lib/password.js). Assertion ini cuma jaring
+// pengaman supaya langkah "regenerasi ulang DUMMY_HASH_FOR_TIMING_SAFETY"
+// tidak lupa dilakukan bersamaan - kalau lupa, server akan MENOLAK NYALA
+// dengan pesan jelas, bukan lolos diam-diam dengan celah timing terbuka lagi.
+const dummyHashCostFactor = Number(DUMMY_HASH_FOR_TIMING_SAFETY.split('$')[2]);
+
+if (dummyHashCostFactor !== SALT_ROUNDS) {
+  throw new Error(
+    `DUMMY_HASH_FOR_TIMING_SAFETY tidak sinkron dengan SALT_ROUNDS: cost ` +
+    `factor hash dummy ini adalah ${dummyHashCostFactor}, sedangkan ` +
+    `SALT_ROUNDS di lib/password.js sekarang ${SALT_ROUNDS}. Server MENOLAK ` +
+    `nyala karena ketidaksinkronan ini akan diam-diam MEMBUKA KEMBALI celah ` +
+    `timing-attack anti-enumeration email yang dijelaskan di komentar atas ` +
+    `DUMMY_HASH_FOR_TIMING_SAFETY (bcrypt.compare() ke hash dummy ini tidak ` +
+    `akan makan waktu yang sebanding dengan bcrypt.compare() ke hash asli). ` +
+    `Kalau SALT_ROUNDS memang sengaja baru saja diubah, regenerasi ulang ` +
+    `DUMMY_HASH_FOR_TIMING_SAFETY dengan perintah yang sudah disediakan di ` +
+    `komentar di atasnya, lalu tempel hasilnya menggantikan nilai lama.`
+  );
+}
 
 // --- CORS (Cross-Origin Resource Sharing) ---
 // Frontend jalan di http://localhost:5500 (Live Server), backend ini di
@@ -82,6 +135,35 @@ app.use(cors({ origin: 'http://localhost:5500', credentials: true }));
 // Dipasang di sini (sebelum semua route) supaya berlaku untuk SEMUA route,
 // termasuk POST /api/products di bawah.
 app.use(express.json());
+
+// --- Phase 3C-4: header response keamanan tambahan (manual, tanpa `helmet`) ---
+// Tiga header di bawah dipasang di SETIAP response (dipasang sebelum semua
+// route, sama seperti cors/express.json() di atas). Masing-masing:
+// - X-Content-Type-Options: nosniff -> mencegah browser "menebak-nebak"
+//   (MIME sniffing) tipe konten sebenarnya dari sebuah response berdasarkan
+//   isinya, alih-alih percaya Content-Type yang dikirim server. Tanpa ini,
+//   respons yang seharusnya cuma data (misal JSON) bisa saja diinterpretasi
+//   browser sebagai HTML/JS dan dieksekusi, kalau isinya kebetulan mirip.
+// - X-Frame-Options: DENY -> melarang halaman ini/response ini ditampilkan di
+//   dalam <iframe> situs lain sama sekali. Pertahanan terhadap clickjacking
+//   (situs jahat menaruh halaman kita di iframe tersembunyi/disamarkan untuk
+//   mengelabui user mengklik sesuatu tanpa sadar).
+// - Referrer-Policy: no-referrer -> browser tidak mengirim header `Referer`
+//   sama sekali saat user berpindah dari halaman ini ke situs lain, supaya
+//   URL (yang mungkin mengandung informasi sensitif di query string) tidak
+//   bocor ke situs tujuan.
+//
+// Dipasang manual lewat res.setHeader (BUKAN install package `helmet`) -
+// project ini punya batasan eksplisit "tidak menambah dependency baru kecuali
+// benar-benar perlu" (lihat komentar-komentar lain soal ini, misal parseCookies
+// yang ditulis manual tanpa cookie-parser). Tiga baris header sederhana ini
+// tidak cukup untuk membenarkan menambah satu package baru ke project.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  next();
+});
 
 // --- Routes demo (lanjutan dari versi raw http, sekadar biar ada isinya) ---
 
@@ -364,21 +446,12 @@ app.post('/api/products', requireAuth, requireAdmin, (req, res) => {
 
     // Susun ulang jadi bentuk nested `image: {...}` - KONSISTEN dengan
     // struktur response GET /api/products di atas (bukan flat image_src dkk).
-    const newProduct = {
-      id: newRow.id,
-      slug: newRow.slug,
-      name: newRow.name,
-      price: newRow.price,
-      category: newRow.category,
-      image: {
-        src: newRow.image_src,
-        srcset: newRow.image_srcset,
-        sizes: newRow.image_sizes,
-        alt: newRow.image_alt,
-        width: newRow.image_width,
-        height: newRow.image_height,
-      },
-    };
+    // Phase 3C-4: sebelumnya object literal ini ditulis ULANG manual di sini
+    // (duplikat persis dari isi mapRowToProduct()) - sekarang cukup panggil
+    // helper yang sama, konsisten dengan alasan mapRowToProduct() itu sendiri
+    // dibuat (lihat komentarnya di atas): satu logic transformasi row->product,
+    // dipakai ulang di semua tempat, bukan ditulis ulang tiap endpoint.
+    const newProduct = mapRowToProduct(newRow);
 
     // 201 Created = standar HTTP untuk "resource baru berhasil dibuat".
     res.status(201).json({ message: 'Produk berhasil dibuat', product: newProduct });
@@ -654,7 +727,13 @@ app.delete('/api/products/:id', requireAuth, requireAdmin, (req, res) => {
 // Phase 3C-1) sebelum masuk ke kolom password_hash; (2) email dinormalisasi
 // (normalizeEmail(), lib/user.js) supaya "User@Mail.com" dan "user@mail.com"
 // dianggap akun yang sama, konsisten dengan constraint UNIQUE di kolom email.
-app.post('/api/auth/register', async (req, res) => {
+// --- Phase 3C-4: registerRateLimiter dipasang SEBELUM handler ---
+// Lihat middleware/rateLimit.js untuk detail key/window/max-nya. Dipasang di
+// SINI (paling depan urutan middleware route) supaya request yang sudah kena
+// limit ditolak 429 SEBELUM sempat menyentuh validasi/cek email
+// duplikat/hashPassword() di bawah sama sekali - percobaan yang jelas-jelas
+// akan ditolak tidak perlu ikut membebani CPU dengan bcrypt yang sengaja lambat.
+app.post('/api/auth/register', registerRateLimiter, async (req, res) => {
   // req.body bisa `undefined`/`{}` kalau client tidak mengirim body sama
   // sekali - fallback ke {} supaya destructuring di bawah tidak error,
   // konsisten dengan pola di POST/PUT /api/products.
@@ -788,7 +867,12 @@ app.post('/api/auth/register', async (req, res) => {
 //
 // TIDAK ADA token/session/JWT yang dibuat di sini - fase ini cuma
 // membuktikan kredensial valid atau tidak (di luar scope Phase 3C-2).
-app.post('/api/auth/login', async (req, res) => {
+// --- Phase 3C-4: loginRateLimiter dipasang SEBELUM handler ---
+// Sama alasannya seperti registerRateLimiter di atas - lihat
+// middleware/rateLimit.js untuk detail key (IP+email)/window/max-nya. Request
+// yang sudah kena limit ditolak 429 sebelum sempat memanggil verifyPassword()
+// (bcrypt.compare, sengaja lambat) sama sekali.
+app.post('/api/auth/login', loginRateLimiter, async (req, res) => {
   const { email, password } = req.body || {};
 
   const errors = [];
@@ -872,18 +956,32 @@ app.post('/api/auth/login', async (req, res) => {
     //   mengarah ke API kita) kecuali navigasi top-level biasa (klik link) -
     //   pertahanan dasar terhadap CSRF, sambil tetap cukup longgar untuk
     //   pemakaian normal (fetch dari frontend kita sendiri tetap terkirim).
-    // - secure: process.env.NODE_ENV === 'production' -> ikut environment,
-    //   TIDAK hardcode lagi. Di localhost dev (NODE_ENV bukan 'production'),
-    //   koneksinya HTTP biasa (bukan HTTPS) - kalau secure dipaksa `true` di
-    //   sini, browser akan MENOLAK MENGIRIM cookie ini sama sekali lewat HTTP
-    //   (secure cookie cuma pernah dikirim lewat HTTPS), yang berarti login
-    //   di dev akan "berhasil" tapi requireAuth tidak akan pernah melihat
-    //   cookie-nya. Sebaliknya, kalau nilainya hardcode `false` SELAMANYA
-    //   (seperti sebelum fix ini), begitu server ini betulan di-deploy di
-    //   belakang HTTPS, cookie session tetap akan diam-diam ikut terkirim
-    //   walau suatu saat ada koneksi HTTP nyasar/accidental (misal downgrade
-    //   attack) - environment inilah yang seharusnya menentukan, bukan angka
-    //   tetap yang gampang lupa diganti manual saat deploy.
+    // - secure: process.env.NODE_ENV !== 'development' -> ikut environment,
+    //   TIDAK hardcode lagi. Phase 3C-4: SEBELUMNYA ekspresi di sini adalah
+    //   `process.env.NODE_ENV === 'production'` - itu FAIL OPEN (gagal ke
+    //   arah yang TIDAK aman): kalau NODE_ENV lupa di-set sama sekali, atau
+    //   salah ketik ("productoin", dst), ekspresi itu diam-diam bernilai
+    //   `false` - cookie session jadi TIDAK secure padahal niatnya deploy
+    //   production, TANPA ada satu pun peringatan/error. Ini kebalikan dari
+    //   filosofi SESSION_SECRET di lib/session.js yang fail LOUD (menolak
+    //   nyala sama sekali kalau ada yang salah/kurang) - satu file bikin
+    //   server menolak nyala kalau secret kurang panjang, tapi file lain
+    //   (ini) diam-diam melemahkan cookie-nya kalau env var kurang diset.
+    //   Ekspresi baru ini FAIL CLOSED (gagal ke arah yang AMAN): secure
+    //   defaultnya `true`, KECUALI NODE_ENV eksplisit persis 'development' -
+    //   jadi harus SENGAJA di-set ke 'development' supaya cookie berhenti
+    //   secure, bukan sebaliknya (harus sengaja set 'production' supaya
+    //   cookie MULAI secure). NODE_ENV yang unset/salah ketik sekarang jatuh
+    //   ke default AMAN (secure:true), bukan default TIDAK aman.
+    //
+    //   Konsekuensi langsung: kalau menjalankan server ini di localhost lewat
+    //   HTTP biasa (bukan HTTPS) untuk development, NODE_ENV=development WAJIB
+    //   di-set eksplisit (selain SESSION_SECRET) - browser TIDAK PERNAH
+    //   mengirim cookie yang secure:true lewat koneksi non-HTTPS sama sekali,
+    //   jadi tanpa NODE_ENV=development, login akan terlihat "berhasil" (dapat
+    //   response 200) tapi cookie-nya tidak akan pernah benar-benar
+    //   tersimpan/terkirim balik oleh browser di http://localhost, dan
+    //   requireAuth akan selalu menganggap belum login.
     // - maxAge: MAX_AGE_MS (lib/session.js) -> cookie kadaluarsa otomatis 24
     //   jam (dalam milidetik) sejak di-set - setelah itu browser sendiri yang
     //   membuang cookie-nya. Dipakai dari konstanta yang sama dengan yang
@@ -893,7 +991,7 @@ app.post('/api/auth/login', async (req, res) => {
     res.cookie(COOKIE_NAME, signedValue, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV !== 'development',
       maxAge: MAX_AGE_MS,
     });
 
@@ -944,10 +1042,16 @@ app.post('/api/auth/logout', requireAuth, (req, res) => {
   // /api/auth/login). `maxAge` SENGAJA tidak disertakan di sini - tidak
   // relevan untuk penghapusan (clearCookie sendiri yang mengatur waktu
   // kadaluarsa ke masa lalu).
+  // secure: process.env.NODE_ENV !== 'development' - Phase 3C-4, SAMA PERSIS
+  // ekspresi & alasannya dengan res.cookie() di POST /api/auth/login (lihat
+  // komentar panjang di sana). Opsi penghapusan cookie WAJIB cocok dengan
+  // opsi saat cookie itu di-set supaya browser mau benar-benar menghapusnya -
+  // kalau ekspresi secure di sini beda dari yang dipakai saat set, browser
+  // bisa jadi menganggap ini "cookie yang berbeda" dan tidak menghapus apa-apa.
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV !== 'development',
   });
   res.status(200).json({ status: 'success', message: 'Logout berhasil' });
 });
