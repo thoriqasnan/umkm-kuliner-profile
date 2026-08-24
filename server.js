@@ -8,6 +8,9 @@ const cors = require('cors');
 const { db } = require('./db/database');
 const { hashPassword, verifyPassword } = require('./lib/password');
 const { normalizeEmail, findUserByEmail } = require('./lib/user');
+const { sign, COOKIE_NAME, MAX_AGE_MS } = require('./lib/session');
+const { requireAuth } = require('./middleware/auth');
+const { requireAdmin } = require('./middleware/authorize');
 
 const app = express();
 const PORT = 3000;
@@ -49,7 +52,19 @@ const DUMMY_HASH_FOR_TIMING_SAFETY = '$2b$12$tCZ5/9bVxxS72ULyLr8aUupeZ9np8eAciQ8
 // dari origin manapun - hanya frontend kita sendiri yang diizinkan.
 // Dipasang SEBELUM route-route di bawah didefinisikan, supaya berlaku untuk
 // semua request yang masuk.
-app.use(cors({ origin: 'http://localhost:5500' }));
+//
+// `credentials: true` (Phase 3C-3): browser secara default TIDAK menyertakan
+// cookie sama sekali pada request cross-origin (beda origin seperti frontend
+// :5500 ke backend :3000 di project ini), KECUALI server secara eksplisit
+// mengizinkannya lewat opsi ini (yang membuat cors mengirim header response
+// `Access-Control-Allow-Credentials: true`). Tanpa `credentials: true` di
+// sini, cookie session yang di-set di POST /api/auth/login TIDAK AKAN PERNAH
+// terkirim balik ke server pada request berikutnya dari frontend manapun -
+// requireAuth akan selalu menganggap user belum login walau baru saja login
+// sukses. (Catatan: sisi frontend/fetch() juga tetap harus menyertakan
+// `credentials: 'include'` supaya cookie ikut terkirim - itu di luar scope
+// perubahan server.js ini, disebutkan di sini sebagai pengingat.)
+app.use(cors({ origin: 'http://localhost:5500', credentials: true }));
 
 // --- JSON body parser ---
 // Express (versi 5.x yang dipakai di project ini, lihat package.json) sudah
@@ -224,7 +239,17 @@ app.get('/api/products/:id', (req, res) => {
 // Data produk baru dikirim client lewat request body (JSON) - itu sebabnya
 // middleware express.json() di atas WAJIB dipasang duluan, supaya
 // `req.body` sudah berisi object hasil parsing JSON saat kode ini jalan.
-app.post('/api/products', (req, res) => {
+// --- Phase 3C-3: requireAuth, requireAdmin dipasang di ketiga route mutasi produk ---
+// Ketiga route CREATE/UPDATE/DELETE produk di bawah (POST, PUT, DELETE) kini
+// WAJIB login DAN role admin - alasannya: route-route ini MENGUBAH data yang
+// tampil ke SEMUA pengunjung situs (lewat GET /api/products publik), jadi
+// tidak boleh sembarang orang bisa memanggilnya. requireAuth jalan dulu
+// (pastikan ada user yang login sah), baru requireAdmin (pastikan user itu
+// role-nya admin) - urutan ini penting, requireAdmin bergantung pada
+// req.user yang diisi requireAuth (lihat komentar di middleware/authorize.js).
+// GET /api/products dan GET /api/products/:id SENGAJA TIDAK disentuh -
+// melihat daftar produk tetap publik, tidak butuh login sama sekali.
+app.post('/api/products', requireAuth, requireAdmin, (req, res) => {
   // req.body bisa `undefined`/`{}` kalau client tidak mengirim body sama
   // sekali atau Content-Type-nya bukan application/json - fallback ke {}
   // supaya destructuring di bawah tidak error.
@@ -389,7 +414,8 @@ app.post('/api/products', (req, res) => {
 // name, request ini akan DITOLAK 400 (bukan dianggap "name tidak berubah").
 // Itu sebabnya validasi di bawah PERSIS memakai pola "wajib" yang sama
 // seperti POST /api/products - bukan validasi yang lebih longgar.
-app.put('/api/products/:id', (req, res) => {
+// Phase 3C-3: requireAuth + requireAdmin - lihat komentar di atas POST /api/products.
+app.put('/api/products/:id', requireAuth, requireAdmin, (req, res) => {
   // --- Validasi format id, SAMA PERSIS dengan GET /api/products/:id ---
   // Dilakukan PALING AWAL, sebelum menyentuh database sama sekali - kalau
   // id di URL saja sudah tidak valid, tidak ada gunanya lanjut query.
@@ -558,7 +584,8 @@ app.put('/api/products/:id', (req, res) => {
 // DELETE tidak butuh request body sama sekali - satu-satunya informasi yang
 // dibutuhkan cuma "produk MANA yang mau dihapus", dan itu sudah cukup
 // didapat dari id di URL (req.params.id).
-app.delete('/api/products/:id', (req, res) => {
+// Phase 3C-3: requireAuth + requireAdmin - lihat komentar di atas POST /api/products.
+app.delete('/api/products/:id', requireAuth, requireAdmin, (req, res) => {
   // --- Validasi format id, SAMA PERSIS dengan GET/PUT /api/products/:id ---
   // Dilakukan PALING AWAL, SEBELUM menyentuh database sama sekali - kalau id
   // di URL saja sudah tidak valid formatnya, tidak ada gunanya (dan tidak
@@ -823,17 +850,106 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ status: 'error', message: 'Email atau password salah' });
     }
 
+    // --- Phase 3C-3: set cookie session, SETELAH kredensial terbukti valid ---
+    // sign(user.id) menghasilkan nilai `${id}.${hmacHex}` (lihat lib/session.js)
+    // - bukti bertanda tangan bahwa "id ini memang milik user yang baru saja
+    // berhasil login", bukan cuma id polos yang bisa dikarang bebas oleh client.
+    const signedValue = sign(user.id);
+
+    // res.cookie(nama, nilai, opsi) menambahkan header `Set-Cookie` ke
+    // response - browser yang menerima ini otomatis MENYIMPAN cookie-nya, dan
+    // akan otomatis MENGIRIM BALIK cookie ini di setiap request berikutnya ke
+    // origin yang sama (selama belum expired/dihapus), tanpa frontend perlu
+    // menyimpannya manual di localStorage dsb.
+    //
+    // - httpOnly: true -> cookie ini TIDAK BISA diakses lewat JavaScript sisi
+    //   browser (document.cookie tidak akan menampilkannya). Ini pertahanan
+    //   terhadap serangan XSS: walau ada script asing berhasil disisipkan ke
+    //   halaman frontend, script itu tetap tidak bisa MEMBACA/MENCURI nilai
+    //   cookie session ini.
+    // - sameSite: 'lax' -> cookie ini tidak ikut terkirim pada request lintas
+    //   situs yang dipicu situs LAIN (misal form/link dari situs asing yang
+    //   mengarah ke API kita) kecuali navigasi top-level biasa (klik link) -
+    //   pertahanan dasar terhadap CSRF, sambil tetap cukup longgar untuk
+    //   pemakaian normal (fetch dari frontend kita sendiri tetap terkirim).
+    // - secure: process.env.NODE_ENV === 'production' -> ikut environment,
+    //   TIDAK hardcode lagi. Di localhost dev (NODE_ENV bukan 'production'),
+    //   koneksinya HTTP biasa (bukan HTTPS) - kalau secure dipaksa `true` di
+    //   sini, browser akan MENOLAK MENGIRIM cookie ini sama sekali lewat HTTP
+    //   (secure cookie cuma pernah dikirim lewat HTTPS), yang berarti login
+    //   di dev akan "berhasil" tapi requireAuth tidak akan pernah melihat
+    //   cookie-nya. Sebaliknya, kalau nilainya hardcode `false` SELAMANYA
+    //   (seperti sebelum fix ini), begitu server ini betulan di-deploy di
+    //   belakang HTTPS, cookie session tetap akan diam-diam ikut terkirim
+    //   walau suatu saat ada koneksi HTTP nyasar/accidental (misal downgrade
+    //   attack) - environment inilah yang seharusnya menentukan, bukan angka
+    //   tetap yang gampang lupa diganti manual saat deploy.
+    // - maxAge: MAX_AGE_MS (lib/session.js) -> cookie kadaluarsa otomatis 24
+    //   jam (dalam milidetik) sejak di-set - setelah itu browser sendiri yang
+    //   membuang cookie-nya. Dipakai dari konstanta yang sama dengan yang
+    //   ditegakkan verify() di lib/session.js (bukan angka literal terpisah
+    //   yang ditulis ulang di sini) supaya "browser buang cookie" dan "server
+    //   menolak token" selalu sepakat soal durasi 24 jam yang sama persis.
+    res.cookie(COOKIE_NAME, signedValue, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: MAX_AGE_MS,
+    });
+
     res.status(200).json({
       status: 'success',
       message: 'Login berhasil',
       user: { id: user.id, email: user.email },
-      // TIDAK ADA token/session/jwt di response - fase ini cuma membuktikan
-      // kredensialnya valid, belum membuat mekanisme "tetap login" apa pun.
+      // Bentuk JSON response ini SENGAJA TIDAK BERUBAH sama sekali dari
+      // sebelum Phase 3C-3 - satu-satunya hal baru di endpoint ini adalah
+      // SIDE EFFECT `Set-Cookie` di atas (di luar body JSON), bukan field
+      // token/session baru yang ditaruh di body. Cookie memang cara standar
+      // browser menyimpan & mengirim ulang bukti login, jadi tidak perlu
+      // (dan tidak sebaiknya) diduplikasi lagi jadi field di body JSON.
     });
   } catch (err) {
     console.error('[POST /api/auth/login] Gagal login:', err);
     res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
   }
+});
+
+// --- Route Phase 3C-3: logout (mengakhiri sesi) ---
+// Pasangan dari POST /api/auth/login di atas - tanpa route ini, tidak ada
+// cara bagi user untuk MENGAKHIRI sesi login-nya sendiri secara eksplisit
+// (misal di komputer bersama/publik, user perlu bisa memastikan sesinya
+// benar-benar berakhir, bukan cuma menutup tab browser dan berharap cookie-nya
+// hilang sendiri - cookie yang di-set login tetap tersimpan sampai maxAge-nya
+// habis, 24 jam, kalau tidak dihapus manual lewat endpoint ini).
+//
+// Tidak butuh request body sama sekali - satu-satunya "target" operasi ini
+// adalah cookie session milik browser yang memanggilnya sendiri, tidak
+// pernah ada userId dkk yang perlu dikirim dari client.
+//
+// --- requireAuth dipasang di sini (perbaikan review keamanan) ---
+// Sebelumnya route ini TIDAK punya middleware apa pun - beda sendiri dari
+// SEMUA route state-changing lain di fase ini (POST/PUT/DELETE /api/products
+// semuanya sudah wajib requireAuth). Akibatnya logout tidak bisa membedakan
+// "memang lagi login, sekarang logout" dari "sudah tidak login/tidak pernah
+// login sama sekali, tapi tetap dibalas 200 seolah berhasil". Dengan
+// requireAuth di sini, memanggil endpoint ini tanpa sesi yang valid akan
+// ditolak 401 (semantik yang lebih benar) - perilaku SETELAH lolos requireAuth
+// tetap SAMA PERSIS seperti sebelumnya (cuma clearCookie + pesan sukses).
+app.post('/api/auth/logout', requireAuth, (req, res) => {
+  // --- clearCookie WAJIB diberi opsi yang sama seperti saat cookie di-set ---
+  // Sebelumnya dipanggil tanpa opsi sama sekali (`res.clearCookie(COOKIE_NAME)`)
+  // - sebagian browser cuma mau benar-benar menghapus sebuah cookie kalau
+  // atribut (httpOnly, sameSite, secure) pada perintah penghapusannya COCOK
+  // dengan atribut saat cookie itu di-set (lihat res.cookie(...) di POST
+  // /api/auth/login). `maxAge` SENGAJA tidak disertakan di sini - tidak
+  // relevan untuk penghapusan (clearCookie sendiri yang mengatur waktu
+  // kadaluarsa ke masa lalu).
+  res.clearCookie(COOKIE_NAME, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+  res.status(200).json({ status: 'success', message: 'Logout berhasil' });
 });
 
 // --- 404 handler ---

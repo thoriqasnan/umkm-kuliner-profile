@@ -85,6 +85,58 @@ db.exec(`
   );
 `);
 
+// --- 1c. Migrasi: tambah kolom `role` ke table users (Phase 3C-3: otorisasi) ---
+// Beda dengan CREATE TABLE IF NOT EXISTS di atas: table `users` sendiri
+// SUDAH ADA sejak Phase 3C-1 (di database orang yang sudah pernah menjalankan
+// server ini sebelum Phase 3C-3), jadi tidak bisa cukup "CREATE TABLE IF NOT
+// EXISTS" lagi - table-nya sudah ada, cuma KOLOMnya yang belum. SQLite juga
+// tidak punya sintaks "ALTER TABLE ... ADD COLUMN IF NOT EXISTS" bawaan,
+// jadi pengecekannya harus dilakukan manual di kode: baca dulu daftar kolom
+// yang ADA SEKARANG lewat `PRAGMA table_info(users)`, baru tambahkan kolom
+// `role` kalau memang belum ada.
+//
+// Idempotent (aman dijalankan berkali-kali setiap server start) itu penting
+// di sini: kalau langsung jalankan ALTER TABLE ADD COLUMN tanpa cek dulu,
+// run kedua dan seterusnya akan error "duplicate column name" karena
+// kolomnya sudah ada dari run pertama.
+//
+// `role TEXT NOT NULL DEFAULT 'user'` - DEFAULT 'user' otomatis mengisi
+// kolom ini untuk SEMUA baris users yang sudah ada sebelum migrasi ini
+// (akun-akun lama yang dibuat sebelum Phase 3C-3 tidak akan punya role
+// NULL/kosong), dan juga jadi nilai default untuk INSERT baru yang tidak
+// menyebutkan kolom role sama sekali (lihat INSERT di POST /api/auth/register
+// di server.js - sengaja TIDAK mengisi role, supaya user baru SELALU jadi
+// 'user' biasa secara default, tidak bisa diakali jadi 'admin' lewat body
+// request register/mass-assignment).
+const usersColumns = db.prepare('PRAGMA table_info(users)').all();
+const hasRoleColumn = usersColumns.some((col) => col.name === 'role');
+
+if (!hasRoleColumn) {
+  // --- CHECK (role IN ('user', 'admin')) - hanya berlaku untuk fresh install ---
+  // Ditambahkan sebagai defense-in-depth (bukan perbaikan atas celah yang
+  // sedang aktif dieksploitasi): saat ini TIDAK ADA satu pun jalur kode yang
+  // menulis nilai role selain 'user'/'admin' (lihat POST /api/auth/register
+  // di server.js - sengaja tidak pernah mengisi role dari body request), jadi
+  // constraint ini cuma jaring pengaman untuk bug hipotetis di masa depan.
+  //
+  // CATATAN PENTING soal SQLite: constraint CHECK ini HANYA berlaku untuk
+  // database yang benar-benar baru (belum pernah punya kolom role sama
+  // sekali - masuk ke branch `if` ini). Untuk database yang SUDAH ADA dari
+  // sebelum Phase 3C-3 (kolom role-nya sudah pernah ditambahkan lewat ALTER
+  // TABLE ADD COLUMN tanpa CHECK, di deploy/clone sebelumnya), SQLite TIDAK
+  // BISA menambahkan CHECK constraint ke kolom yang sudah ada lewat ALTER
+  // TABLE - satu-satunya cara adalah rebuild penuh table (buat table baru
+  // dengan schema+CHECK yang diinginkan, salin semua data lama, drop table
+  // lama, rename table baru). Migrasi rebuild seperti itu di luar scope
+  // perbaikan MINOR ini (risikonya rendah, lihat paragraf di atas) - jadi
+  // database lama yang sudah punya kolom role tanpa CHECK akan TETAP tanpa
+  // CHECK selamanya kecuali di-migrasi manual terpisah nanti.
+  db.exec(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin'))`);
+  console.log('[db] Kolom role ditambahkan ke table users (migrasi Phase 3C-3).');
+} else {
+  console.log('[db] Kolom role sudah ada di table users, migrasi dilewati.');
+}
+
 // --- 2. Data seed: PERSIS 11 produk yang dulu hardcoded di server.js ---
 // Disalin apa adanya (id, slug, name, price, category, image.*) - TIDAK ada
 // data baru yang dikarang, supaya konsisten 100% dengan Phase 2B.
