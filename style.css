@@ -811,7 +811,15 @@ h2 {
   overflow-y: auto;
   /* Biar scroll di dalam list ini tidak "bocor" lanjut ke halaman di belakang modal. */
   overscroll-behavior-y: contain;
-  padding-right: 4px;
+  /* "padding-left" WAJIB ada juga (bukan cuma padding-right) - "overflow-y: auto"
+     di atas otomatis membuat browser memperlakukan "overflow-x" sebagai "auto"
+     juga (aturan CSS: kalau salah satu overflow-x/overflow-y bukan "visible",
+     yang satu lagi ikut dianggap "auto", bukan tetap "visible"), jadi sisi kiri
+     list ini pun ikut memotong apa saja yang keluar dari kotaknya. Tanpa
+     padding-left, outline fokus oranye .cart-panel-item-note (yang menjorok
+     keluar lewat outline-offset) kepotong rata di tepi kiri - makanya
+     border/outline-nya kelihatan seperti "terpotong", bukan bulat penuh. */
+  padding: 0 4px;
 }
 
 .cart-panel-item {
@@ -982,6 +990,7 @@ h2 {
    ========================================================== */
 .filter-btn:focus-visible,
 .lang-btn:focus-visible,
+.image-size-btn:focus-visible,
 .carousel-btn:focus-visible,
 .dot:focus-visible,
 .hamburger:focus-visible,
@@ -993,7 +1002,17 @@ h2 {
 .cart-view-btn:focus-visible,
 .cart-panel-close:focus-visible,
 .cart-panel-item-note:focus-visible,
-.back-to-top-btn:focus-visible {
+.back-to-top-btn:focus-visible,
+.auth-login-btn:focus-visible,
+.auth-logout-btn:focus-visible,
+.dialog-close-btn:focus-visible,
+.form-switch-btn:focus-visible,
+.form input:focus-visible,
+.form select:focus-visible,
+.form textarea:focus-visible,
+.btn-admin-add:focus-visible,
+.btn-admin-edit:focus-visible,
+.btn-admin-delete:focus-visible {
   outline: 2px solid var(--color-accent-dark);
   outline-offset: 2px;
 }
@@ -1114,4 +1133,366 @@ h2 {
     bottom: 160px;
     right: 16px;
   }
+}
+
+/* ==========================================================
+   14. AUTENTIKASI (LOGIN/DAFTAR) & ADMIN PRODUK
+   Ditambahkan di Phase 3D: area akun di navbar, dialog login/daftar, dialog
+   form produk admin, dan style form generik (input/label/select/pesan
+   error) - belum ada satupun sebelum ini di file ini (form catatan
+   keranjang di bagian 9 cuma <textarea> sendirian tanpa <label> pasangannya).
+   Header & tombol tutup dialog di sini sengaja dibuat class generik
+   (.dialog-header/.dialog-close-btn) alih-alih numpang .cart-panel-header/
+   .cart-panel-close yang sudah ada di bagian 9 - biar nama classnya tetap
+   masuk akal dipakai dialog APAPUN (bukan cuma keranjang) - tapi definisinya
+   SENGAJA dibuat sama supaya tampilannya tetap konsisten dengan cart-panel.
+   ========================================================== */
+
+/* ----- Area akun di navbar: tombol Masuk, atau info akun + tombol Keluar ----- */
+.auth-slot {
+  display: flex;
+  align-items: center;
+}
+
+.auth-login-btn,
+.auth-logout-btn {
+  border: 1px solid var(--color-border);
+  background-color: #fff;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.auth-login-btn {
+  color: var(--color-accent-dark);
+}
+
+.auth-login-btn:hover {
+  background-color: var(--color-bg-soft);
+  border-color: var(--color-accent-dark);
+}
+
+.auth-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-email {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-logout-btn {
+  color: var(--color-text-muted);
+}
+
+.auth-logout-btn:hover {
+  border-color: var(--color-accent-dark);
+  color: var(--color-accent-dark);
+}
+
+/* Class generik untuk menyembunyikan salah satu dari dua elemen sibling
+   (tombol Masuk vs info akun) tergantung status login - pola yang sama
+   seperti .cart-hint.hide di bagian 9, cuma dipakai elemen berbeda. */
+.auth-login-btn.hide,
+.auth-account.hide {
+  display: none;
+}
+
+/* ----- Header & tombol tutup dialog (dipakai #authDialog & #productDialog) ----- */
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.dialog-header h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0;
+}
+
+.dialog-close-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.dialog-close-btn:hover {
+  color: var(--color-text);
+}
+
+/* ----- Dialog login/daftar & dialog form produk admin -----
+   Sama seperti #cartPanel di bagian 9, keduanya <dialog> bawaan browser yang
+   dibuka/ditutup lewat showModal()/close() di script.js - fokus trap,
+   Escape-to-close, dan ::backdrop otomatis didapat gratis dari browser.
+   "[open]" WAJIB ada di selector ini - alasannya SAMA PERSIS seperti
+   dijelaskan panjang lebar di komentar ".cart-panel[open]" bagian 9: tanpa
+   ini, dialog tetap kelihatan walau sudah ditutup karena aturan "author"
+   menang lawan default browser "dialog:not([open]){display:none}". */
+.auth-dialog[open],
+.product-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  width: min(420px, 92vw);
+  margin: auto; /* "margin: 0" dari reset "*" di bagian 1 mematikan auto-centering bawaan showModal() - dikembalikan di sini */
+  border: none;
+  border-radius: var(--radius);
+  padding: 24px;
+  background-color: var(--color-bg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+/* Form produk admin field-nya lebih banyak daripada form login/daftar, jadi
+   dibuat sedikit lebih lebar - max-height + overflow-y di atas yang membuat
+   dialog ini tetap bisa di-scroll kalau layarnya pendek. */
+.product-dialog[open] {
+  width: min(480px, 92vw);
+}
+
+.auth-dialog::backdrop,
+.product-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+/* ----- Form generik: label + input/select, dipakai form login/daftar & form produk ----- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-top: 10px;
+}
+
+/* Tanda "*" merah otomatis untuk field wajib diisi - dipilih pakai selector
+   relasional ":has()" (bukan menambah markup/class di tiap label satu-satu)
+   supaya otomatis tetap benar kalau field required ditambah/dikurangi nanti,
+   dan tidak perlu string i18n baru karena "*" bukan teks yang diterjemahkan.
+   Andalkan struktur markup #authForm/#productForm: tiap <label> memang selalu
+   langsung diikuti sibling <input>/<select> miliknya persis di HTML. */
+.form label:has(+ input[required])::after,
+.form label:has(+ select[required])::after {
+  content: " *";
+  color: #b3261e; /* sama dengan warna .form-message.error yang sudah ada */
+}
+
+/* ----- Toggle "Default"/"Custom" ukuran gambar (di dalam #productForm, lihat
+   komentar lengkap "WHY" di index.html tepat di atas markup-nya) -----
+   Dipakai PASANGAN TOMBOL PILL (bukan radio button asli seperti percobaan
+   sebelumnya) yang meniru pola .lang-switch/.lang-btn di bagian 2 (ID/EN) -
+   nilai border/border-radius/padding/gap/warna/transition di bawah sengaja
+   disamakan persis dengan pola itu, bukan parameter visual baru. Alasan pindah
+   dari radio ke tombol: radio (type="radio") tetap kena selector generik
+   ".form input" di bawah (lebar dipaksa 100%), yang merusak layout flex-nya -
+   sedangkan <button> bukan <input>/<select>, jadi otomatis tidak pernah
+   kena selector itu sama sekali, tanpa perlu aturan pengecualian tambahan.
+   Status aktif ditandai class "active" + atribut aria-pressed (pola yang sama
+   seperti .filter-btn di bagian 5), diatur lewat JS di script.js. */
+.image-size-toggle {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.image-size-toggle-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.image-size-switch {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.image-size-btn {
+  border: none;
+  background: none;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.image-size-btn.active {
+  background-color: var(--color-accent-dark);
+  color: #fff;
+}
+
+.form input,
+.form select,
+.form textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  background-color: #fff;
+}
+
+/* <textarea> butuh penanganan tinggi terpisah dari <input>/<select> di atas
+   (keduanya baris tunggal, jadi tidak pernah butuh aturan tinggi/resize sama
+   sekali) - min-height mencegah kotak deskripsi produk (lihat
+   #productDescriptionIdInput/#productDescriptionEnInput di index.html) tampil
+   terlalu pendek sebelum diisi, dan "resize: vertical" (bukan default browser
+   "both") mencegah admin melebarkan kotaknya sampai keluar dari lebar form. */
+.form textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.form .btn {
+  margin-top: 18px;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  width: 100%;
+}
+
+/* Pesan validasi/error (dari backend) atau sukses (dari script.js sendiri),
+   ditampilkan/disembunyikan lewat showFormMessage()/hideFormMessage() di
+   script.js. aria-live="polite" di HTML membuat screen reader otomatis
+   membacakannya begitu isinya berubah - pola yang sama seperti #cartStatus
+   di bagian 9, cuma di sini pesannya memang sengaja TERLIHAT (bukan
+   visually-hidden), karena harus terbaca langsung oleh semua pengguna. */
+.form-message {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+.form-message.hide {
+  display: none;
+}
+
+.form-message.error {
+  background-color: #fdeceb;
+  color: #b3261e;
+}
+
+.form-message.success {
+  background-color: #eaf6ec;
+  color: #2e7d32;
+}
+
+.form-switch {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.form-switch-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-accent-dark);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ----- Tombol "+ Tambah Produk" & tombol Edit/Hapus di tiap kartu menu -----
+   Ketiganya hanya dimunculkan lewat JS begitu currentUser.role === "admin"
+   (lihat renderAuthUI()/createMenuCardElement() di script.js) - tombolnya
+   sendiri BUKAN penjaga keamanan, cuma tampilan. Backend (requireAdmin di
+   server.js) tetap satu-satunya pemeriksa asli. */
+.admin-menu-actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.admin-menu-actions.hide {
+  display: none;
+}
+
+.btn-admin-add {
+  border: 1px dashed var(--color-accent-dark);
+  background-color: #fff;
+  color: var(--color-accent-dark);
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-admin-add:hover {
+  background-color: var(--color-bg-soft);
+}
+
+.menu-card-admin {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.btn-admin-edit,
+.btn-admin-delete {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: #fff;
+  transition: all 0.15s ease;
+}
+
+.btn-admin-edit {
+  color: var(--color-accent-dark);
+}
+
+.btn-admin-edit:hover {
+  border-color: var(--color-accent-dark);
+  background-color: var(--color-bg-soft);
+}
+
+.btn-admin-delete {
+  color: #b3261e;
+}
+
+.btn-admin-delete:hover {
+  border-color: #b3261e;
+  background-color: #fdeceb;
 }

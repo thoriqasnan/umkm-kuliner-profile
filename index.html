@@ -90,6 +90,24 @@
           <button class="lang-btn" data-lang="en" aria-label="English">EN</button>
         </div>
 
+        <!-- ======================= AREA AKUN (LOGIN/LOGOUT) =======================
+             Dua elemen sibling di bawah ini SALING TOGGLE lewat class "hide" -
+             pola yang sama dengan cart-hint/cart-panel-empty di bagian keranjang,
+             bukan mekanisme show/hide baru. Status login sebenarnya dicek ke
+             backend (GET /api/auth/me) saat halaman dimuat lewat checkAuthState()
+             di script.js, yang lalu menentukan mana dari dua elemen ini yang
+             kena class "hide" lewat renderAuthUI(). Default di HTML (sebelum JS
+             sempat jalan) dianggap anonim: tombol Masuk tampil, info akun
+             tersembunyi - supaya tidak "salah tampil dulu" sesaat sebagai
+             logged-in sebelum pengecekan backend selesai. -->
+        <div class="auth-slot" id="authSlot">
+          <button type="button" id="authLoginBtn" class="auth-login-btn" data-i18n="auth.loginBtn">Masuk</button>
+          <div class="auth-account hide" id="authAccount">
+            <span class="auth-email" id="authEmailText"></span>
+            <button type="button" id="authLogoutBtn" class="auth-logout-btn" data-i18n="auth.logoutBtn">Keluar</button>
+          </div>
+        </div>
+
         <!-- Tombol hamburger, hanya muncul di layar kecil (diatur lewat CSS) -->
         <button class="hamburger" id="hamburger" aria-label="Buka menu navigasi" aria-expanded="false">
           <span></span>
@@ -180,6 +198,16 @@
         <button class="filter-btn" data-filter="snack" data-i18n="filter.snack" aria-pressed="false">Snack</button>
       </div>
 
+      <!-- Tombol admin "+ Tambah Produk" - default tersembunyi lewat class "hide"
+           (sama seperti pola auth-slot di navbar), baru ditampilkan lewat JS
+           begitu currentUser.role === "admin" (lihat renderAuthUI() di
+           script.js). Tombol ini BUKAN penjaga keamanan sungguhan - backend
+           (requireAdmin di server.js) tetap satu-satunya pemeriksa asli kalau
+           ada yang mencoba memanggil endpoint-nya langsung tanpa lewat tombol ini. -->
+      <div class="admin-menu-actions hide" id="adminMenuActions">
+        <button type="button" id="adminAddProductBtn" class="btn-admin-add" data-i18n="admin.addProductBtn">+ Tambah Produk</button>
+      </div>
+
       <!-- PENTING kalau mengubah harga atau menambah menu baru: setiap .menu-card
            di bawah punya harga di DUA tempat yang harus SELALU sama nilainya:
            (1) teks yang tampil di <span class="price"> untuk pelanggan, dan
@@ -241,6 +269,135 @@
     </div>
     <p class="cart-panel-empty hide" id="cartPanelEmpty" data-i18n="cart.emptyHint">Keranjang masih kosong. Tambahkan menu untuk mulai pesan.</p>
     <ul class="cart-panel-list" id="cartPanelList"></ul>
+  </dialog>
+
+  <!-- ======================= LOGIN & DAFTAR AKUN =======================
+       Satu <dialog> dipakai bergantian untuk login DAN daftar akun baru lewat
+       toggle mode di script.js (setAuthMode()), supaya tidak ada markup form
+       yang terduplikasi. Memakai elemen <dialog> bawaan browser lewat
+       showModal()/close() - MEKANISME SAMA PERSIS seperti #cartPanel di atas
+       (lihat komentar lengkapnya di situ), jadi fokus trap, Escape-to-close,
+       dan ::backdrop otomatis didapat gratis dari browser. -->
+  <dialog id="authDialog" class="auth-dialog" aria-labelledby="authDialogTitle">
+    <div class="dialog-header">
+      <h2 id="authDialogTitle" data-i18n="auth.loginTitle">Masuk</h2>
+      <button type="button" id="authDialogCloseBtn" class="dialog-close-btn" aria-label="Tutup" data-i18n-aria="dialog.close">&times;</button>
+    </div>
+    <form id="authForm" class="form" novalidate>
+      <!-- Pesan error/sukses dari backend (atau pesan koneksi gagal) ditaruh di
+           sini lewat script.js - aria-live="polite" supaya screen reader
+           otomatis membacakannya begitu isinya berubah, tanpa user perlu
+           pindah fokus (pola yang sama seperti #cartStatus). Default
+           tersembunyi lewat class "hide" sampai benar-benar ada pesan. -->
+      <p class="form-message hide" id="authFormMessage" aria-live="polite"></p>
+
+      <label for="authEmailInput" data-i18n="auth.emailLabel">Email</label>
+      <input type="email" id="authEmailInput" name="email" autocomplete="email" required />
+
+      <label for="authPasswordInput" data-i18n="auth.passwordLabel">Kata Sandi</label>
+      <input type="password" id="authPasswordInput" name="password" autocomplete="current-password" required minlength="8" />
+
+      <button type="submit" class="btn btn-primary" id="authSubmitBtn" data-i18n="auth.loginSubmit">Masuk</button>
+
+      <p class="form-switch">
+        <span id="authSwitchText" data-i18n="auth.noAccount">Belum punya akun?</span>
+        <button type="button" id="authSwitchModeBtn" class="form-switch-btn" data-i18n="auth.switchToRegister">Daftar di sini</button>
+      </p>
+    </form>
+  </dialog>
+
+  <!-- ======================= FORM PRODUK (ADMIN) =======================
+       Dialog ini dipakai bergantian untuk membuat produk baru ATAU mengedit
+       produk yang sudah ada (dibedakan lewat script.js: openProductDialog()
+       diberi mode "create"/"edit"), supaya tidak ada dua dialog yang isinya
+       nyaris sama persis. Hanya bisa dibuka lewat tombol yang sudah dijaga
+       role admin di JS (lihat #adminMenuActions & tombol Edit di tiap kartu
+       menu) - tapi seperti selalu, otorisasi SUNGGUHAN tetap di backend
+       (requireAdmin di server.js), tombol ini cuma tampilan. -->
+  <dialog id="productDialog" class="product-dialog" aria-labelledby="productDialogTitle">
+    <div class="dialog-header">
+      <h2 id="productDialogTitle" data-i18n="admin.addProductTitle">Tambah Produk</h2>
+      <button type="button" id="productDialogCloseBtn" class="dialog-close-btn" aria-label="Tutup" data-i18n-aria="dialog.close">&times;</button>
+    </div>
+    <form id="productForm" class="form" novalidate>
+      <p class="form-message hide" id="productFormMessage" aria-live="polite"></p>
+
+      <label for="productSlugInput" data-i18n="admin.slugLabel">Slug</label>
+      <input type="text" id="productSlugInput" name="slug" required />
+
+      <label for="productNameInput" data-i18n="admin.nameLabel">Nama Produk</label>
+      <input type="text" id="productNameInput" name="name" required />
+
+      <!-- Deskripsi produk (Phase 3E) - keduanya OPSIONAL (tidak diberi "required"),
+           beda dengan field lain di form ini. WHY: kalau salah satu bahasa
+           dikosongkan admin, tampilan menu publik tetap punya jalur cadangan ke
+           bahasa satunya (lihat getProductDescriptionText() di script.js). TAPI
+           kalau KEDUANYA dikosongkan sekaligus untuk produk BARU (bukan salah
+           satu dari 11 produk awal yang sudah di-backfill), tidak ada jalur
+           cadangan terakhir (kamus i18n statis) yang bisa dipakai - kartu menu
+           produk itu akan tampil dengan kotak deskripsi kosong. Keterbatasan ini
+           sudah diketahui/diterima (lihat catatan yang sama di openProductDialog()
+           di script.js), bukan bug. -->
+      <label for="productDescriptionIdInput" data-i18n="admin.descriptionIdLabel">Deskripsi (Indonesia)</label>
+      <textarea id="productDescriptionIdInput" name="descriptionId" rows="3"></textarea>
+
+      <label for="productDescriptionEnInput" data-i18n="admin.descriptionEnLabel">Description (English)</label>
+      <textarea id="productDescriptionEnInput" name="descriptionEn" rows="3"></textarea>
+
+      <label for="productPriceInput" data-i18n="admin.priceLabel">Harga (Rp)</label>
+      <input type="text" id="productPriceInput" name="price" inputmode="numeric" required />
+
+      <label for="productCategoryInput" data-i18n="admin.categoryLabel">Kategori</label>
+      <select id="productCategoryInput" name="category" required>
+        <option value="makanan" data-i18n="filter.makanan">Makanan</option>
+        <option value="minuman" data-i18n="filter.minuman">Minuman</option>
+        <option value="snack" data-i18n="filter.snack">Snack</option>
+      </select>
+
+      <label for="productImageSrcInput" data-i18n="admin.imageSrcLabel">URL Gambar</label>
+      <input type="text" id="productImageSrcInput" name="imageSrc" required />
+
+      <label for="productImageAltInput" data-i18n="admin.imageAltLabel">Teks Alternatif Gambar</label>
+      <input type="text" id="productImageAltInput" name="imageAlt" required />
+
+      <!-- Toggle "Default"/"Custom" untuk dua field lebar/tinggi gambar di bawah ini.
+           WHY: ukuran TAMPILAN foto produk di kartu menu publik sepenuhnya diatur
+           CSS (.card-photo { width:100%; aspect-ratio:3/2; object-fit:cover } di
+           style.css) - angka lebar/tinggi di sini SAMA SEKALI tidak mengubah
+           besar-kecilnya foto yang terlihat pengunjung. Satu-satunya fungsi
+           nyata dua field ini adalah sebagai atribut width/height HTML pada
+           <img> (dipasang lewat script.js di createMenuCardElement()), yang
+           cuma jadi "petunjuk" ke browser untuk mencadangkan ruang sebelum
+           gambar selesai dimuat (mencegah layout bergeser/CLS) - makanya nilai
+           idealnya cukup mengikuti rasio 3:2 yang sama dengan CSS di atas,
+           yaitu 700x467 (rasio ini juga dipakai konsisten oleh ke-11 produk
+           awal). Toggle ini sekadar membantu admin: pilih "Default" supaya
+           tidak perlu mikir angka sama sekali (field otomatis terkunci ke
+           700x467), atau "Custom" kalau memang perlu rasio lain. Perilaku
+           lengkap toggle ini (isi awal saat dialog dibuka, kunci/buka field)
+           ada di setImageSizeMode() & openProductDialog() di script.js. -->
+      <div class="image-size-toggle" id="productImageSizeToggle">
+        <span class="image-size-toggle-label" data-i18n="admin.imageSizeLabel">Ukuran Gambar</span>
+        <div class="image-size-switch">
+          <button type="button" class="image-size-btn active" data-size-mode="default" aria-pressed="true" data-i18n="admin.imageSizeDefaultOption">Default (700&times;467)</button>
+          <button type="button" class="image-size-btn" data-size-mode="custom" aria-pressed="false" data-i18n="admin.imageSizeCustomOption">Custom</button>
+        </div>
+      </div>
+
+      <label for="productImageWidthInput" data-i18n="admin.imageWidthLabel">Lebar Gambar (px)</label>
+      <input type="number" id="productImageWidthInput" name="imageWidth" min="1" step="1" value="700" readonly required />
+
+      <label for="productImageHeightInput" data-i18n="admin.imageHeightLabel">Tinggi Gambar (px)</label>
+      <input type="number" id="productImageHeightInput" name="imageHeight" min="1" step="1" value="467" readonly required />
+
+      <label for="productImageSrcsetInput" data-i18n="admin.imageSrcsetLabel">Srcset Gambar (opsional)</label>
+      <input type="text" id="productImageSrcsetInput" name="imageSrcset" />
+
+      <label for="productImageSizesInput" data-i18n="admin.imageSizesLabel">Sizes Gambar (opsional)</label>
+      <input type="text" id="productImageSizesInput" name="imageSizes" />
+
+      <button type="submit" class="btn btn-primary" id="productSubmitBtn" data-i18n="admin.addProductSubmit">Simpan Produk</button>
+    </form>
   </dialog>
 
   <!-- ======================= KEUNGGULAN ======================= -->

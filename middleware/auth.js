@@ -78,9 +78,9 @@ function requireAuth(req, res, next) {
   const cookies = parseCookies(req.headers.cookie);
   const signedValue = cookies[COOKIE_NAME];
 
-  const userId = verify(signedValue);
+  const verified = verify(signedValue);
 
-  if (!userId) {
+  if (!verified) {
     // Cookie tidak ada sama sekali ATAU signature-nya tidak valid (dipalsukan/
     // rusak/kadaluarsa dari sesi lama yang secret-nya sudah beda) - dua-duanya
     // diperlakukan SAMA: 401, tanpa membedakan pesannya, supaya tidak
@@ -88,6 +88,11 @@ function requireAuth(req, res, next) {
     // enumeration di POST /api/auth/login).
     return res.status(401).json({ status: 'error', message: 'Anda harus login untuk mengakses resource ini' });
   }
+
+  // verify() sekarang balikin { userId, tokenVersion } (bukan userId polos) -
+  // tokenVersion dibutuhkan di bawah untuk cek revocation, lihat komentar di
+  // sana.
+  const { userId, tokenVersion } = verified;
 
   // --- Kenapa user di-query ULANG dari database, bukan cukup percaya userId dari cookie ---
   // Cookie yang sudah lolos verify() di atas TERBUKTI memang ditandatangani
@@ -106,12 +111,35 @@ function requireAuth(req, res, next) {
   // Query fresh ke database di setiap request memastikan requireAdmin di
   // middleware/authorize.js (yang jalan setelah ini) selalu mengevaluasi
   // role TERKINI, bukan role "seolah-olah" yang dibawa cookie.
-  const user = db.prepare('SELECT id, email, role FROM users WHERE id = ?').get(userId);
+  const user = db.prepare('SELECT id, email, role, token_version FROM users WHERE id = ?').get(userId);
 
   if (!user) {
     // userId di cookie valid secara signature, tapi baris user-nya sudah
     // tidak ada lagi di database (akun terhapus) - diperlakukan sama seperti
     // tidak login sama sekali, pesan/status SAMA PERSIS dengan kasus di atas.
+    return res.status(401).json({ status: 'error', message: 'Anda harus login untuk mengakses resource ini' });
+  }
+
+  // --- Cek revocation: tokenVersion di dalam cookie harus cocok dengan token_version TERKINI ---
+  // Ini mekanisme yang benar-benar membuat POST /api/auth/logout merevoke
+  // sesi di sisi SERVER (lihat komentar panjang di db/database.js migrasi
+  // 1c-2, dan di server.js POST /api/auth/logout). Cookie ini sudah TERBUKTI
+  // asli dari server (lolos verify() di atas) DAN user-nya masih ada di
+  // database (lolos cek di atas) - tapi itu belum cukup, karena signature
+  // yang valid cuma membuktikan "token ini memang pernah di-sign oleh server
+  // untuk user ini", bukan "token ini masih dianggap aktif SEKARANG". Kalau
+  // tokenVersion yang tertanam di dalam cookie (nilai token_version SAAT
+  // login dulu) tidak cocok lagi dengan token_version TERKINI di baris user
+  // ini, artinya token ini di-sign SEBELUM logout terakhir (atau event
+  // force-invalidation lain di masa depan) meng-increment token_version -
+  // token ini sudah "basi" dan harus ditolak, PERSIS seperti "tidak login
+  // sama sekali", dengan pesan/status yang SAMA PERSIS (tidak dibedakan) demi
+  // prinsip yang sama seperti kasus-kasus 401 lain di file ini: tidak
+  // membocorkan KENAPA tepatnya ditolak. Ini konsisten dengan alasan
+  // requireAuth sudah query user FRESH dari database untuk role di atas -
+  // token_version dicek dengan cara yang SAMA PERSIS (fresh per-request),
+  // cuma kolom yang beda.
+  if (user.token_version !== tokenVersion) {
     return res.status(401).json({ status: 'error', message: 'Anda harus login untuk mengakses resource ini' });
   }
 

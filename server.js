@@ -232,6 +232,17 @@ function mapRowToProduct(row) {
       width: row.image_width,
       height: row.image_height,
     },
+    // Phase 3C-5: deskripsi bilingual (ID/EN), lihat migrasi kolom
+    // description_id/description_en di db/database.js. Disusun bersarang
+    // (bukan flat description_id/description_en) - konsisten dengan
+    // convention `image: {...}` di atas. Untuk 11 produk seed lama,
+    // keduanya akan berupa string kosong (belum pernah diisi lewat
+    // POST/PUT) - frontend tetap punya fallback ke kamus i18n statis di
+    // script.js untuk kasus itu, di luar scope backend ini.
+    description: {
+      id: row.description_id,
+      en: row.description_en,
+    },
   };
 }
 
@@ -336,7 +347,7 @@ app.post('/api/products', requireAuth, requireAdmin, (req, res) => {
   // sekali atau Content-Type-nya bukan application/json - fallback ke {}
   // supaya destructuring di bawah tidak error.
   const body = req.body || {};
-  const { slug, name, price, category, image } = body;
+  const { slug, name, price, category, image, description } = body;
 
   // Sengaja TIDAK mengambil `id` dari body sama sekali. Client BOLEH kirim
   // `id` di JSON-nya, tapi kita abaikan total - karena kolom `id` di table
@@ -388,12 +399,40 @@ app.post('/api/products', requireAuth, requireAdmin, (req, res) => {
     }
   }
 
+  // --- Validasi `description` (Phase 3C-5, OPSIONAL) ---
+  // Beda dengan field wajib di atas: `description` boleh TIDAK dikirim sama
+  // sekali (undefined) - request tetap sukses, kedua kolomnya jadi string
+  // kosong (lihat default di bawah). Pola "opsional tapi type-safe kalau
+  // dikirim" ini SAMA PERSIS seperti image.srcset/image.sizes di atas -
+  // bedanya di sini ada dua sub-field (id, en) yang masing-masing dicek
+  // sendiri-sendiri, dan masing-masing JUGA opsional (boleh cuma isi salah
+  // satu bahasa saja).
+  if (description !== undefined) {
+    if (typeof description !== 'object' || description === null) {
+      errors.push('description harus berupa object berisi id dan/atau en (keduanya opsional)');
+    } else {
+      if (description.id !== undefined && typeof description.id !== 'string') {
+        errors.push('description.id harus berupa teks');
+      }
+      if (description.en !== undefined && typeof description.en !== 'string') {
+        errors.push('description.en harus berupa teks');
+      }
+    }
+  }
+
   // Kalau ada field yang tidak valid, HENTIKAN di sini - jangan lanjut ke
   // INSERT sama sekali. HTTP 400 Bad Request = "request kamu salah/tidak
   // lengkap", beda dengan 500 yang berarti "server kami yang error".
   if (errors.length > 0) {
     return res.status(400).json({ status: 'error', message: 'Validasi gagal', details: errors });
   }
+
+  // --- Nilai description yang benar-benar disimpan, dengan default aman ---
+  // `description` sendiri bisa undefined/null/object-tanpa-id/object-tanpa-en
+  // - di semua kasus itu, kolomnya disimpan sebagai string kosong '',
+  // konsisten dengan DEFAULT '' di schema (lihat migrasi di db/database.js).
+  const descriptionId = (description && typeof description.id === 'string') ? description.id : '';
+  const descriptionEn = (description && typeof description.en === 'string') ? description.en : '';
 
   // --- Cek slug unik SEBELUM insert ---
   // Kolom slug punya constraint UNIQUE di table (lihat db/database.js).
@@ -416,9 +455,9 @@ app.post('/api/products', requireAuth, requireAdmin, (req, res) => {
     // sebagai perintah SQL.
     const insert = db.prepare(`
       INSERT INTO products
-        (slug, name, price, category, image_src, image_srcset, image_sizes, image_alt, image_width, image_height)
+        (slug, name, price, category, image_src, image_srcset, image_sizes, image_alt, image_width, image_height, description_id, description_en)
       VALUES
-        (@slug, @name, @price, @category, @image_src, @image_srcset, @image_sizes, @image_alt, @image_width, @image_height)
+        (@slug, @name, @price, @category, @image_src, @image_srcset, @image_sizes, @image_alt, @image_width, @image_height, @description_id, @description_en)
     `);
 
     const info = insert.run({
@@ -435,6 +474,8 @@ app.post('/api/products', requireAuth, requireAdmin, (req, res) => {
       image_alt: image.alt,
       image_width: image.width,
       image_height: image.height,
+      description_id: descriptionId,
+      description_en: descriptionEn,
     });
 
     // `info.lastInsertRowid` = id yang baru saja di-generate SQLite untuk
@@ -515,7 +556,7 @@ app.put('/api/products/:id', requireAuth, requireAdmin, (req, res) => {
     // req.body bisa `undefined`/`{}` kalau client tidak mengirim body sama
     // sekali - fallback ke {} supaya destructuring di bawah tidak error.
     const body = req.body || {};
-    const { slug, name, price, category, image } = body;
+    const { slug, name, price, category, image, description } = body;
 
     // PENTING: `id` dari req.body (kalau client mengirimnya) SENGAJA TIDAK
     // PERNAH dibaca/dipakai di route ini. Satu-satunya sumber kebenaran
@@ -562,6 +603,24 @@ app.put('/api/products/:id', requireAuth, requireAdmin, (req, res) => {
       }
     }
 
+    // --- Validasi `description` (Phase 3C-5, OPSIONAL) - SAMA PERSIS pola
+    // dan pesan errornya dengan POST /api/products di atas (lihat komentar
+    // di sana untuk penjelasan lengkap kenapa opsional/kenapa dua sub-field).
+    // Duplikat, BUKAN diekstrak ke helper - konsisten dengan cara validasi
+    // field wajib lain di atas juga sudah diduplikasi POST/PUT di file ini.
+    if (description !== undefined) {
+      if (typeof description !== 'object' || description === null) {
+        errors.push('description harus berupa object berisi id dan/atau en (keduanya opsional)');
+      } else {
+        if (description.id !== undefined && typeof description.id !== 'string') {
+          errors.push('description.id harus berupa teks');
+        }
+        if (description.en !== undefined && typeof description.en !== 'string') {
+          errors.push('description.en harus berupa teks');
+        }
+      }
+    }
+
     // Kalau ADA SATU SAJA field yang tidak valid, HENTIKAN di sini - jangan
     // lanjut ke UPDATE sama sekali (all-or-nothing, bukan partial update).
     // Baris existingRow yang sudah di-SELECT di atas TIDAK disentuh/ditulis
@@ -570,6 +629,17 @@ app.put('/api/products/:id', requireAuth, requireAdmin, (req, res) => {
     if (errors.length > 0) {
       return res.status(400).json({ status: 'error', message: 'Validasi gagal', details: errors });
     }
+
+    // --- Nilai description yang benar-benar disimpan, SAMA PERSIS pola
+    // default-nya dengan POST /api/products (lihat komentar di sana).
+    // PENTING: PUT = full replace, jadi kalau client tidak mengirim
+    // `description` sama sekali di body, deskripsi yang TERSIMPAN akan
+    // di-RESET jadi string kosong (BUKAN mempertahankan nilai lama di
+    // existingRow) - konsisten dengan semantik full-replace field lain
+    // (slug/name/price/dst) di route ini, yang juga tidak "mempertahankan
+    // nilai lama" kalau tidak dikirim.
+    const descriptionId = (description && typeof description.id === 'string') ? description.id : '';
+    const descriptionEn = (description && typeof description.en === 'string') ? description.en : '';
 
     // --- Cek slug unik SEBELUM update, TAPI kecualikan produk ini sendiri ---
     // Bedanya dengan cek slug di POST: di POST tidak ada "diri sendiri" untuk
@@ -601,7 +671,9 @@ app.put('/api/products/:id', requireAuth, requireAdmin, (req, res) => {
         image_sizes = @image_sizes,
         image_alt = @image_alt,
         image_width = @image_width,
-        image_height = @image_height
+        image_height = @image_height,
+        description_id = @description_id,
+        description_en = @description_en
       WHERE id = @id
     `);
 
@@ -619,6 +691,8 @@ app.put('/api/products/:id', requireAuth, requireAdmin, (req, res) => {
       image_alt: image.alt,
       image_width: image.width,
       image_height: image.height,
+      description_id: descriptionId,
+      description_en: descriptionEn,
     });
 
     // SELECT ulang baris yang baru saja di-update, supaya response ke
@@ -935,10 +1009,19 @@ app.post('/api/auth/login', loginRateLimiter, async (req, res) => {
     }
 
     // --- Phase 3C-3: set cookie session, SETELAH kredensial terbukti valid ---
-    // sign(user.id) menghasilkan nilai `${id}.${hmacHex}` (lihat lib/session.js)
-    // - bukti bertanda tangan bahwa "id ini memang milik user yang baru saja
-    // berhasil login", bukan cuma id polos yang bisa dikarang bebas oleh client.
-    const signedValue = sign(user.id);
+    // sign(user.id, user.token_version) menghasilkan nilai
+    // `${id}.${tokenVersion}.${issuedAt}.${hmacHex}` (lihat lib/session.js) -
+    // bukti bertanda tangan bahwa "id ini memang milik user yang baru saja
+    // berhasil login", bukan cuma id polos yang bisa dikarang bebas oleh
+    // client. `user.token_version` ikut ditanam DI DALAM tanda tangan ini -
+    // findUserByEmail (lib/user.js) memakai `SELECT *`, jadi kolom
+    // token_version (lihat migrasi 1c-2 di db/database.js) sudah otomatis
+    // tersedia di object `user` di sini tanpa perlu ubah query apa pun. Nilai
+    // token_version yang ditanam adalah nilai TERKINI SAAT login ini terjadi
+    // - kalau nanti user ini logout, token_version di database di-increment
+    // (lihat POST /api/auth/logout di bawah), dan cookie yang baru saja dibuat
+    // di sini otomatis jadi "basi" (ditolak requireAuth) sejak saat itu.
+    const signedValue = sign(user.id, user.token_version);
 
     // res.cookie(nama, nilai, opsi) menambahkan header `Set-Cookie` ke
     // response - browser yang menerima ini otomatis MENYIMPAN cookie-nya, dan
@@ -1034,6 +1117,39 @@ app.post('/api/auth/login', loginRateLimiter, async (req, res) => {
 // ditolak 401 (semantik yang lebih benar) - perilaku SETELAH lolos requireAuth
 // tetap SAMA PERSIS seperti sebelumnya (cuma clearCookie + pesan sukses).
 app.post('/api/auth/logout', requireAuth, (req, res) => {
+  // --- INI YANG SEBENARNYA MEREVOKE SESI DI SISI SERVER (perbaikan Final Regression) ---
+  // Sebelum baris ini ada, logout HANYA memanggil res.clearCookie() di
+  // bawah - instruksi sepihak ke BROWSER, sama sekali tidak mengubah apa pun
+  // di server. Kalau ada yang sempat MENYALIN nilai cookie SEBELUM user ini
+  // logout (DevTools, traffic sniffing, dsb - persis skenario yang dibuktikan
+  // Final Regression lewat test replay-attack nyata), salinan itu tetap
+  // diterima server SELAMANYA sampai masa berlaku 24 jam-nya habis sendiri,
+  // walau user aslinya sudah "logout".
+  //
+  // Increment token_version di sini mengubah itu: req.user.id tersedia karena
+  // route ini sudah digerbangi requireAuth di atas. Begitu baris ini
+  // dijalankan, SEMUA token yang pernah di-sign untuk user ini - termasuk
+  // TEPAT token yang baru saja dipakai untuk memanggil endpoint logout ini
+  // sendiri, dan termasuk salinan mana pun yang mungkin sudah dicuri - akan,
+  // pada pemakaian BERIKUTNYA, membawa tokenVersion yang tidak lagi cocok
+  // dengan token_version terbaru di database. Cek tokenVersion yang baru
+  // ditambahkan di requireAuth (middleware/auth.js) akan menolaknya dengan
+  // 401, PERSIS seperti "tidak login sama sekali" - inilah yang membuat
+  // logout benar-benar merevoke sesi di sisi SERVER, bukan cuma instruksi
+  // kosmetik ke browser. Lihat komentar lengkap soal desain ini (kenapa
+  // DB-backed counter, bukan in-memory blacklist; kenapa trade-off "merevoke
+  // SEMUA sesi user itu" diterima) di db/database.js migrasi 1c-2.
+  //
+  // --- Urutan WAJIB: increment ini SEBELUM clearCookie/response sukses ---
+  // Kalau server crash TEPAT setelah res.clearCookie()/response 200 terkirim
+  // tapi SEBELUM baris UPDATE ini sempat jalan, client sudah terlanjur
+  // percaya "logout berhasil" padahal secara server token lamanya MASIH
+  // valid - persis celah yang sedang diperbaiki, cuma dipindah jadi race
+  // condition. Menjalankan UPDATE ini LEBIH DULU (bukan setelah, dan bukan di
+  // jalur yang bisa di-skip) memastikan begitu client menerima konfirmasi
+  // sukses apa pun, revocation-nya SUDAH benar-benar tersimpan di database.
+  db.prepare('UPDATE users SET token_version = token_version + 1 WHERE id = ?').run(req.user.id);
+
   // --- clearCookie WAJIB diberi opsi yang sama seperti saat cookie di-set ---
   // Sebelumnya dipanggil tanpa opsi sama sekali (`res.clearCookie(COOKIE_NAME)`)
   // - sebagian browser cuma mau benar-benar menghapus sebuah cookie kalau
@@ -1054,6 +1170,32 @@ app.post('/api/auth/logout', requireAuth, (req, res) => {
     secure: process.env.NODE_ENV !== 'development',
   });
   res.status(200).json({ status: 'success', message: 'Logout berhasil' });
+});
+
+// --- Route Phase 3D: cek status login saat ini ("siapa saya?") ---
+// Kenapa endpoint ini perlu ada: cookie session yang di-set di POST
+// /api/auth/login sengaja httpOnly (lihat komentar di sana) - artinya
+// JavaScript di frontend TIDAK BISA membaca isi cookie itu sama sekali lewat
+// document.cookie. Akibatnya, setelah user me-refresh halaman, frontend tidak
+// punya cara sendiri untuk tahu "apakah user ini masih login, dan role-nya
+// apa" - satu-satunya cara adalah BERTANYA ke backend, dan endpoint inilah
+// yang menjawab pertanyaan itu.
+//
+// Route ini murni MEMBACA, tidak mengubah apa pun (tidak ada INSERT/UPDATE/
+// DELETE, tidak ada Set-Cookie baru) - dia cuma menggemakan balik apa yang
+// SUDAH ditentukan requireAuth di bawah ini. Karena itu juga TIDAK dipasang
+// rate limiter seperti loginRateLimiter/registerRateLimiter - dua limiter itu
+// khusus melindungi endpoint yang menjalankan bcrypt (mahal) atau membuat
+// resource baru, sedangkan route ini murni SELECT ringan yang sudah dijaga
+// requireAuth.
+//
+// requireAuth di sini menjalankan alur yang SAMA PERSIS seperti di route lain
+// (lihat middleware/auth.js): kalau cookie tidak ada/tidak valid, requireAuth
+// SENDIRI yang membalas 401 dan handler di bawah ini tidak pernah jalan sama
+// sekali. Kalau lolos, req.user sudah pasti berisi { id, email, role } segar
+// dari database (bukan dari cookie) - handler tinggal menyalinnya ke response.
+app.get('/api/auth/me', requireAuth, (req, res) => {
+  res.status(200).json({ status: 'success', user: { id: req.user.id, email: req.user.email, role: req.user.role } });
 });
 
 // --- 404 handler ---
