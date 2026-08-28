@@ -347,6 +347,7 @@ cartCheckoutBtn.addEventListener("click", () => {
 // jalan di ORIGIN yang berbeda (frontend di :5500 lewat Live Server, backend
 // di :3000), jadi fetch() perlu tahu persis ke mana harus mengirim request.
 const API_BASE_URL = "http://localhost:3000";
+let productsLoadState = "loading"; // "loading" | "success" | "error" - status presentasi count dashboard
 
 // Bikin SATU elemen <div class="menu-card"> dari satu objek produk (hasil
 // fetch dari /api/products). Strukturnya dibuat SAMA PERSIS seperti kartu
@@ -482,6 +483,8 @@ function createMenuCardElement(product) {
 //    karena kartu baru dibuat dengan teks default Indonesia di atas.
 async function loadMenu() {
   const menuGrid = document.getElementById("menuGrid");
+  productsLoadState = "loading";
+  queueMicrotask(updateAdminProductTotal);
   try {
     const response = await fetch(`${API_BASE_URL}/api/products`);
     if (!response.ok) throw new Error(`Request gagal dengan status ${response.status}`);
@@ -493,6 +496,7 @@ async function loadMenu() {
     // seperti width/height/srcset gambar) tanpa perlu fetch ulang satu-satu
     // per produk saat tombol Edit diklik.
     productsById = new Map(products.map((product) => [product.id, product]));
+    productsLoadState = "success";
 
     menuGrid.innerHTML = "";
     products.forEach((product) => {
@@ -503,7 +507,10 @@ async function loadMenu() {
     wireMenuCardQtyButtons();
     updateCartSummary();
     applyLanguage(document.documentElement.lang);
+    updateAdminProductTotal();
   } catch (error) {
+    productsLoadState = "error";
+    updateAdminProductTotal();
     // Error TIDAK disembunyikan dari user - ditampilkan pesan sederhana di
     // area menu (bukan crash/blank), sekaligus dicatat ke console supaya
     // developer bisa lihat detail error aslinya saat debugging.
@@ -959,6 +966,19 @@ const translations = {
     "auth.sessionExpired": "Sesi kamu sudah berakhir, silakan masuk lagi.",
     "auth.genericError": "Gagal menghubungi server. Pastikan server backend sedang berjalan.",
 
+    "admin.dashboardEntry": "Dashboard",
+    "admin.dashboardLabel": "Area Admin",
+    "admin.dashboardTitle": "Admin Dashboard",
+    "admin.signedInAs": "Login sebagai",
+    "admin.navigationLabel": "Navigasi admin",
+    "admin.dashboardNav": "Dashboard",
+    "admin.productsNav": "Produk",
+    "admin.viewWebsiteNav": "Lihat Website",
+    "admin.totalProducts": "Total Produk",
+    "admin.productsLoading": "Memuat...",
+    "admin.productsUnavailable": "Tidak tersedia",
+    "admin.currentRole": "Role Saat Ini",
+    "admin.loggedInAs": "Login sebagai",
     "admin.addProductBtn": "+ Tambah Produk",
     "admin.addProductTitle": "Tambah Produk",
     "admin.editProductTitle": "Edit Produk",
@@ -1089,6 +1109,19 @@ const translations = {
     "auth.sessionExpired": "Your session has expired, please log in again.",
     "auth.genericError": "Failed to reach the server. Please make sure the backend server is running.",
 
+    "admin.dashboardEntry": "Dashboard",
+    "admin.dashboardLabel": "Admin Area",
+    "admin.dashboardTitle": "Admin Dashboard",
+    "admin.signedInAs": "Signed in as",
+    "admin.navigationLabel": "Admin navigation",
+    "admin.dashboardNav": "Dashboard",
+    "admin.productsNav": "Products",
+    "admin.viewWebsiteNav": "View Website",
+    "admin.totalProducts": "Total Products",
+    "admin.productsLoading": "Loading...",
+    "admin.productsUnavailable": "Unavailable",
+    "admin.currentRole": "Current Role",
+    "admin.loggedInAs": "Logged in as",
     "admin.addProductBtn": "+ Add Product",
     "admin.addProductTitle": "Add Product",
     "admin.editProductTitle": "Edit Product",
@@ -1172,6 +1205,7 @@ function applyLanguage(lang) {
   langButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.lang === lang));
   document.documentElement.lang = lang;
   setStoredLang(lang);
+  queueMicrotask(updateAdminProductTotal);
 
   // Deskripsi produk (Phase 3E) tidak ikut ter-update lewat sweep [data-i18n]
   // di atas - lihat komentar lengkap di updateProductDescriptions() (bagian 9a)
@@ -1300,6 +1334,15 @@ const authLoginBtn = document.getElementById("authLoginBtn");
 const authAccount = document.getElementById("authAccount");
 const authEmailText = document.getElementById("authEmailText");
 const authLogoutBtn = document.getElementById("authLogoutBtn");
+const adminDashboardEntry = document.getElementById("adminDashboardEntry");
+const adminDashboard = document.getElementById("adminDashboard");
+const adminHeaderEmail = document.getElementById("adminHeaderEmail");
+const adminCurrentRole = document.getElementById("adminCurrentRole");
+const adminLoggedInEmail = document.getElementById("adminLoggedInEmail");
+const adminTotalProducts = document.getElementById("adminTotalProducts");
+const adminOverview = document.getElementById("adminOverview");
+const adminNavLinks = document.querySelectorAll(".admin-nav-link[data-admin-destination]");
+const adminLogoutBtn = document.getElementById("adminLogoutBtn");
 
 const authDialog = document.getElementById("authDialog");
 const authDialogCloseBtn = document.getElementById("authDialogCloseBtn");
@@ -1453,7 +1496,17 @@ function isBackdropClick(dialog, event) {
 // Menentukan mana dari dua elemen sibling (#authLoginBtn vs #authAccount)
 // yang kena class "hide" - pola toggle yang sama seperti .cart-hint.hide,
 // bukan mekanisme show/hide baru. Juga menampilkan/menyembunyikan tombol
-// "+ Tambah Produk" (#adminMenuActions) tergantung role.
+// "+ Tambah Produk" (#adminMenuActions) dan dashboard tergantung role.
+function updateAdminProductTotal() {
+  const lang = document.documentElement.lang;
+  if (productsLoadState === "success") {
+    adminTotalProducts.textContent = String(productsById.size);
+  } else {
+    const key = productsLoadState === "error" ? "admin.productsUnavailable" : "admin.productsLoading";
+    adminTotalProducts.textContent = translations[lang][key];
+  }
+}
+
 function renderAuthUI() {
   const isLoggedIn = !!currentUser;
   authLoginBtn.classList.toggle("hide", isLoggedIn);
@@ -1462,7 +1515,51 @@ function renderAuthUI() {
 
   const isAdmin = isLoggedIn && currentUser.role === "admin";
   adminMenuActions.classList.toggle("hide", !isAdmin);
+  adminDashboardEntry.hidden = !isAdmin;
+  adminDashboard.hidden = !isAdmin;
+
+  if (isAdmin) {
+    adminHeaderEmail.textContent = currentUser.email;
+    adminCurrentRole.textContent = currentUser.role;
+    adminLoggedInEmail.textContent = currentUser.email;
+    updateAdminProductTotal();
+  } else {
+    adminHeaderEmail.textContent = "";
+    adminCurrentRole.textContent = "";
+    adminLoggedInEmail.textContent = "";
+  }
 }
+
+// Navigation tetap memakai anchor ke section single-page yang sudah ada.
+// Active state membantu orientasi visual/aksesibilitas tanpa menambah router.
+function setActiveAdminNavigation(activeLink) {
+  adminNavLinks.forEach((link) => {
+    const isActive = link === activeLink;
+    link.classList.toggle("active", isActive);
+    if (isActive) link.setAttribute("aria-current", "location");
+    else link.removeAttribute("aria-current");
+  });
+}
+
+function syncAdminNavigationWithHash() {
+  const activeLink = Array.from(adminNavLinks).find((link) => link.hash === window.location.hash) || null;
+  setActiveAdminNavigation(activeLink);
+}
+
+adminNavLinks.forEach((link) => {
+  link.addEventListener("click", () => {
+    if (link.dataset.adminDestination === "dashboard") {
+      requestAnimationFrame(() => adminOverview.focus());
+    }
+  });
+});
+
+adminDashboardEntry.addEventListener("click", () => {
+  requestAnimationFrame(() => adminOverview.focus());
+});
+
+window.addEventListener("hashchange", syncAdminNavigationWithHash);
+syncAdminNavigationWithHash();
 
 // ----------------------------------------------------------
 // 9c. CEK STATUS LOGIN SAAT HALAMAN DIMUAT
@@ -1598,7 +1695,7 @@ authForm.addEventListener("submit", async (event) => {
 // ----------------------------------------------------------
 // 9e. LOGOUT
 // ----------------------------------------------------------
-authLogoutBtn.addEventListener("click", async () => {
+async function handleLogout() {
   try {
     const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
       method: "POST",
@@ -1624,7 +1721,10 @@ authLogoutBtn.addEventListener("click", async () => {
     await checkAuthState();
     loadMenu();
   }
-});
+}
+
+authLogoutBtn.addEventListener("click", handleLogout);
+adminLogoutBtn.addEventListener("click", handleLogout);
 
 // ----------------------------------------------------------
 // 9f. DIALOG FORM PRODUK (ADMIN: TAMBAH & EDIT)

@@ -104,6 +104,7 @@
           <button type="button" id="authLoginBtn" class="auth-login-btn" data-i18n="auth.loginBtn">Masuk</button>
           <div class="auth-account hide" id="authAccount">
             <span class="auth-email" id="authEmailText"></span>
+            <a href="#adminOverview" id="adminDashboardEntry" class="admin-entry" hidden data-i18n="admin.dashboardEntry">Dashboard</a>
             <button type="button" id="authLogoutBtn" class="auth-logout-btn" data-i18n="auth.logoutBtn">Keluar</button>
           </div>
         </div>
@@ -117,6 +118,48 @@
       </div>
     </div>
   </header>
+
+  <!-- ======================= ADMIN DASHBOARD =======================
+       UI ini default hidden dan hanya dibuka oleh renderAuthUI() setelah
+       GET /api/auth/me memastikan currentUser adalah admin. Pengecekan role
+       di frontend hanya mengatur tampilan; endpoint mutasi produk tetap
+       dilindungi requireAuth + requireAdmin di backend. -->
+  <section id="adminDashboard" class="admin-shell" aria-labelledby="adminDashboardTitle" hidden>
+    <div class="container">
+      <div class="admin-header">
+        <div>
+          <p class="admin-eyebrow" data-i18n="admin.dashboardLabel">Area Admin</p>
+          <h2 id="adminDashboardTitle" data-i18n="admin.dashboardTitle">Admin Dashboard</h2>
+        </div>
+        <p class="admin-header-identity">
+          <span data-i18n="admin.signedInAs">Login sebagai</span>
+          <strong id="adminHeaderEmail"></strong>
+        </p>
+      </div>
+
+      <nav class="admin-navigation" aria-label="Navigasi admin" data-i18n-aria="admin.navigationLabel">
+        <a href="#adminOverview" class="admin-nav-link" data-admin-destination="dashboard" data-i18n="admin.dashboardNav">Dashboard</a>
+        <a href="#menu" class="admin-nav-link" data-admin-destination="products" data-i18n="admin.productsNav">Produk</a>
+        <a href="#beranda" class="admin-nav-link" data-admin-destination="website" data-i18n="admin.viewWebsiteNav">Lihat Website</a>
+        <button type="button" id="adminLogoutBtn" class="admin-nav-link admin-logout-btn" data-i18n="auth.logoutBtn">Keluar</button>
+      </nav>
+
+      <div id="adminOverview" class="admin-overview" tabindex="-1">
+        <article class="admin-overview-card">
+          <p data-i18n="admin.totalProducts">Total Produk</p>
+          <strong id="adminTotalProducts">…</strong>
+        </article>
+        <article class="admin-overview-card">
+          <p data-i18n="admin.currentRole">Role Saat Ini</p>
+          <strong id="adminCurrentRole"></strong>
+        </article>
+        <article class="admin-overview-card">
+          <p data-i18n="admin.loggedInAs">Login sebagai</p>
+          <strong id="adminLoggedInEmail"></strong>
+        </article>
+      </div>
+    </div>
+  </section>
 
   <!-- ======================= HERO ======================= -->
   <section id="beranda" class="hero">

@@ -986,6 +986,139 @@ h2 {
 }
 
 /* ==========================================================
+   ADMIN DASHBOARD FOUNDATION
+   Seluruh selector dashboard memakai prefix .admin-* agar tidak mengubah
+   layout public website. Aturan [hidden] menjaga dashboard tetap benar-benar
+   tersembunyi sebelum status autentikasi selesai diperiksa.
+   ========================================================== */
+.admin-entry[hidden],
+.admin-shell[hidden] {
+  display: none;
+}
+
+.admin-entry {
+  border: 1px solid var(--color-accent-dark);
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: var(--color-accent-dark);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-entry:hover {
+  color: #fff;
+  background-color: var(--color-accent-dark);
+}
+
+.admin-shell {
+  padding: 48px 0;
+  background-color: var(--color-bg-soft);
+  border-bottom: 1px solid var(--color-border);
+  scroll-margin-top: 72px;
+}
+
+.admin-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.admin-eyebrow {
+  color: var(--color-accent-dark);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-header h2 {
+  margin: 4px 0 0;
+}
+
+.admin-header-identity {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+.admin-header-identity strong {
+  display: block;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.admin-navigation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-bg);
+}
+
+.admin-nav-link {
+  border: none;
+  border-radius: 8px;
+  padding: 9px 14px;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-nav-link:hover,
+.admin-nav-link.active {
+  color: var(--color-accent-dark);
+  background-color: var(--color-bg-soft);
+}
+
+.admin-logout-btn {
+  margin-left: auto;
+}
+
+.admin-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-overview-card {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-bg);
+}
+
+.admin-overview-card p {
+  margin-bottom: 8px;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.admin-overview-card strong {
+  display: block;
+  color: var(--color-text);
+  font-size: 1.35rem;
+  overflow-wrap: anywhere;
+}
+
+#adminCurrentRole {
+  text-transform: capitalize;
+}
+
+/* ==========================================================
    12. FOCUS STATES (KEYBOARD NAVIGATION)
    ========================================================== */
 .filter-btn:focus-visible,
@@ -1012,7 +1145,10 @@ h2 {
 .form textarea:focus-visible,
 .btn-admin-add:focus-visible,
 .btn-admin-edit:focus-visible,
-.btn-admin-delete:focus-visible {
+.btn-admin-delete:focus-visible,
+.admin-entry:focus-visible,
+.admin-nav-link:focus-visible,
+.admin-overview:focus-visible {
   outline: 2px solid var(--color-accent-dark);
   outline-offset: 2px;
 }
@@ -1031,6 +1167,10 @@ h2 {
 }
 
 @media (max-width: 768px) {
+  .navbar-right:has(.admin-entry:not([hidden])) {
+    gap: 12px;
+  }
+
   .hamburger {
     display: flex;
   }
@@ -1132,6 +1272,38 @@ h2 {
   .back-to-top-btn {
     bottom: 160px;
     right: 16px;
+  }
+
+  .admin-shell {
+    padding: 36px 0;
+  }
+
+  .admin-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .admin-header-identity {
+    text-align: left;
+  }
+
+  .admin-navigation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-nav-link {
+    width: 100%;
+    text-align: center;
+  }
+
+  .admin-logout-btn {
+    margin-left: 0;
+  }
+
+  .admin-overview {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1495,4 +1667,37 @@ h2 {
 .btn-admin-delete:hover {
   border-color: #b3261e;
   background-color: #fdeceb;
+}
+
+/* Diletakkan setelah style autentikasi agar override mobile tidak kalah
+   dari padding/gap desktop pada area akun yang didefinisikan di atas. */
+@media (max-width: 480px) {
+  .navbar-inner:has(.admin-entry:not([hidden])) {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .navbar-inner:has(.admin-entry:not([hidden])) .logo {
+    font-size: 1.2rem;
+  }
+
+  .navbar-right:has(.admin-entry:not([hidden])),
+  .auth-account:has(.admin-entry:not([hidden])) {
+    gap: 6px;
+  }
+
+  .auth-account:has(.admin-entry:not([hidden])) .auth-email {
+    display: none;
+  }
+
+  .auth-account:has(.admin-entry:not([hidden])) .auth-logout-btn,
+  .admin-entry {
+    padding: 6px 8px;
+    font-size: 0.78rem;
+  }
+
+  .navbar-inner:has(.admin-entry:not([hidden])) .lang-btn {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
 }
