@@ -119,6 +119,8 @@
     </div>
   </header>
 
+  <p class="auth-status hide" id="authStatus" role="alert" aria-live="assertive" aria-atomic="true"></p>
+
   <!-- ======================= ADMIN DASHBOARD =======================
        UI ini default hidden dan hanya dibuka oleh renderAuthUI() setelah
        GET /api/auth/me memastikan currentUser adalah admin. Pengecekan role
@@ -251,6 +253,8 @@
         <button type="button" id="adminAddProductBtn" class="btn-admin-add" data-i18n="admin.addProductBtn">+ Tambah Produk</button>
       </div>
 
+      <p class="menu-status loading" id="menuStatus" role="status" aria-live="polite" aria-atomic="true" tabindex="-1" data-i18n="menu.loading">Memuat menu...</p>
+
       <!-- PENTING kalau mengubah harga atau menambah menu baru: setiap .menu-card
            di bawah punya harga di DUA tempat yang harus SELALU sama nilainya:
            (1) teks yang tampil di <span class="price"> untuk pelanggan, dan
@@ -262,9 +266,8 @@
         <!-- 11 kartu produk di sini SEBELUMNYA ditulis statis (hardcoded).
              Sejak Phase 2B, semuanya dibuat lewat JavaScript (lihat loadMenu()
              di script.js) dari hasil fetch() ke GET /api/products di backend.
-             Teks di bawah ini cuma placeholder sementara sampai fetch selesai
-             (atau pesan error kalau fetch gagal) - lihat loadMenu(). -->
-        <p id="menuLoading" data-i18n="menu.loading">Memuat menu...</p>
+             Status loading/error/empty ada di #menuStatus tepat di atas grid
+             dan kartu hasil fetch disisipkan ke elemen ini oleh loadMenu(). -->
       </div>
     </div>
   </section>

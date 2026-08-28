@@ -347,7 +347,40 @@ cartCheckoutBtn.addEventListener("click", () => {
 // jalan di ORIGIN yang berbeda (frontend di :5500 lewat Live Server, backend
 // di :3000), jadi fetch() perlu tahu persis ke mana harus mengirim request.
 const API_BASE_URL = "http://localhost:3000";
-let productsLoadState = "loading"; // "loading" | "success" | "error" - status presentasi count dashboard
+let productsLoadState = "loading"; // "loading" | "success" | "empty" | "error" - status presentasi produk
+const menuGrid = document.getElementById("menuGrid");
+const menuStatus = document.getElementById("menuStatus");
+let menuStatusTimer = null;
+
+function showMenuStatus(key, type = "loading", autoHide = false) {
+  if (menuStatusTimer) clearTimeout(menuStatusTimer);
+  menuStatusTimer = null;
+  menuStatus.dataset.i18n = key;
+  menuStatus.textContent = translations[document.documentElement.lang][key];
+  menuStatus.className = `menu-status ${type}`;
+  menuStatus.setAttribute("role", type === "error" ? "alert" : "status");
+
+  if (autoHide) {
+    menuStatusTimer = setTimeout(() => {
+      if (document.activeElement === menuStatus && !adminAddProductBtn.classList.contains("hide")) {
+        adminAddProductBtn.focus();
+      }
+      menuStatus.classList.add("hide");
+      menuStatus.removeAttribute("data-i18n");
+      menuStatus.textContent = "";
+      menuStatusTimer = null;
+    }, 5000);
+  }
+}
+
+function hideMenuStatus() {
+  if (menuStatusTimer) clearTimeout(menuStatusTimer);
+  menuStatusTimer = null;
+  menuStatus.className = "menu-status hide";
+  menuStatus.removeAttribute("data-i18n");
+  menuStatus.textContent = "";
+  menuStatus.setAttribute("role", "status");
+}
 
 // Bikin SATU elemen <div class="menu-card"> dari satu objek produk (hasil
 // fetch dari /api/products). Strukturnya dibuat SAMA PERSIS seperti kartu
@@ -457,7 +490,7 @@ function createMenuCardElement(product) {
     deleteBtn.className = "btn-admin-delete";
     deleteBtn.setAttribute("data-i18n", "admin.deleteBtn");
     deleteBtn.textContent = translations[document.documentElement.lang]["admin.deleteBtn"];
-    deleteBtn.addEventListener("click", () => handleDeleteProduct(product.id));
+    deleteBtn.addEventListener("click", () => handleDeleteProduct(product.id, deleteBtn));
 
     adminControls.append(editBtn, deleteBtn);
     body.appendChild(adminControls);
@@ -482,8 +515,9 @@ function createMenuCardElement(product) {
 // 4. applyLanguage() -> isi teks nama/deskripsi produk sesuai bahasa aktif,
 //    karena kartu baru dibuat dengan teks default Indonesia di atas.
 async function loadMenu() {
-  const menuGrid = document.getElementById("menuGrid");
   productsLoadState = "loading";
+  menuGrid.setAttribute("aria-busy", "true");
+  showMenuStatus("menu.loading", "loading");
   queueMicrotask(updateAdminProductTotal);
   try {
     const response = await fetch(`${API_BASE_URL}/api/products`);
@@ -496,7 +530,7 @@ async function loadMenu() {
     // seperti width/height/srcset gambar) tanpa perlu fetch ulang satu-satu
     // per produk saat tombol Edit diklik.
     productsById = new Map(products.map((product) => [product.id, product]));
-    productsLoadState = "success";
+    productsLoadState = products.length === 0 ? "empty" : "success";
 
     menuGrid.innerHTML = "";
     products.forEach((product) => {
@@ -508,6 +542,9 @@ async function loadMenu() {
     updateCartSummary();
     applyLanguage(document.documentElement.lang);
     updateAdminProductTotal();
+    if (productsLoadState === "empty") showMenuStatus("menu.empty", "empty");
+    else hideMenuStatus();
+    return true;
   } catch (error) {
     productsLoadState = "error";
     updateAdminProductTotal();
@@ -515,12 +552,10 @@ async function loadMenu() {
     // area menu (bukan crash/blank), sekaligus dicatat ke console supaya
     // developer bisa lihat detail error aslinya saat debugging.
     console.error("Gagal memuat menu dari backend:", error);
-    const isEnglish = document.documentElement.lang === "en";
-    menuGrid.innerHTML = `<p class="menu-error">${
-      isEnglish
-        ? "Failed to load menu. Please make sure the backend server is running."
-        : "Gagal memuat menu. Pastikan server backend sedang berjalan."
-    }</p>`;
+    showMenuStatus("menu.loadError", "error");
+    return false;
+  } finally {
+    menuGrid.setAttribute("aria-busy", "false");
   }
 }
 
@@ -529,8 +564,6 @@ async function loadMenu() {
 // updateCartSummary() dipanggil DARI DALAM loadMenu() (lihat di atas),
 // setelah kartu-kartu produk selesai dirender, bukan lagi dipanggil di sini
 // saat kartu belum tentu ada.
-loadMenu();
-
 // ----------------------------------------------------------
 // 3b. PANEL DETAIL PESANAN (LIHAT ISI KERANJANG)
 // ----------------------------------------------------------
@@ -876,6 +909,8 @@ const translations = {
     "menu.label": "Menu Kami",
     "menu.title": "Pilihan Favorit Pelanggan",
     "menu.loading": "Memuat menu...",
+    "menu.loadError": "Menu gagal dimuat. Silakan coba lagi.",
+    "menu.empty": "Belum ada produk.",
     "filter.semua": "Semua",
     "filter.makanan": "Makanan",
     "filter.minuman": "Minuman",
@@ -958,13 +993,22 @@ const translations = {
     "auth.passwordLabel": "Kata Sandi",
     "auth.loginSubmit": "Masuk",
     "auth.registerSubmit": "Daftar",
+    "auth.loginLoading": "Sedang masuk...",
+    "auth.registerLoading": "Sedang mendaftar...",
+    "auth.logoutLoading": "Sedang keluar...",
     "auth.noAccount": "Belum punya akun?",
     "auth.haveAccount": "Sudah punya akun?",
     "auth.switchToRegister": "Daftar di sini",
     "auth.switchToLogin": "Masuk di sini",
     "auth.registerSuccess": "Akun berhasil dibuat, silakan masuk.",
+    "auth.invalidCredentials": "Email atau kata sandi salah.",
+    "auth.invalidInput": "Periksa kembali email dan kata sandi kamu.",
+    "auth.emailExists": "Email sudah terdaftar. Silakan masuk.",
+    "auth.rateLimited": "Terlalu banyak percobaan. Silakan coba lagi nanti.",
     "auth.sessionExpired": "Sesi kamu sudah berakhir, silakan masuk lagi.",
-    "auth.genericError": "Gagal menghubungi server. Pastikan server backend sedang berjalan.",
+    "auth.genericError": "Permintaan gagal. Silakan coba lagi.",
+    "auth.verifyError": "Status login tidak dapat diverifikasi. Silakan coba lagi.",
+    "auth.logoutError": "Gagal keluar. Kamu masih login, silakan coba lagi.",
 
     "admin.dashboardEntry": "Dashboard",
     "admin.dashboardLabel": "Area Admin",
@@ -984,6 +1028,8 @@ const translations = {
     "admin.editProductTitle": "Edit Produk",
     "admin.addProductSubmit": "Simpan Produk",
     "admin.editProductSubmit": "Simpan Perubahan",
+    "admin.addProductLoading": "Menyimpan produk...",
+    "admin.editProductLoading": "Menyimpan perubahan...",
     "admin.slugLabel": "Slug",
     "admin.nameLabel": "Nama Produk",
     "admin.descriptionIdLabel": "Deskripsi (Indonesia)",
@@ -1001,9 +1047,14 @@ const translations = {
     "admin.imageSizesLabel": "Sizes Gambar (opsional)",
     "admin.editBtn": "Edit",
     "admin.deleteBtn": "Hapus",
+    "admin.deleteLoading": "Menghapus...",
     "admin.deleteConfirm": "Yakin ingin menghapus produk ini?",
+    "admin.addSuccess": "Produk berhasil ditambahkan.",
+    "admin.editSuccess": "Produk berhasil diperbarui.",
+    "admin.deleteSuccess": "Produk berhasil dihapus.",
     "admin.permissionDenied": "Kamu tidak punya izin untuk melakukan ini.",
     "admin.rateLimited": "Terlalu banyak percobaan, coba lagi nanti.",
+    "admin.validationError": "Periksa kembali data produk yang diisi.",
     "admin.genericError": "Terjadi kesalahan, silakan coba lagi.",
 
     "backToTop.aria": "Kembali ke atas",
@@ -1028,6 +1079,8 @@ const translations = {
     "menu.label": "Our Menu",
     "menu.title": "Customer Favorites",
     "menu.loading": "Loading menu...",
+    "menu.loadError": "Failed to load the menu. Please try again.",
+    "menu.empty": "No products yet.",
     "filter.semua": "All",
     "filter.makanan": "Food",
     "filter.minuman": "Drinks",
@@ -1101,13 +1154,22 @@ const translations = {
     "auth.passwordLabel": "Password",
     "auth.loginSubmit": "Log In",
     "auth.registerSubmit": "Register",
+    "auth.loginLoading": "Logging in...",
+    "auth.registerLoading": "Registering...",
+    "auth.logoutLoading": "Logging out...",
     "auth.noAccount": "Don't have an account?",
     "auth.haveAccount": "Already have an account?",
     "auth.switchToRegister": "Register here",
     "auth.switchToLogin": "Log in here",
     "auth.registerSuccess": "Account created successfully, please log in.",
+    "auth.invalidCredentials": "The email or password is incorrect.",
+    "auth.invalidInput": "Please check your email and password.",
+    "auth.emailExists": "That email is already registered. Please log in.",
+    "auth.rateLimited": "Too many attempts. Please try again later.",
     "auth.sessionExpired": "Your session has expired, please log in again.",
-    "auth.genericError": "Failed to reach the server. Please make sure the backend server is running.",
+    "auth.genericError": "The request failed. Please try again.",
+    "auth.verifyError": "Your sign-in status could not be verified. Please try again.",
+    "auth.logoutError": "Log out failed. You are still signed in; please try again.",
 
     "admin.dashboardEntry": "Dashboard",
     "admin.dashboardLabel": "Admin Area",
@@ -1127,6 +1189,8 @@ const translations = {
     "admin.editProductTitle": "Edit Product",
     "admin.addProductSubmit": "Save Product",
     "admin.editProductSubmit": "Save Changes",
+    "admin.addProductLoading": "Saving product...",
+    "admin.editProductLoading": "Saving changes...",
     "admin.slugLabel": "Slug",
     "admin.nameLabel": "Product Name",
     "admin.descriptionIdLabel": "Description (Indonesian)",
@@ -1144,9 +1208,14 @@ const translations = {
     "admin.imageSizesLabel": "Image Sizes (optional)",
     "admin.editBtn": "Edit",
     "admin.deleteBtn": "Delete",
+    "admin.deleteLoading": "Deleting...",
     "admin.deleteConfirm": "Are you sure you want to delete this product?",
+    "admin.addSuccess": "Product added successfully.",
+    "admin.editSuccess": "Product updated successfully.",
+    "admin.deleteSuccess": "Product deleted successfully.",
     "admin.permissionDenied": "You don't have permission to do this.",
     "admin.rateLimited": "Too many attempts, please try again later.",
+    "admin.validationError": "Please check the product information you entered.",
     "admin.genericError": "Something went wrong, please try again.",
 
     "backToTop.aria": "Back to top",
@@ -1354,6 +1423,7 @@ const authPasswordInput = document.getElementById("authPasswordInput");
 const authSubmitBtn = document.getElementById("authSubmitBtn");
 const authSwitchText = document.getElementById("authSwitchText");
 const authSwitchModeBtn = document.getElementById("authSwitchModeBtn");
+const authStatus = document.getElementById("authStatus");
 
 const adminMenuActions = document.getElementById("adminMenuActions");
 const adminAddProductBtn = document.getElementById("adminAddProductBtn");
@@ -1421,29 +1491,32 @@ const productSubmitBtn = document.getElementById("productSubmitBtn");
 // mengumumkan perubahan ke screen reader, cuma di sini pesannya memang
 // sengaja TERLIHAT (bukan visually-hidden) karena harus dibaca langsung oleh
 // semua pengguna, bukan cuma diumumkan ke screen reader.
-function showFormMessage(el, text, type = "error") {
+function showFormMessage(el, text, type = "error", key = null) {
   el.textContent = text;
   el.classList.remove("hide", "error", "success");
   el.classList.add(type);
+  el.setAttribute("role", type === "error" ? "alert" : "status");
+  if (key) el.dataset.i18n = key;
+  else el.removeAttribute("data-i18n");
 }
 
 function hideFormMessage(el) {
   el.classList.add("hide");
   el.textContent = "";
+  el.removeAttribute("data-i18n");
+  el.removeAttribute("role");
 }
 
-// Pesan error dari backend SELALU berbentuk {status:'error', message, details?}
-// (lihat catatan di server.js) - kalau "details" ada isinya, itu daftar pesan
-// validasi yang lebih spesifik dan harus diprioritaskan ditampilkan daripada
-// "message" yang lebih umum. Pesan-pesan ini sudah dalam Bahasa Indonesia
-// langsung dari backend - SENGAJA ditampilkan apa adanya (tidak diterjemahkan
-// ke Inggris), di luar cakupan Phase 3D ini.
-function getBackendErrorMessage(data, fallback) {
-  if (data && Array.isArray(data.details) && data.details.length > 0) {
-    return data.details.join(" ");
-  }
-  if (data && data.message) return data.message;
-  return fallback;
+function showAuthStatus(key) {
+  authStatus.dataset.i18n = key;
+  authStatus.textContent = translations[document.documentElement.lang][key];
+  authStatus.classList.remove("hide");
+}
+
+function hideAuthStatus() {
+  authStatus.classList.add("hide");
+  authStatus.removeAttribute("data-i18n");
+  authStatus.textContent = "";
 }
 
 // Prioritas tampilan deskripsi produk di menu publik (Phase 3E):
@@ -1499,7 +1572,7 @@ function isBackdropClick(dialog, event) {
 // "+ Tambah Produk" (#adminMenuActions) dan dashboard tergantung role.
 function updateAdminProductTotal() {
   const lang = document.documentElement.lang;
-  if (productsLoadState === "success") {
+  if (productsLoadState === "success" || productsLoadState === "empty") {
     adminTotalProducts.textContent = String(productsById.size);
   } else {
     const key = productsLoadState === "error" ? "admin.productsUnavailable" : "admin.productsLoading";
@@ -1517,6 +1590,13 @@ function renderAuthUI() {
   adminMenuActions.classList.toggle("hide", !isAdmin);
   adminDashboardEntry.hidden = !isAdmin;
   adminDashboard.hidden = !isAdmin;
+
+  // Kontrol Edit/Hapus dibuat langsung di dalam kartu saat role admin aktif.
+  // Cabut segera ketika role efektif bukan admin; jangan menunggu loadMenu()
+  // berhasil, karena fetch produk yang gagal sengaja mempertahankan kartu lama.
+  if (!isAdmin) {
+    document.querySelectorAll(".menu-card-admin").forEach((controls) => controls.remove());
+  }
 
   if (isAdmin) {
     adminHeaderEmail.textContent = currentUser.email;
@@ -1568,7 +1648,21 @@ syncAdminNavigationWithHash();
 // sejajar dengan pemanggilan loadMenu() di bagian 3c. GET /api/auth/me
 // membaca cookie sesi (dikirim otomatis lewat "credentials: 'include'') dan
 // membalas 200 + data user kalau valid, atau 401 kalau tidak/belum login.
+function isValidAuthUser(user) {
+  return (
+    typeof user === "object" &&
+    user !== null &&
+    !Array.isArray(user) &&
+    Number.isInteger(user.id) &&
+    user.id > 0 &&
+    typeof user.email === "string" &&
+    user.email.trim().length > 0 &&
+    (user.role === "user" || user.role === "admin")
+  );
+}
+
 async function checkAuthState() {
+  let result = "indeterminate";
   try {
     const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
       credentials: "include",
@@ -1576,19 +1670,24 @@ async function checkAuthState() {
 
     if (response.ok) {
       const data = await response.json();
+      if (!data || !isValidAuthUser(data.user)) throw new Error("Respons status login tidak valid");
       currentUser = data.user;
-    } else {
+      result = "authenticated";
+    } else if (response.status === 401) {
       // 401 di sini BUKAN error yang perlu ditampilkan ke pengunjung -
       // artinya dia memang belum/tidak sedang login. Cukup dianggap anonim.
       currentUser = null;
+      result = "anonymous";
+    } else {
+      // Status server tak terduga tidak membuktikan sesi sudah berakhir.
+      // Pertahankan currentUser terakhir sampai /api/auth/me memberi jawaban
+      // authoritative (200 atau 401) pada pemeriksaan berikutnya.
+      console.error("Gagal memeriksa status login, status:", response.status);
     }
   } catch (error) {
-    // Backend tidak bisa dihubungi sama sekali (misal server belum jalan).
-    // Dicatat ke console untuk developer, tapi pengecekan ini sifatnya
-    // "diam-diam" di background - tidak seharusnya mengganggu pengunjung
-    // dengan pesan error hanya karena pengecekan status login gagal.
+    // Network/backend failure tidak sama dengan confirmed anonymous.
+    // currentUser sengaja dipertahankan sebagai state terakhir yang diketahui.
     console.error("Gagal memeriksa status login:", error);
-    currentUser = null;
   }
 
   renderAuthUI();
@@ -1597,7 +1696,8 @@ async function checkAuthState() {
   // sempat dirender SEBELUM status login ini diketahui (fetch di atas perlu
   // waktu) - jadi kalau ternyata pengunjung ini admin, render ulang supaya
   // tombol Edit/Hapus muncul di tiap kartu.
-  if (currentUser && currentUser.role === "admin") loadMenu();
+  if (result === "authenticated" && currentUser.role === "admin") loadMenu();
+  return result;
 }
 
 // ----------------------------------------------------------
@@ -1613,10 +1713,18 @@ function setAuthMode(mode) {
   const lang = document.documentElement.lang;
   const isLogin = mode === "login";
 
-  authDialogTitle.textContent = translations[lang][isLogin ? "auth.loginTitle" : "auth.registerTitle"];
-  authSubmitBtn.textContent = translations[lang][isLogin ? "auth.loginSubmit" : "auth.registerSubmit"];
-  authSwitchText.textContent = translations[lang][isLogin ? "auth.noAccount" : "auth.haveAccount"];
-  authSwitchModeBtn.textContent = translations[lang][isLogin ? "auth.switchToRegister" : "auth.switchToLogin"];
+  const titleKey = isLogin ? "auth.loginTitle" : "auth.registerTitle";
+  const submitKey = isLogin ? "auth.loginSubmit" : "auth.registerSubmit";
+  const switchTextKey = isLogin ? "auth.noAccount" : "auth.haveAccount";
+  const switchButtonKey = isLogin ? "auth.switchToRegister" : "auth.switchToLogin";
+  authDialogTitle.dataset.i18n = titleKey;
+  authSubmitBtn.dataset.i18n = submitKey;
+  authSwitchText.dataset.i18n = switchTextKey;
+  authSwitchModeBtn.dataset.i18n = switchButtonKey;
+  authDialogTitle.textContent = translations[lang][titleKey];
+  authSubmitBtn.textContent = translations[lang][submitKey];
+  authSwitchText.textContent = translations[lang][switchTextKey];
+  authSwitchModeBtn.textContent = translations[lang][switchButtonKey];
   hideFormMessage(authFormMessage);
 }
 
@@ -1648,9 +1756,15 @@ authForm.addEventListener("submit", async (event) => {
   const lang = document.documentElement.lang;
   const email = authEmailInput.value.trim();
   const password = authPasswordInput.value;
-  const endpoint = authMode === "login" ? "/api/auth/login" : "/api/auth/register";
+  const submittedMode = authMode;
+  const endpoint = submittedMode === "login" ? "/api/auth/login" : "/api/auth/register";
 
   authSubmitBtn.disabled = true;
+  authSwitchModeBtn.disabled = true;
+  authForm.setAttribute("aria-busy", "true");
+  const loadingKey = submittedMode === "login" ? "auth.loginLoading" : "auth.registerLoading";
+  authSubmitBtn.dataset.i18n = loadingKey;
+  authSubmitBtn.textContent = translations[lang][loadingKey];
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: "POST",
@@ -1658,14 +1772,17 @@ authForm.addEventListener("submit", async (event) => {
       credentials: "include",
       body: JSON.stringify({ email, password }),
     });
-    const data = await response.json().catch(() => null);
-
     if (!response.ok) {
-      showFormMessage(authFormMessage, getBackendErrorMessage(data, translations[lang]["auth.genericError"]));
+      let errorKey = "auth.genericError";
+      if (response.status === 429) errorKey = "auth.rateLimited";
+      else if (submittedMode === "login" && response.status === 401) errorKey = "auth.invalidCredentials";
+      else if (submittedMode === "register" && response.status === 409) errorKey = "auth.emailExists";
+      else if (response.status === 400) errorKey = "auth.invalidInput";
+      showFormMessage(authFormMessage, translations[lang][errorKey], "error", errorKey);
       return;
     }
 
-    if (authMode === "register") {
+    if (submittedMode === "register") {
       // Daftar berhasil TIDAK otomatis login (backend cuma membuat akun,
       // belum membuat sesi/cookie) - pindahkan ke mode login supaya
       // pengunjung lanjut masuk pakai akun yang baru saja dibuat, alih-alih
@@ -1673,7 +1790,7 @@ authForm.addEventListener("submit", async (event) => {
       setAuthMode("login");
       authForm.reset();
       authEmailInput.value = email;
-      showFormMessage(authFormMessage, translations[lang]["auth.registerSuccess"], "success");
+      showFormMessage(authFormMessage, translations[lang]["auth.registerSuccess"], "success", "auth.registerSuccess");
       return;
     }
 
@@ -1683,19 +1800,38 @@ authForm.addEventListener("submit", async (event) => {
     // membalas {id, email}, role baru diketahui lewat GET /api/auth/me).
     authDialog.close();
     authForm.reset();
-    await checkAuthState();
+    const authResult = await checkAuthState();
+    if (authResult !== "authenticated") showAuthStatus("auth.verifyError");
+    else hideAuthStatus();
   } catch (error) {
     console.error("Gagal menghubungi server saat login/daftar:", error);
-    showFormMessage(authFormMessage, translations[lang]["auth.genericError"]);
+    showFormMessage(authFormMessage, translations[lang]["auth.genericError"], "error", "auth.genericError");
   } finally {
     authSubmitBtn.disabled = false;
+    authSwitchModeBtn.disabled = false;
+    authForm.setAttribute("aria-busy", "false");
+    const submitKey = authMode === "login" ? "auth.loginSubmit" : "auth.registerSubmit";
+    authSubmitBtn.dataset.i18n = submitKey;
+    authSubmitBtn.textContent = translations[document.documentElement.lang][submitKey];
   }
 });
 
 // ----------------------------------------------------------
 // 9e. LOGOUT
 // ----------------------------------------------------------
+let logoutPending = false;
+
 async function handleLogout() {
+  if (logoutPending) return;
+  logoutPending = true;
+  hideAuthStatus();
+  const loadingKey = "auth.logoutLoading";
+  [authLogoutBtn, adminLogoutBtn].forEach((button) => {
+    button.disabled = true;
+    button.dataset.i18n = loadingKey;
+    button.textContent = translations[document.documentElement.lang][loadingKey];
+  });
+
   try {
     const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
       method: "POST",
@@ -1718,8 +1854,15 @@ async function handleLogout() {
     // loadMenu() kalau user ternyata MASIH admin - di sini kita perlu grid
     // tetap ter-refresh WALAUPUN ternyata user benar-benar sudah logout
     // (supaya tombol Edit/Hapus yang sempat tampil sebelumnya ikut hilang).
-    await checkAuthState();
-    loadMenu();
+    const authResult = await checkAuthState();
+    await loadMenu();
+    if (authResult !== "anonymous") showAuthStatus("auth.logoutError");
+    logoutPending = false;
+    [authLogoutBtn, adminLogoutBtn].forEach((button) => {
+      button.disabled = false;
+      button.dataset.i18n = "auth.logoutBtn";
+      button.textContent = translations[document.documentElement.lang]["auth.logoutBtn"];
+    });
   }
 }
 
@@ -1813,8 +1956,11 @@ function openProductDialog(mode, productId) {
 
   productForm.reset();
   hideFormMessage(productFormMessage);
+  hideMenuStatus();
 
   if (mode === "edit") {
+    productDialogTitle.dataset.i18n = "admin.editProductTitle";
+    productSubmitBtn.dataset.i18n = "admin.editProductSubmit";
     productDialogTitle.textContent = translations[lang]["admin.editProductTitle"];
     productSubmitBtn.textContent = translations[lang]["admin.editProductSubmit"];
     // Slug dikunci saat edit karena mengubah slug produk lama akan memutus
@@ -1841,6 +1987,8 @@ function openProductDialog(mode, productId) {
       setImageSizeMode(isDefaultSize ? "default" : "custom");
     }
   } else {
+    productDialogTitle.dataset.i18n = "admin.addProductTitle";
+    productSubmitBtn.dataset.i18n = "admin.addProductSubmit";
     productDialogTitle.textContent = translations[lang]["admin.addProductTitle"];
     productSubmitBtn.textContent = translations[lang]["admin.addProductSubmit"];
     // Buka kunci slug lagi di mode "tambah baru" - sama seperti alasan toggle
@@ -1880,24 +2028,23 @@ productDialog.addEventListener("click", (event) => {
 // terjadi (pesan sudah ditampilkan, caller cukup berhenti di situ).
 // "showMessage" adalah callback, bukan elemen DOM tertentu, karena dua
 // caller-nya menampilkan pesan dengan cara berbeda: submit form produk
-// memakai showFormMessage() ke #productFormMessage (ada dialog yang sedang
-// terbuka), sedangkan handleDeleteProduct() memakai alert() (tidak ada
-// dialog/form yang terbuka saat tombol Hapus diklik).
+// memakai #productFormMessage, sedangkan delete memakai #menuStatus.
 function handleAdminAuthError(response, showMessage) {
   const lang = document.documentElement.lang;
   if (response.status === 401) {
     currentUser = null;
     renderAuthUI();
-    showMessage(translations[lang]["auth.sessionExpired"]);
-    loadMenu();
+    const message = translations[lang]["auth.sessionExpired"];
+    showMessage(message, "auth.sessionExpired");
+    loadMenu().then(() => showMessage(translations[document.documentElement.lang]["auth.sessionExpired"], "auth.sessionExpired"));
     return true;
   }
   if (response.status === 403) {
-    showMessage(translations[lang]["admin.permissionDenied"]);
+    showMessage(translations[lang]["admin.permissionDenied"], "admin.permissionDenied");
     return true;
   }
   if (response.status === 429) {
-    showMessage(translations[lang]["admin.rateLimited"]);
+    showMessage(translations[lang]["admin.rateLimited"], "admin.rateLimited");
     return true;
   }
   return false;
@@ -1906,6 +2053,7 @@ function handleAdminAuthError(response, showMessage) {
 productForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   hideFormMessage(productFormMessage);
+  hideMenuStatus();
   const lang = document.documentElement.lang;
 
   // Body dibangun mengikuti bentuk yang diminta backend persis (lihat
@@ -1944,6 +2092,10 @@ productForm.addEventListener("submit", async (event) => {
   const method = isEdit ? "PUT" : "POST";
 
   productSubmitBtn.disabled = true;
+  productForm.setAttribute("aria-busy", "true");
+  const loadingKey = isEdit ? "admin.editProductLoading" : "admin.addProductLoading";
+  productSubmitBtn.dataset.i18n = loadingKey;
+  productSubmitBtn.textContent = translations[lang][loadingKey];
   try {
     const response = await fetch(url, {
       method,
@@ -1952,11 +2104,11 @@ productForm.addEventListener("submit", async (event) => {
       body: JSON.stringify(body),
     });
 
-    if (handleAdminAuthError(response, (msg) => showFormMessage(productFormMessage, msg))) return;
+    if (handleAdminAuthError(response, (msg, key) => showFormMessage(productFormMessage, msg, "error", key))) return;
 
     if (!response.ok) {
-      const data = await response.json().catch(() => null);
-      showFormMessage(productFormMessage, getBackendErrorMessage(data, translations[lang]["admin.genericError"]));
+      const errorKey = response.status === 400 || response.status === 409 ? "admin.validationError" : "admin.genericError";
+      showFormMessage(productFormMessage, translations[lang][errorKey], "error", errorKey);
       return;
     }
 
@@ -1965,12 +2117,20 @@ productForm.addEventListener("submit", async (event) => {
     // kartu secara manual, supaya DOM selalu sinkron dengan sumber kebenaran
     // (prinsip yang sama seperti loadMenu() dipakai di banyak tempat lain).
     productDialog.close();
-    loadMenu();
+    const refreshed = await loadMenu();
+    if (refreshed) {
+      showMenuStatus(isEdit ? "admin.editSuccess" : "admin.addSuccess", "success", true);
+      menuStatus.focus();
+    }
   } catch (error) {
     console.error("Gagal menghubungi server saat menyimpan produk:", error);
-    showFormMessage(productFormMessage, translations[lang]["admin.genericError"]);
+    showFormMessage(productFormMessage, translations[lang]["admin.genericError"], "error", "admin.genericError");
   } finally {
     productSubmitBtn.disabled = false;
+    productForm.setAttribute("aria-busy", "false");
+    const submitKey = isEdit ? "admin.editProductSubmit" : "admin.addProductSubmit";
+    productSubmitBtn.dataset.i18n = submitKey;
+    productSubmitBtn.textContent = translations[document.documentElement.lang][submitKey];
   }
 });
 
@@ -1978,27 +2138,28 @@ productForm.addEventListener("submit", async (event) => {
 // 9g. HAPUS PRODUK (ADMIN)
 // ----------------------------------------------------------
 // confirm() bawaan browser dipakai di sini (bukan dialog kustom) - ini aksi
-// admin dengan cakupan minimal, bukan alur yang perlu UX halus. Begitu juga
-// alert() di bawah untuk menampilkan error: tidak ada form/dialog yang
-// sedang terbuka di titik ini (tombol Hapus ada langsung di kartu menu),
-// jadi tidak ada tempat #form-message lain yang lebih pas untuk menaruhnya.
-async function handleDeleteProduct(productId) {
+// admin dengan cakupan minimal. Status request dan hasilnya ditampilkan di
+// #menuStatus karena tombol Hapus berada langsung di kartu menu.
+async function handleDeleteProduct(productId, deleteButton) {
   const lang = document.documentElement.lang;
   const product = productsById.get(productId);
   const confirmText = translations[lang]["admin.deleteConfirm"] + (product ? ` (${product.name})` : "");
   if (!confirm(confirmText)) return;
 
+  hideMenuStatus();
+  deleteButton.disabled = true;
+  deleteButton.dataset.i18n = "admin.deleteLoading";
+  deleteButton.textContent = translations[lang]["admin.deleteLoading"];
   try {
     const response = await fetch(`${API_BASE_URL}/api/products/${productId}`, {
       method: "DELETE",
       credentials: "include",
     });
 
-    if (handleAdminAuthError(response, (msg) => alert(msg))) return;
+    if (handleAdminAuthError(response, (msg, key) => showMenuStatus(key, "error"))) return;
 
     if (!response.ok) {
-      const data = await response.json().catch(() => null);
-      alert(getBackendErrorMessage(data, translations[lang]["admin.genericError"]));
+      showMenuStatus("admin.genericError", "error");
       return;
     }
 
@@ -2006,10 +2167,20 @@ async function handleDeleteProduct(productId) {
     // response ini (beda dari POST/PUT di atas yang membalas JSON). Langsung
     // ambil ulang daftar produk dari server, sama seperti pola sukses
     // create/edit di atas.
-    loadMenu();
+    const refreshed = await loadMenu();
+    if (refreshed) {
+      showMenuStatus("admin.deleteSuccess", "success", true);
+      menuStatus.focus();
+    }
   } catch (error) {
     console.error("Gagal menghubungi server saat menghapus produk:", error);
-    alert(translations[lang]["admin.genericError"]);
+    showMenuStatus("admin.genericError", "error");
+  } finally {
+    if (deleteButton.isConnected) {
+      deleteButton.disabled = false;
+      deleteButton.dataset.i18n = "admin.deleteBtn";
+      deleteButton.textContent = translations[document.documentElement.lang]["admin.deleteBtn"];
+    }
   }
 }
 
@@ -2017,4 +2188,5 @@ async function handleDeleteProduct(productId) {
 // loadMenu() di bagian 3c. Diletakkan di baris paling akhir file supaya
 // SEMUA fungsi & elemen yang dipakainya di atas (renderAuthUI, loadMenu,
 // dst) sudah pasti selesai didefinisikan lebih dulu.
+loadMenu();
 checkAuthState();

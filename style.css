@@ -352,6 +352,37 @@ h2 {
   gap: 24px;
 }
 
+.menu-status {
+  max-width: 680px;
+  margin: 0 auto 24px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.menu-status.loading,
+.menu-status.empty {
+  color: var(--color-text-muted);
+  background-color: #fff;
+  border: 1px solid var(--color-border);
+}
+
+.menu-status.error {
+  color: #b3261e;
+  background-color: #fdeceb;
+}
+
+.menu-status.success {
+  color: #2e7d32;
+  background-color: #eaf6ec;
+}
+
+.menu-status.hide {
+  display: none;
+}
+
 .menu-card {
   background-color: #fff;
   border: 1px solid var(--color-border);
@@ -1326,6 +1357,22 @@ h2 {
   align-items: center;
 }
 
+.auth-status {
+  max-width: 680px;
+  margin: 12px auto;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #b3261e;
+  background-color: #fdeceb;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.auth-status.hide {
+  display: none;
+}
+
 .auth-login-btn,
 .auth-logout-btn {
   border: 1px solid var(--color-border);
@@ -1552,6 +1599,21 @@ h2 {
   cursor: pointer;
   text-align: center;
   width: 100%;
+}
+
+.form .btn:disabled,
+.form-switch-btn:disabled,
+.auth-logout-btn:disabled,
+.admin-logout-btn:disabled,
+.btn-admin-delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.form .btn:disabled:hover,
+.btn-admin-delete:disabled:hover {
+  filter: none;
+  transform: none;
 }
 
 /* Pesan validasi/error (dari backend) atau sukses (dari script.js sendiri),
