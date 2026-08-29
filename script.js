@@ -121,17 +121,21 @@ filterButtons.forEach((button) => {
 // ==========================================================
 // 3. KERANJANG PESANAN (CART)
 // ==========================================================
-// Prinsip utama: DOM tetap jadi satu-satunya "sumber kebenaran" (source of
-// truth) untuk jumlah pesanan tiap menu, sama seperti filter kategori di atas
-// yang membaca langsung dari atribut data-category tiap card, bukan dari
-// array terpisah. Di sini, jumlah pesanan disimpan langsung di teks
-// <span class="qty-value"> pada tiap card, dan total keranjang dihitung ulang
-// dari situ setiap kali ada perubahan.
-// Keuntungan pendekatan ini: filter kategori (yang hanya menyembunyikan card
-// lewat class "hide" di CSS, bukan menghapusnya dari DOM) tidak akan pernah
-// menghilangkan jumlah pesanan yang sudah diisi user, walau card-nya sedang
-// disembunyikan dari layar. Cart tetap "ingat" karena datanya tetap ada di DOM.
+// Sumber kebenaran cart adalah Map yang dikunci dengan productId. DOM kartu
+// menu hanya menampilkan state tersebut, sehingga render ulang loadMenu()
+// tidak menghapus quantity/catatan yang sudah dipilih pelanggan.
 const WHATSAPP_NUMBER = "6281325132360";
+const GUEST_CART_STORAGE_KEY = "umkm-cart:v1";
+const PENDING_CART_MERGE_STORAGE_KEY = "umkm-cart-merge:v1";
+const MAX_CART_QUANTITY = 99;
+const MAX_CART_NOTE_LENGTH = 200;
+const cartItems = new Map(); // Map<productId, { quantity, note }>
+let cartAuthority = "unknown";
+let cartEpoch = 0;
+let authenticatedCartUserId = null;
+let cartHasUnsyncedChanges = false;
+let cartAuthCheckGeneration = 0;
+const cartWriteStates = new Map();
 
 // Nomor WhatsApp yang sama juga ditulis manual di dua link statis di
 // index.html (tombol "Pesan Sekarang" di hero, dan link di bagian kontak),
@@ -156,6 +160,132 @@ const cartPanelCloseBtn = document.getElementById("cartPanelCloseBtn");
 const cartPanelEmpty = document.getElementById("cartPanelEmpty");
 const cartPanelList = document.getElementById("cartPanelList");
 
+// localStorage bisa gagal (mis. storage diblokir/private mode), jadi semua
+// akses dibungkus try/catch. Cart tetap berfungsi di memori untuk tab ini.
+function serializeCartItems(itemsMap) {
+  return Array.from(itemsMap, ([productId, item]) => ({
+    productId,
+    quantity: item.quantity,
+    note: item.note,
+  }));
+}
+
+function persistGuestCart() {
+  if (cartAuthority !== "guest") return;
+
+  try {
+    localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify({ items: serializeCartItems(cartItems) }));
+  } catch (error) {
+    // Penyimpanan persisten opsional; jangan rusak sesi cart yang sedang aktif.
+  }
+}
+
+function readGuestCartSnapshot() {
+  const snapshot = new Map();
+  let storedValue;
+  try {
+    storedValue = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+  } catch (error) {
+    return snapshot;
+  }
+
+  if (storedValue === null) return snapshot;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(storedValue);
+  } catch (error) {
+    try { localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify({ items: [] })); } catch (storageError) {}
+    return snapshot;
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || !Array.isArray(parsed.items)) {
+    try { localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify({ items: [] })); } catch (storageError) {}
+    return snapshot;
+  }
+
+  let wasSanitized = false;
+  parsed.items.forEach((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      wasSanitized = true;
+      return;
+    }
+
+    const { productId, quantity, note } = item;
+    if (
+      !Number.isInteger(productId) ||
+      productId <= 0 ||
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      quantity > MAX_CART_QUANTITY ||
+      typeof note !== "string" ||
+      note.length > MAX_CART_NOTE_LENGTH
+    ) {
+      wasSanitized = true;
+      return;
+    }
+
+    if (snapshot.has(productId)) wasSanitized = true;
+    snapshot.set(productId, { quantity, note });
+  });
+
+  if (wasSanitized) {
+    try { localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify({ items: serializeCartItems(snapshot) })); } catch (error) {}
+  }
+  return snapshot;
+}
+
+const initialGuestCartSnapshot = readGuestCartSnapshot();
+
+function clearGuestCartStorage() {
+  try { localStorage.removeItem(GUEST_CART_STORAGE_KEY); } catch (error) {}
+}
+
+function readPendingCartMerge() {
+  try {
+    const value = JSON.parse(localStorage.getItem(PENDING_CART_MERGE_STORAGE_KEY));
+    const validKind = value && (value.kind === "unbound" || value.kind === "bound");
+    const validUser = value && value.kind === "bound" && Number.isInteger(value.userId) && value.userId > 0;
+    const validEmail = value && value.kind === "unbound" && typeof value.loginEmail === "string" && value.loginEmail.length > 0;
+    if (!validKind || (!validUser && !validEmail) ||
+        typeof value.mergeId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.mergeId)) {
+      clearPendingCartMerge();
+      return null;
+    }
+    const items = serializeCartItems(normalizeCartItems(value.items));
+    if (items.length > 100) throw new Error("Pending merge terlalu besar");
+    return value.kind === "bound"
+      ? { kind: "bound", userId: value.userId, mergeId: value.mergeId, items }
+      : { kind: "unbound", loginEmail: value.loginEmail.toLowerCase(), mergeId: value.mergeId, items };
+  } catch (error) {
+    clearPendingCartMerge();
+    return null;
+  }
+}
+
+function writePendingCartMerge(pending) {
+  try {
+    localStorage.setItem(PENDING_CART_MERGE_STORAGE_KEY, JSON.stringify(pending));
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function clearPendingCartMerge() {
+  try { localStorage.removeItem(PENDING_CART_MERGE_STORAGE_KEY); } catch (error) {}
+}
+
+function createCartMergeId() {
+  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") return globalThis.crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 // Ubah angka biasa jadi format Rupiah ala Indonesia, misal 20000 -> "Rp 20.000".
 // toLocaleString("id-ID") otomatis memberi titik pemisah ribuan, jadi hasilnya
 // konsisten dengan harga yang sudah ditulis manual di tiap menu-card.
@@ -163,23 +293,68 @@ function formatRupiah(amount) {
   return "Rp " + amount.toLocaleString("id-ID");
 }
 
-// Dua fungsi kecil ini dipakai di banyak tempat (bar keranjang, panel detail,
-// pesan WhatsApp) untuk baca qty & harga sebuah card. Ditulis sebagai fungsi
-// terpisah (bukan ditulis ulang parseInt(...) berkali-kali di tiap tempat)
-// supaya kalau ada perubahan cara membaca data ini nanti, cukup diubah di
-// satu tempat saja - tidak perlu diingat-ingat harus ubah di banyak lokasi.
-//
-// Catatan soal data-price: harus berupa angka polos tanpa titik/koma
-// (contoh benar: 20000, BUKAN "20.000") - parseInt akan berhenti di karakter
-// pertama yang bukan angka, jadi "20.000" akan terbaca jadi 20 saja, bukan
-// 20000. Kalau menambah menu baru, pastikan angka di data-price ini sama
-// dengan harga yang ditulis di <span class="price"> pada card yang sama.
-function getCardQty(card) {
-  return parseInt(card.querySelector(".qty-value").textContent, 10) || 0;
+function getCartItem(productId) {
+  return cartItems.get(productId) || { quantity: 0, note: "" };
 }
 
-function getCardPrice(card) {
-  return parseInt(card.getAttribute("data-price"), 10) || 0;
+function normalizeCartItems(items) {
+  if (!Array.isArray(items)) throw new Error("Respons cart tidak valid");
+  const normalized = new Map();
+  items.forEach((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item) ||
+        !Number.isSafeInteger(item.productId) || item.productId <= 0 || normalized.has(item.productId) ||
+        !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_CART_QUANTITY ||
+        typeof item.note !== "string" || item.note.length > MAX_CART_NOTE_LENGTH) {
+      throw new Error("Respons cart tidak valid");
+    }
+    normalized.set(item.productId, { quantity: item.quantity, note: item.note });
+  });
+  return normalized;
+}
+
+function replaceCartItems(items) {
+  const normalized = items instanceof Map ? new Map(items) : normalizeCartItems(items);
+  cartItems.clear();
+  normalized.forEach((item, productId) => cartItems.set(productId, { ...item }));
+  renderMenuCardQuantities();
+  updateCartSummary();
+  if (cartPanel.open) renderCartPanel();
+}
+
+function setCartAuthority(nextAuthority, userId = null) {
+  if (cartAuthority !== nextAuthority || authenticatedCartUserId !== userId) {
+    cartEpoch += 1;
+    cartWriteStates.forEach((state) => {
+      if (state.timer) clearTimeout(state.timer);
+    });
+    cartWriteStates.clear();
+  }
+  cartAuthority = nextAuthority;
+  authenticatedCartUserId = nextAuthority === "authenticated" ? userId : null;
+  updateCartInteractionState();
+}
+
+function updateCartInteractionState() {
+  const mutationAllowed = cartAuthority === "guest" || cartAuthority === "authenticated";
+  document.querySelectorAll(".cart-controls button, .cart-panel-item-note").forEach((control) => {
+    control.disabled = !mutationAllowed;
+  });
+  updateCartSummary();
+}
+
+function showCartPersistenceError() {
+  const isEnglish = document.documentElement.lang === "en";
+  cartStatus.textContent = isEnglish
+    ? "Cart changes could not be saved. Checkout is paused; please try again."
+    : "Perubahan keranjang belum dapat disimpan. Checkout dijeda; silakan coba lagi.";
+  showAuthStatus("auth.genericError");
+}
+
+function renderMenuCardQuantities() {
+  menuCards.forEach((card) => {
+    const productId = Number(card.dataset.productId);
+    card.querySelector(".qty-value").textContent = getCartItem(productId).quantity;
+  });
 }
 
 // Hitung ulang total item & total harga dari SEMUA card (termasuk yang sedang
@@ -189,11 +364,11 @@ function updateCartSummary() {
   let totalItems = 0;
   let totalPrice = 0;
 
-  menuCards.forEach((card) => {
-    const qty = getCardQty(card);
-    const price = getCardPrice(card);
-    totalItems += qty;
-    totalPrice += qty * price;
+  cartItems.forEach((item, productId) => {
+    const product = productsById.get(productId);
+    if (!product) return;
+    totalItems += item.quantity;
+    totalPrice += item.quantity * product.price;
   });
 
   cartCountEl.textContent = totalItems;
@@ -202,7 +377,9 @@ function updateCartSummary() {
   // Keranjang kosong -> tombol checkout dimatikan (disabled) supaya tidak
   // bisa mengirim pesanan kosong ke WhatsApp, dan pesan hint ditampilkan.
   const isEmpty = totalItems === 0;
-  cartCheckoutBtn.disabled = isEmpty;
+  const persistenceUnsafe = !["guest", "authenticated"].includes(cartAuthority) ||
+    (cartAuthority === "authenticated" && cartHasUnsyncedChanges);
+  cartCheckoutBtn.disabled = isEmpty || persistenceUnsafe;
   cartHintEl.classList.toggle("hide", !isEmpty);
 
   // Umumkan perubahan ke pengguna screen reader lewat teks tersembunyi
@@ -217,19 +394,21 @@ function updateCartSummary() {
     : `Keranjang: ${totalItems} item, total ${formatRupiah(totalPrice)}`;
 }
 
-// Ubah qty pada SATU card tertentu. Ditulis sebagai fungsi berdiri sendiri
-// (bukan ditutup di dalam forEach seperti sebelumnya) supaya bisa dipakai
-// bersama oleh dua tempat: tombol +/- di grid menu utama, DAN tombol +/- di
-// dalam panel detail pesanan (lihat bagian "3b" di bawah). Karena keduanya
-// memanggil fungsi yang sama dan sama-sama mengubah .qty-value pada card
-// aslinya, tidak ada dua salinan data qty yang bisa jadi tidak sinkron.
-// Jumlah minimal adalah 0 (tidak bisa negatif); sengaja tidak diberi batas
-// maksimal supaya tetap sederhana (MVP).
-function changeCardQty(card, delta) {
-  const qtyValueEl = card.querySelector(".qty-value");
-  const currentQty = getCardQty(card);
-  const nextQty = Math.max(0, currentQty + delta);
-  qtyValueEl.textContent = nextQty;
+// Ubah quantity berdasarkan productId, bukan referensi DOM kartu. Nilai 0
+// menghapus item; batas 99 disamakan dengan kontrak backend fase berikutnya.
+function changeCartQuantity(productId, delta) {
+  if (!productsById.has(productId) || !["guest", "authenticated"].includes(cartAuthority)) return;
+
+  const currentItem = getCartItem(productId);
+  const nextQuantity = Math.min(MAX_CART_QUANTITY, Math.max(0, currentItem.quantity + delta));
+  if (nextQuantity === currentItem.quantity) return;
+
+  if (nextQuantity === 0) cartItems.delete(productId);
+  else cartItems.set(productId, { quantity: nextQuantity, note: currentItem.note });
+
+  if (cartAuthority === "guest") persistGuestCart();
+  else scheduleAuthenticatedCartWrite(productId);
+  renderMenuCardQuantities();
   updateCartSummary();
 
   // Kalau panel detail pesanan sedang terbuka, render ulang isinya supaya
@@ -248,11 +427,12 @@ function changeCardQty(card, delta) {
 // bukan lagi dijalankan di sini di top-level saat kartu belum ada.
 function wireMenuCardQtyButtons() {
   menuCards.forEach((card) => {
+    const productId = Number(card.dataset.productId);
     const decreaseBtn = card.querySelector(".qty-decrease");
     const increaseBtn = card.querySelector(".qty-increase");
 
-    decreaseBtn.addEventListener("click", () => changeCardQty(card, -1));
-    increaseBtn.addEventListener("click", () => changeCardQty(card, 1));
+    decreaseBtn.addEventListener("click", () => changeCartQuantity(productId, -1));
+    increaseBtn.addEventListener("click", () => changeCartQuantity(productId, 1));
   });
 }
 
@@ -267,20 +447,16 @@ function buildOrderMessage() {
 
   let totalPrice = 0;
   let itemNumber = 0; // penomoran urut item yang benar-benar dipesan (qty > 0)
-  menuCards.forEach((card) => {
-    const qty = getCardQty(card);
-    if (qty === 0) return; // lewati item yang tidak dipesan (jumlah masih 0)
+  productsById.forEach((product, productId) => {
+    const item = cartItems.get(productId);
+    if (!item) return;
 
-    const price = getCardPrice(card);
-    // Ambil nama produk langsung dari <h3> di card: karena applyLanguage()
-    // sudah mengganti innerHTML-nya sesuai bahasa aktif, teks ini otomatis
-    // ikut dalam bahasa yang sedang dipilih user (ID/EN) tanpa perlu kode tambahan.
-    const name = card.querySelector("h3").textContent.trim();
-    const subtotal = qty * price;
+    const name = translations[document.documentElement.lang][`product.${product.slug}.name`] || product.name;
+    const subtotal = item.quantity * product.price;
     totalPrice += subtotal;
     itemNumber += 1;
 
-    lines.push(`${itemNumber}. ${name} x${qty} = ${formatRupiah(subtotal)}`);
+    lines.push(`${itemNumber}. ${name} x${item.quantity} = ${formatRupiah(subtotal)}`);
 
     // Catatan per item (diisi lewat panel detail pesanan, lihat bagian "3b"
     // di bawah) TIDAK lagi ditempel di baris yang sama dengan produk -
@@ -294,7 +470,7 @@ function buildOrderMessage() {
     // masing-masing di-trim, lalu baris yang jadi kosong (misal karena
     // pelanggan cuma menekan Enter berkali-kali) dibuang - biar tidak ada
     // baris kosong nyempil di pesan WhatsApp.
-    const note = (card.dataset.note || "").trim();
+    const note = item.note.trim();
     if (note) {
       // Tanda bintang (*) dibuang dari catatan karena WhatsApp memakainya
       // sebagai penanda cetak tebal - kalau dibiarkan, tanda bintang yang
@@ -351,6 +527,165 @@ let productsLoadState = "loading"; // "loading" | "success" | "empty" | "error" 
 const menuGrid = document.getElementById("menuGrid");
 const menuStatus = document.getElementById("menuStatus");
 let menuStatusTimer = null;
+
+async function readCartApiResponse(response) {
+  if (!response.ok) {
+    const error = new Error(`Cart API gagal dengan status ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return response.status === 204 ? null : response.json();
+}
+
+async function fetchAuthenticatedCart() {
+  const response = await fetch(`${API_BASE_URL}/api/cart`, { credentials: "include" });
+  const data = await readCartApiResponse(response);
+  if (!data || data.status !== "success") throw new Error("Respons cart tidak valid");
+  return normalizeCartItems(data.items);
+}
+
+async function putAuthenticatedCartItem(productId, item) {
+  const response = await fetch(`${API_BASE_URL}/api/cart/items/${productId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ quantity: item.quantity, note: item.note }),
+  });
+  return readCartApiResponse(response);
+}
+
+async function deleteAuthenticatedCartItem(productId) {
+  const response = await fetch(`${API_BASE_URL}/api/cart/items/${productId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  return readCartApiResponse(response);
+}
+
+async function mergeGuestCart(mergeId, items) {
+  const response = await fetch(`${API_BASE_URL}/api/cart/merge`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ mergeId, items }),
+  });
+  const data = await readCartApiResponse(response);
+  if (!data || data.status !== "success" || !Array.isArray(data.skippedProductIds) ||
+      typeof data.alreadyMerged !== "boolean") throw new Error("Respons merge cart tidak valid");
+  return { ...data, normalizedItems: normalizeCartItems(data.items) };
+}
+
+async function recoverAuthenticatedCart(expectedEpoch, expectedUserId) {
+  if (cartEpoch !== expectedEpoch || authenticatedCartUserId !== expectedUserId) return;
+  setCartAuthority("authenticated-loading");
+  const recoveryEpoch = cartEpoch;
+  try {
+    const canonical = await fetchAuthenticatedCart();
+    if (cartEpoch !== recoveryEpoch || !currentUser || currentUser.id !== expectedUserId) return;
+    replaceCartItems(canonical);
+    cartHasUnsyncedChanges = false;
+    setCartAuthority("authenticated", expectedUserId);
+    hideAuthStatus();
+  } catch (error) {
+    if (cartEpoch === recoveryEpoch && currentUser && currentUser.id === expectedUserId) {
+      cartHasUnsyncedChanges = true;
+      setCartAuthority("indeterminate");
+      showCartPersistenceError();
+    }
+  }
+}
+
+async function runAuthenticatedCartWriter(productId, state) {
+  if (state.running) return;
+  state.running = true;
+  const expectedEpoch = cartEpoch;
+  const expectedUserId = authenticatedCartUserId;
+  try {
+    while (["authenticated", "logout-preparing"].includes(cartAuthority) && cartEpoch === expectedEpoch &&
+           authenticatedCartUserId === expectedUserId && state.persistedVersion < state.version) {
+      const version = state.version;
+      const desiredItem = cartItems.get(productId);
+      if (desiredItem) await putAuthenticatedCartItem(productId, desiredItem);
+      else await deleteAuthenticatedCartItem(productId);
+      if (cartEpoch !== expectedEpoch || authenticatedCartUserId !== expectedUserId) return;
+      state.persistedVersion = version;
+    }
+    if (cartEpoch === expectedEpoch && authenticatedCartUserId === expectedUserId) {
+      cartHasUnsyncedChanges = Array.from(cartWriteStates.values()).some((entry) => entry.persistedVersion < entry.version);
+      updateCartInteractionState();
+    }
+  } catch (error) {
+    if (cartEpoch !== expectedEpoch || authenticatedCartUserId !== expectedUserId) return;
+    cartHasUnsyncedChanges = true;
+    state.failed = true;
+    showCartPersistenceError();
+    if (error.status === 401) {
+      setCartAuthority("indeterminate");
+      await checkAuthState({ reason: "operation-401" });
+    } else {
+      await recoverAuthenticatedCart(expectedEpoch, expectedUserId);
+    }
+  } finally {
+    state.running = false;
+  }
+}
+
+function startAuthenticatedCartWriter(productId, state) {
+  if (!state.promise || !state.running) {
+    state.promise = runAuthenticatedCartWriter(productId, state);
+  }
+  return state.promise;
+}
+
+function scheduleAuthenticatedCartWrite(productId, debounce = false) {
+  if (cartAuthority !== "authenticated") return;
+  let state = cartWriteStates.get(productId);
+  if (!state) {
+    state = { version: 0, persistedVersion: 0, running: false, timer: null, promise: null, failed: false };
+    cartWriteStates.set(productId, state);
+  }
+  state.version += 1;
+  cartHasUnsyncedChanges = true;
+  updateCartInteractionState();
+  if (state.timer) clearTimeout(state.timer);
+  state.timer = null;
+  if (debounce) state.timer = setTimeout(() => { state.timer = null; startAuthenticatedCartWriter(productId, state); }, 450);
+  else startAuthenticatedCartWriter(productId, state);
+}
+
+function flushAuthenticatedCartWrite(productId) {
+  const state = cartWriteStates.get(productId);
+  if (!state || !["authenticated", "logout-preparing"].includes(cartAuthority)) return;
+  if (state.timer) clearTimeout(state.timer);
+  state.timer = null;
+  startAuthenticatedCartWriter(productId, state);
+}
+
+async function drainAuthenticatedCartWritesForLogout() {
+  if (cartAuthority !== "authenticated") return false;
+
+  // Kunci interaksi tanpa mengganti epoch/user: writer yang sudah berjalan
+  // harus tetap sah sampai drain selesai.
+  cartAuthority = "logout-preparing";
+  updateCartInteractionState();
+  const states = Array.from(cartWriteStates.entries());
+  states.forEach(([productId, state]) => {
+    if (state.timer) clearTimeout(state.timer);
+    state.timer = null;
+    startAuthenticatedCartWriter(productId, state);
+  });
+  await Promise.all(states.map(([, state]) => state.promise).filter(Boolean));
+
+  const drainFailed = states.some(([, state]) => state.failed || state.persistedVersion < state.version) ||
+    cartHasUnsyncedChanges || !["authenticated", "logout-preparing"].includes(cartAuthority);
+  if (drainFailed) {
+    if (cartAuthority === "logout-preparing") cartAuthority = "authenticated";
+    updateCartInteractionState();
+    showCartPersistenceError();
+    return false;
+  }
+  return true;
+}
 
 function showMenuStatus(key, type = "loading", autoHide = false) {
   if (menuStatusTimer) clearTimeout(menuStatusTimer);
@@ -530,6 +865,10 @@ async function loadMenu() {
     // seperti width/height/srcset gambar) tanpa perlu fetch ulang satu-satu
     // per produk saat tombol Edit diklik.
     productsById = new Map(products.map((product) => [product.id, product]));
+    // Item cart valid yang tidak ada di snapshot ini sengaja tetap disimpan.
+    // Semua renderer di bawah hanya memakai item yang punya product terbaru,
+    // jadi item tersebut dormant tanpa membawa nama/harga stale dan dapat
+    // muncul kembali bila snapshot produk berikutnya memuat productId-nya.
     productsLoadState = products.length === 0 ? "empty" : "success";
 
     menuGrid.innerHTML = "";
@@ -539,7 +878,8 @@ async function loadMenu() {
 
     menuCards = document.querySelectorAll(".menu-card");
     wireMenuCardQtyButtons();
-    updateCartSummary();
+    renderMenuCardQuantities();
+    updateCartInteractionState();
     applyLanguage(document.documentElement.lang);
     updateAdminProductTotal();
     if (productsLoadState === "empty") showMenuStatus("menu.empty", "empty");
@@ -585,19 +925,17 @@ async function loadMenu() {
 // di bawah.
 //
 // Bikin satu <li> lengkap (nama, subtotal, tombol +/-, kolom catatan) untuk
-// SATU card menu. Dipisah jadi fungsi sendiri supaya renderCartPanel() di
+// SATU productId. Dipisah jadi fungsi sendiri supaya renderCartPanel() di
 // bawah bisa memanggilnya HANYA untuk item yang baru pertama kali masuk
 // keranjang, bukan untuk semua item setiap kali dirender ulang.
-function createCartPanelItem(card, cardIndex) {
+function createCartPanelItem(productId) {
   const isEnglish = document.documentElement.lang === "en";
-  const name = card.querySelector("h3").textContent.trim();
+  const product = productsById.get(productId);
+  const name = translations[document.documentElement.lang][`product.${product.slug}.name`] || product.name;
 
   const item = document.createElement("li");
   item.className = "cart-panel-item";
-  // Dipakai renderCartPanel() sebagai "kunci" untuk mencocokkan <li> ini
-  // dengan card aslinya, supaya nanti tahu <li> mana yang harus di-update
-  // di tempat dan mana yang harus dihapus/dibuat baru.
-  item.dataset.cardIndex = cardIndex;
+  item.dataset.productId = productId;
 
   const info = document.createElement("div");
   info.className = "cart-panel-item-info";
@@ -614,9 +952,8 @@ function createCartPanelItem(card, cardIndex) {
 
   info.append(nameEl, subtotalEl);
 
-  // Tombol +/- di sini memanggil changeCardQty() yang SAMA dengan tombol
-  // di grid menu utama, jadi mengubah qty di panel otomatis juga mengubah
-  // qty di card aslinya - tidak ada data ganda yang bisa tidak sinkron.
+  // Tombol +/- di sini memanggil mutasi model yang SAMA dengan tombol di
+  // grid menu utama. Handler hanya menyimpan productId, bukan DOM card lama.
   const controls = document.createElement("div");
   controls.className = "cart-controls";
   controls.setAttribute("role", "group");
@@ -627,7 +964,7 @@ function createCartPanelItem(card, cardIndex) {
   decreaseBtn.className = "qty-btn qty-decrease";
   decreaseBtn.setAttribute("aria-label", isEnglish ? "Decrease quantity" : "Kurangi jumlah");
   decreaseBtn.innerHTML = "&minus;";
-  decreaseBtn.addEventListener("click", () => changeCardQty(card, -1));
+  decreaseBtn.addEventListener("click", () => changeCartQuantity(productId, -1));
 
   const qtyEl = document.createElement("span");
   qtyEl.className = "qty-value";
@@ -638,13 +975,12 @@ function createCartPanelItem(card, cardIndex) {
   increaseBtn.className = "qty-btn qty-increase";
   increaseBtn.setAttribute("aria-label", isEnglish ? "Increase quantity" : "Tambah jumlah");
   increaseBtn.innerHTML = "+";
-  increaseBtn.addEventListener("click", () => changeCardQty(card, 1));
+  increaseBtn.addEventListener("click", () => changeCartQuantity(productId, 1));
 
   controls.append(decreaseBtn, qtyEl, increaseBtn);
 
-  // Catatan per item (misal "tidak pedas") disimpan langsung di atribut
-  // data-note pada card menu aslinya - mengikuti prinsip yang sama seperti
-  // qty (data disimpan di DOM card, bukan di variabel/array terpisah).
+  // Catatan per item (misal "tidak pedas") disimpan di cartItems bersama
+  // quantity, lalu langsung dipersist ke guest localStorage.
   // Karena <li> ini sekarang HANYA dibuat sekali saat item pertama masuk
   // keranjang (lihat renderCartPanel di bawah - tidak lagi dibuat ulang
   // tiap render), textarea catatan ini juga tidak akan pernah dihapus &
@@ -660,23 +996,28 @@ function createCartPanelItem(card, cardIndex) {
   // tidak sampai terlalu panjang dan membuat link WhatsApp gagal terisi.
   const noteInput = document.createElement("textarea");
   noteInput.rows = 2;
-  noteInput.maxLength = 200;
+  noteInput.maxLength = MAX_CART_NOTE_LENGTH;
   noteInput.className = "cart-panel-item-note";
-  noteInput.value = card.dataset.note || "";
+  noteInput.value = getCartItem(productId).note;
   noteInput.setAttribute("aria-label", (isEnglish ? "Note for " : "Catatan untuk ") + name);
   noteInput.placeholder = isEnglish ? "Add a note (optional)" : "Tambahkan catatan (opsional)";
   noteInput.addEventListener("input", (event) => {
-    card.dataset.note = event.target.value;
+    if (!["guest", "authenticated"].includes(cartAuthority)) return;
+    const cartItem = cartItems.get(productId);
+    if (!cartItem) return;
+    cartItems.set(productId, { quantity: cartItem.quantity, note: event.target.value });
+    if (cartAuthority === "guest") persistGuestCart();
+    else scheduleAuthenticatedCartWrite(productId, true);
   });
+  noteInput.addEventListener("blur", () => flushAuthenticatedCartWrite(productId));
+  noteInput.addEventListener("change", () => flushAuthenticatedCartWrite(productId));
 
   item.append(info, controls, noteInput);
   return item;
 }
 
-// Sama seperti bar keranjang, panel ini membaca ulang SEMUA menuCards
-// (termasuk yang sedang disembunyikan filter kategori) setiap kali dibuka
-// atau dirender ulang, supaya datanya selalu sinkron dengan satu-satunya
-// sumber kebenaran: teks/atribut yang tersimpan di tiap card.
+// Panel membaca cartItems dan menggabungkannya dengan productsById. Filter
+// kategori tidak berpengaruh karena panel tidak bergantung pada card visible.
 //
 // PENTING - ini SENGAJA tidak menghapus lalu membangun ulang seluruh isi
 // list setiap kali dipanggil (versi sebelumnya begitu). Masalahnya: kalau
@@ -689,16 +1030,9 @@ function createCartPanelItem(card, cardIndex) {
 // hilang); <li> baru hanya dibuat untuk item yang BARU masuk keranjang;
 // <li> dihapus hanya untuk item yang qty-nya jadi 0 (keluar dari keranjang).
 function renderCartPanel() {
-  // cardIndex (posisi card di antara semua menuCards) dipakai sebagai
-  // "kunci" tetap untuk mencocokkan <li> dengan card aslinya - lebih stabil
-  // daripada nama produk (teksnya berubah kalau bahasa diganti) atau urutan
-  // tampil (bisa berubah kalau ada item masuk/keluar keranjang).
-  const cartCardIndexes = [];
-  menuCards.forEach((card, cardIndex) => {
-    if (getCardQty(card) > 0) cartCardIndexes.push(cardIndex);
-  });
+  const cartProductIds = Array.from(productsById.keys()).filter((productId) => cartItems.has(productId));
 
-  const isEmpty = cartCardIndexes.length === 0;
+  const isEmpty = cartProductIds.length === 0;
   cartPanelEmpty.classList.toggle("hide", !isEmpty);
   cartPanelList.classList.toggle("hide", isEmpty);
 
@@ -709,8 +1043,8 @@ function renderCartPanel() {
 
   // (1) Buang <li> untuk item yang qty-nya sudah jadi 0 (dikeluarkan dari keranjang).
   Array.from(cartPanelList.children).forEach((li) => {
-    const cardIndex = Number(li.dataset.cardIndex);
-    if (!cartCardIndexes.includes(cardIndex)) li.remove();
+    const productId = Number(li.dataset.productId);
+    if (!cartProductIds.includes(productId)) li.remove();
   });
 
   // (2) Untuk tiap item yang masih/baru ada di keranjang: kalau <li>-nya
@@ -718,23 +1052,37 @@ function renderCartPanel() {
   // belum ada (item baru), buat satu <li> baru dan sisipkan di posisi yang
   // sesuai urutan menu (bukan selalu ditambah di paling bawah), supaya
   // urutan tampilannya tetap rapi mengikuti urutan di grid menu.
-  cartCardIndexes.forEach((cardIndex) => {
-    const card = menuCards[cardIndex];
-    const qty = getCardQty(card);
-    const subtotal = qty * getCardPrice(card);
+  cartProductIds.forEach((productId, desiredIndex) => {
+    const product = productsById.get(productId);
+    const cartItem = cartItems.get(productId);
+    const name = translations[document.documentElement.lang][`product.${product.slug}.name`] || product.name;
+    const subtotal = cartItem.quantity * product.price;
 
-    let li = cartPanelList.querySelector(`[data-card-index="${cardIndex}"]`);
+    let li = cartPanelList.querySelector(`[data-product-id="${productId}"]`);
     if (!li) {
-      li = createCartPanelItem(card, cardIndex);
-      const nextLi = Array.from(cartPanelList.children).find(
-        (child) => Number(child.dataset.cardIndex) > cardIndex
-      );
-      cartPanelList.insertBefore(li, nextLi || null);
+      li = createCartPanelItem(productId);
     }
+    // Pindahkan hanya bila posisinya memang berubah. Pada update quantity
+    // biasa node tidak disentuh, sehingga fokus tombol/textarea tetap aman.
+    const itemAtDesiredIndex = cartPanelList.children[desiredIndex];
+    if (itemAtDesiredIndex !== li) cartPanelList.insertBefore(li, itemAtDesiredIndex || null);
 
-    li.querySelector(".qty-value").textContent = qty;
+    li.querySelector(".cart-panel-item-name").textContent = name;
+    li.querySelector(".qty-value").textContent = cartItem.quantity;
     li.querySelector(".cart-panel-item-subtotal").textContent = formatRupiah(subtotal);
+
+    const isEnglish = document.documentElement.lang === "en";
+    const controls = li.querySelector(".cart-controls");
+    controls.setAttribute("aria-label", isEnglish ? "Order quantity" : "Jumlah pesanan");
+    controls.querySelector(".qty-decrease").setAttribute("aria-label", isEnglish ? "Decrease quantity" : "Kurangi jumlah");
+    controls.querySelector(".qty-increase").setAttribute("aria-label", isEnglish ? "Increase quantity" : "Tambah jumlah");
+
+    const noteInput = li.querySelector(".cart-panel-item-note");
+    noteInput.setAttribute("aria-label", (isEnglish ? "Note for " : "Catatan untuk ") + name);
+    noteInput.placeholder = isEnglish ? "Add a note (optional)" : "Tambahkan catatan (opsional)";
+    if (document.activeElement !== noteInput) noteInput.value = cartItem.note;
   });
+  updateCartInteractionState();
 }
 
 // Klik tombol "Lihat Pesanan" -> render dulu isi panel supaya datanya paling
@@ -1280,6 +1628,7 @@ function applyLanguage(lang) {
   // di atas - lihat komentar lengkap di updateProductDescriptions() (bagian 9a)
   // dan di createMenuCardElement() (bagian 3c) untuk alasannya.
   updateProductDescriptions(lang);
+  if (cartPanel.open) renderCartPanel();
 }
 
 langButtons.forEach((btn) => {
@@ -1661,13 +2010,84 @@ function isValidAuthUser(user) {
   );
 }
 
-async function checkAuthState() {
+function activateGuestCart(snapshot) {
+  cartHasUnsyncedChanges = false;
+  setCartAuthority("guest");
+  replaceCartItems(snapshot);
+}
+
+async function activateAuthenticatedCart(user, loginTransition = null) {
+  if (cartAuthority !== "auth-transition") setCartAuthority("authenticated-loading");
+  const expectedEpoch = cartEpoch;
+  const storedIntent = readPendingCartMerge();
+  let pending = storedIntent;
+
+  if (loginTransition) {
+    pending = {
+      kind: "unbound",
+      loginEmail: loginTransition.loginEmail,
+      mergeId: loginTransition.mergeId,
+      items: serializeCartItems(loginTransition.snapshot),
+    };
+  }
+
+  if (pending && pending.kind === "unbound") {
+    if (pending.loginEmail !== user.email.toLowerCase()) {
+      pending = null;
+    } else {
+      pending = {
+        kind: "bound",
+        userId: user.id,
+        mergeId: pending.mergeId,
+        items: pending.items,
+      };
+      // userId berasal dari /api/auth/me yang baru diverifikasi, bukan storage.
+      writePendingCartMerge(pending);
+    }
+  } else if (pending && pending.userId !== user.id) {
+    pending = null;
+  }
+
+  if (pending && pending.kind !== "bound") {
+    pending = null;
+  }
+
+  try {
+    let canonical;
+    if (pending && pending.userId === user.id && pending.items.length > 0) {
+      canonical = (await mergeGuestCart(pending.mergeId, pending.items)).normalizedItems;
+    } else {
+      canonical = await fetchAuthenticatedCart();
+    }
+    if (cartEpoch !== expectedEpoch || !currentUser || currentUser.id !== user.id) return false;
+    replaceCartItems(canonical);
+    // Intent valid milik identitas lain tetap dipertahankan bersama guest
+    // snapshot-nya; authenticated user saat ini tidak boleh mengklaimnya.
+    if (!storedIntent || pending) clearGuestCartStorage();
+    if (pending && pending.userId === user.id) clearPendingCartMerge();
+    cartHasUnsyncedChanges = false;
+    setCartAuthority("authenticated", user.id);
+    hideAuthStatus();
+    return true;
+  } catch (error) {
+    if (cartEpoch === expectedEpoch && currentUser && currentUser.id === user.id) {
+      setCartAuthority("indeterminate");
+      showAuthStatus("auth.genericError");
+    }
+    return false;
+  }
+}
+
+async function checkAuthState(options = {}) {
+  const reason = options.reason || "startup";
+  const authCheckGeneration = ++cartAuthCheckGeneration;
   let result = "indeterminate";
   try {
     const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
       credentials: "include",
     });
 
+    if (authCheckGeneration !== cartAuthCheckGeneration) return "indeterminate";
     if (response.ok) {
       const data = await response.json();
       if (!data || !isValidAuthUser(data.user)) throw new Error("Respons status login tidak valid");
@@ -1690,7 +2110,24 @@ async function checkAuthState() {
     console.error("Gagal memeriksa status login:", error);
   }
 
+  if (authCheckGeneration !== cartAuthCheckGeneration) return "indeterminate";
+
   renderAuthUI();
+
+  if (result === "authenticated") {
+    const activated = await activateAuthenticatedCart(currentUser, options.loginTransition || null);
+    if (!activated) result = "indeterminate";
+  } else if (result === "anonymous") {
+    if (reason === "logout" || reason === "operation-401") {
+      clearGuestCartStorage();
+      clearPendingCartMerge();
+      activateGuestCart(new Map());
+    } else {
+      activateGuestCart((options.loginTransition && options.loginTransition.snapshot) || options.guestSnapshot || initialGuestCartSnapshot);
+    }
+  } else {
+    setCartAuthority("indeterminate");
+  }
 
   // Kartu menu dari pemanggilan loadMenu() paling awal (bagian 3c) sudah
   // sempat dirender SEBELUM status login ini diketahui (fetch di atas perlu
@@ -1758,6 +2195,7 @@ authForm.addEventListener("submit", async (event) => {
   const password = authPasswordInput.value;
   const submittedMode = authMode;
   const endpoint = submittedMode === "login" ? "/api/auth/login" : "/api/auth/register";
+  const loginMergeId = submittedMode === "login" && cartAuthority === "guest" ? createCartMergeId() : null;
 
   authSubmitBtn.disabled = true;
   authSwitchModeBtn.disabled = true;
@@ -1794,13 +2232,32 @@ authForm.addEventListener("submit", async (event) => {
       return;
     }
 
+    // Login cookie sudah dibuat. Ambil snapshot TERBARU secara sinkron,
+    // durable-kan sebagai intent yang belum terikat user, lalu kunci cart
+    // sebelum /api/auth/me membuka window async berikutnya.
+    const loginTransition = loginMergeId ? {
+      snapshot: new Map(cartItems),
+      mergeId: loginMergeId,
+      loginEmail: email.toLowerCase(),
+    } : null;
+    if (loginTransition) {
+      loginTransition.intentDurable = writePendingCartMerge({
+        kind: "unbound",
+        loginEmail: loginTransition.loginEmail,
+        mergeId: loginTransition.mergeId,
+        items: serializeCartItems(loginTransition.snapshot),
+      });
+      if (!loginTransition.intentDurable) showAuthStatus("auth.genericError");
+    }
+    setCartAuthority("auth-transition");
+
     // Login berhasil - cookie sesi sudah diset browser lewat header
     // Set-Cookie di response ini. checkAuthState() dipanggil ulang supaya
     // currentUser terisi LENGKAP dengan role (endpoint login sendiri cuma
     // membalas {id, email}, role baru diketahui lewat GET /api/auth/me).
     authDialog.close();
     authForm.reset();
-    const authResult = await checkAuthState();
+    const authResult = await checkAuthState({ reason: "login", loginTransition });
     if (authResult !== "authenticated") showAuthStatus("auth.verifyError");
     else hideAuthStatus();
   } catch (error) {
@@ -1831,8 +2288,16 @@ async function handleLogout() {
     button.dataset.i18n = loadingKey;
     button.textContent = translations[document.documentElement.lang][loadingKey];
   });
+  let logoutRequestAttempted = false;
 
   try {
+    const drained = await drainAuthenticatedCartWritesForLogout();
+    if (!drained) {
+      showAuthStatus("auth.logoutError");
+      return;
+    }
+    setCartAuthority("auth-transition");
+    logoutRequestAttempted = true;
     const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
       method: "POST",
       credentials: "include",
@@ -1854,9 +2319,11 @@ async function handleLogout() {
     // loadMenu() kalau user ternyata MASIH admin - di sini kita perlu grid
     // tetap ter-refresh WALAUPUN ternyata user benar-benar sudah logout
     // (supaya tombol Edit/Hapus yang sempat tampil sebelumnya ikut hilang).
-    const authResult = await checkAuthState();
-    await loadMenu();
-    if (authResult !== "anonymous") showAuthStatus("auth.logoutError");
+    if (logoutRequestAttempted) {
+      const authResult = await checkAuthState({ reason: "logout" });
+      await loadMenu();
+      if (authResult !== "anonymous") showAuthStatus("auth.logoutError");
+    }
     logoutPending = false;
     [authLogoutBtn, adminLogoutBtn].forEach((button) => {
       button.disabled = false;

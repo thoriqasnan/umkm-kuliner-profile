@@ -1198,6 +1198,217 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
   res.status(200).json({ status: 'success', user: { id: req.user.id, email: req.user.email, role: req.user.role } });
 });
 
+// --- Routes Phase 3D-7B: authenticated cart persistence ---
+const MAX_CART_QUANTITY = 99;
+const MAX_CART_NOTE_LENGTH = 200;
+const MAX_CART_MERGE_ITEMS = 100;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function parseCartProductId(rawProductId) {
+  if (typeof rawProductId !== 'string' || !/^[1-9]\d*$/.test(rawProductId)) {
+    return null;
+  }
+
+  const productId = Number(rawProductId);
+  return Number.isSafeInteger(productId) ? productId : null;
+}
+
+function validateCartItemBody(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return ['body wajib berupa object JSON'];
+  }
+
+  const errors = [];
+
+  if (!Object.prototype.hasOwnProperty.call(body, 'quantity')) {
+    errors.push('quantity wajib diisi');
+  } else if (typeof body.quantity !== 'number' || !Number.isInteger(body.quantity)) {
+    errors.push('quantity wajib berupa angka bulat (number)');
+  } else if (body.quantity < 1 || body.quantity > MAX_CART_QUANTITY) {
+    errors.push(`quantity harus antara 1 dan ${MAX_CART_QUANTITY}`);
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(body, 'note')) {
+    errors.push('note wajib diisi');
+  } else if (typeof body.note !== 'string') {
+    errors.push('note wajib berupa teks');
+  } else if (body.note.length > MAX_CART_NOTE_LENGTH) {
+    errors.push(`note maksimal ${MAX_CART_NOTE_LENGTH} karakter`);
+  }
+
+  return errors;
+}
+
+function mapCartRows(rows) {
+  return rows.map((row) => ({ productId: row.product_id, quantity: row.quantity, note: row.note }));
+}
+
+function getCartRows(userId) {
+  return db.prepare(`
+    SELECT product_id, quantity, note
+    FROM cart_items
+    WHERE user_id = ?
+    ORDER BY product_id
+  `).all(userId);
+}
+
+function validateCartMergeBody(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return ['body wajib berupa object JSON'];
+  const errors = [];
+  if (typeof body.mergeId !== 'string' || !UUID_PATTERN.test(body.mergeId)) errors.push('mergeId wajib berupa UUID valid');
+  if (!Array.isArray(body.items)) return [...errors, 'items wajib berupa array'];
+  if (body.items.length > MAX_CART_MERGE_ITEMS) errors.push(`items maksimal ${MAX_CART_MERGE_ITEMS}`);
+
+  const seenProductIds = new Set();
+  body.items.forEach((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      errors.push(`items[${index}] wajib berupa object`);
+      return;
+    }
+    if (!Number.isSafeInteger(item.productId) || item.productId <= 0) errors.push(`items[${index}].productId wajib berupa angka bulat positif`);
+    else if (seenProductIds.has(item.productId)) errors.push(`productId ${item.productId} tidak boleh duplikat`);
+    else seenProductIds.add(item.productId);
+    if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_CART_QUANTITY) {
+      errors.push(`items[${index}].quantity harus berupa angka bulat 1-${MAX_CART_QUANTITY}`);
+    }
+    if (typeof item.note !== 'string' || item.note.length > MAX_CART_NOTE_LENGTH) errors.push(`items[${index}].note wajib berupa teks maksimal ${MAX_CART_NOTE_LENGTH} karakter`);
+  });
+  return errors;
+}
+
+const mergeCartTransaction = db.transaction((userId, mergeId, items) => {
+  const existingReceipt = db.prepare(`
+    SELECT skipped_product_ids
+    FROM cart_merges
+    WHERE user_id = ? AND merge_id = ?
+  `).get(userId, mergeId);
+
+  if (existingReceipt) {
+    let storedSkippedProductIds = [];
+    try {
+      const parsed = JSON.parse(existingReceipt.skipped_product_ids);
+      if (Array.isArray(parsed) && parsed.every((id) => Number.isSafeInteger(id) && id > 0)) {
+        storedSkippedProductIds = parsed;
+      }
+    } catch (error) {
+      // Metadata receipt berasal dari database, tetapi parse tetap defensif.
+      // Cart tidak boleh dimutasi ulang hanya karena metadata lama rusak.
+    }
+    return { alreadyMerged: true, skippedProductIds: storedSkippedProductIds, items: mapCartRows(getCartRows(userId)) };
+  }
+
+  const skippedProductIds = [];
+  const eligibleItems = [];
+  const productExists = db.prepare('SELECT 1 FROM products WHERE id = ?');
+  for (const item of items) {
+    if (!productExists.get(item.productId)) skippedProductIds.push(item.productId);
+    else eligibleItems.push(item);
+  }
+
+  db.prepare(`
+    INSERT INTO cart_merges (user_id, merge_id, skipped_product_ids)
+    VALUES (?, ?, ?)
+  `).run(userId, mergeId, JSON.stringify(skippedProductIds));
+
+  const mergeItem = db.prepare(`
+    INSERT INTO cart_items (user_id, product_id, quantity, note)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(user_id, product_id) DO UPDATE SET
+      quantity = MIN(${MAX_CART_QUANTITY}, cart_items.quantity + excluded.quantity),
+      note = CASE WHEN excluded.note != '' THEN excluded.note ELSE cart_items.note END
+  `);
+  for (const item of eligibleItems) {
+    mergeItem.run(userId, item.productId, item.quantity, item.note);
+  }
+
+  return { alreadyMerged: false, skippedProductIds, items: mapCartRows(getCartRows(userId)) };
+});
+
+app.get('/api/cart', requireAuth, (req, res) => {
+  try {
+    res.status(200).json({ status: 'success', items: mapCartRows(getCartRows(req.user.id)) });
+  } catch (err) {
+    console.error('[GET /api/cart] Gagal ambil cart:', err);
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
+  }
+});
+
+app.post('/api/cart/merge', requireAuth, (req, res) => {
+  const errors = validateCartMergeBody(req.body);
+  if (errors.length > 0) return res.status(400).json({ status: 'error', message: 'Validasi gagal', details: errors });
+  try {
+    const result = mergeCartTransaction(req.user.id, req.body.mergeId, req.body.items);
+    res.status(200).json({ status: 'success', ...result });
+  } catch (err) {
+    console.error('[POST /api/cart/merge] Gagal merge cart:', err);
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
+  }
+});
+
+app.put('/api/cart/items/:productId', requireAuth, (req, res) => {
+  const productId = parseCartProductId(req.params.productId);
+
+  if (productId === null) {
+    return res.status(400).json({ status: 'error', message: `ID produk '${req.params.productId}' tidak valid, harus berupa angka bulat positif` });
+  }
+
+  const errors = validateCartItemBody(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ status: 'error', message: 'Validasi gagal', details: errors });
+  }
+
+  const { quantity, note } = req.body;
+
+  try {
+    const product = db.prepare('SELECT id FROM products WHERE id = ?').get(productId);
+    if (!product) {
+      return res.status(404).json({ status: 'error', message: `Produk dengan id ${productId} tidak ditemukan` });
+    }
+
+    db.prepare(`
+      INSERT INTO cart_items (user_id, product_id, quantity, note)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(user_id, product_id) DO UPDATE SET
+        quantity = excluded.quantity,
+        note = excluded.note
+    `).run(req.user.id, productId, quantity, note);
+
+    res.status(200).json({
+      status: 'success',
+      item: { productId, quantity, note },
+    });
+  } catch (err) {
+    console.error('[PUT /api/cart/items/:productId] Gagal simpan cart item:', err);
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
+  }
+});
+
+app.delete('/api/cart/items/:productId', requireAuth, (req, res) => {
+  const productId = parseCartProductId(req.params.productId);
+
+  if (productId === null) {
+    return res.status(400).json({ status: 'error', message: `ID produk '${req.params.productId}' tidak valid, harus berupa angka bulat positif` });
+  }
+
+  try {
+    db.prepare('DELETE FROM cart_items WHERE user_id = ? AND product_id = ?').run(req.user.id, productId);
+    res.status(204).end();
+  } catch (err) {
+    console.error('[DELETE /api/cart/items/:productId] Gagal hapus cart item:', err);
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
+  }
+});
+
+app.delete('/api/cart', requireAuth, (req, res) => {
+  try {
+    db.prepare('DELETE FROM cart_items WHERE user_id = ?').run(req.user.id);
+    res.status(204).end();
+  } catch (err) {
+    console.error('[DELETE /api/cart] Gagal kosongkan cart:', err);
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
+  }
+});
+
 // --- 404 handler ---
 // Jalan kalau tidak ada route di atas yang cocok dengan request-nya (baik
 // route API seperti GET /api/nonexistent atau GET /api/products/unknown/
@@ -1219,6 +1430,11 @@ app.use((req, res) => {
 // mengenali middleware ini SEBAGAI error handler karena punya 4 parameter
 // (err, req, res, next) - bukan karena namanya atau urutan definisinya.
 app.use((err, req, res, next) => {
+  if (err.type === 'entity.too.large' && err.status === 413) {
+    console.error('[JSON body too large]', err.message);
+    return res.status(413).json({ status: 'error', message: 'Body request terlalu besar' });
+  }
+
   // --- Phase 3B-5: tangani malformed JSON body secara spesifik ---
   // express.json() (dipasang di baris atas) memakai body-parser di baliknya.
   // Kalau client mengirim body yang MENGAKU Content-Type: application/json

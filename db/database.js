@@ -34,6 +34,17 @@ fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 // table-nya sendiri lewat CREATE TABLE di bawah.
 const db = new Database(DB_PATH);
 
+// Foreign-key enforcement di SQLite bersifat per-connection dan default-nya
+// nonaktif. Cart bergantung pada FK untuk mencegah row orphan dan menjalankan
+// ON DELETE CASCADE, jadi aktifkan lalu verifikasi secara fail-loud sebelum
+// schema apa pun yang memakai foreign key dibuat/digunakan.
+db.pragma('foreign_keys = ON');
+const foreignKeysEnabled = db.pragma('foreign_keys', { simple: true });
+
+if (foreignKeysEnabled !== 1) {
+  throw new Error('SQLite foreign-key enforcement gagal diaktifkan. Server menolak startup.');
+}
+
 // --- 1. Buat table `products` kalau belum ada ---
 // IF NOT EXISTS = idempotent, artinya baris kode ini AMAN dijalankan setiap
 // kali server start (misal server di-restart berkali-kali saat development)
@@ -84,6 +95,56 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 `);
+
+// --- 1c. Buat table `cart_items` untuk cart authenticated user (Phase 3D-7B) ---
+// Satu user hanya boleh punya satu row per produk. Nama/harga/total tidak
+// disimpan di sini: metadata tersebut tetap authoritative dari table products.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS cart_items (
+    user_id INTEGER NOT NULL CHECK (
+      typeof(user_id) = 'integer' AND user_id > 0
+    ),
+    product_id INTEGER NOT NULL CHECK (
+      typeof(product_id) = 'integer' AND product_id > 0
+    ),
+    quantity INTEGER NOT NULL CHECK (
+      typeof(quantity) = 'integer'
+      AND quantity BETWEEN 1 AND 99
+    ),
+    note TEXT NOT NULL DEFAULT '' CHECK (
+      typeof(note) = 'text'
+      AND length(note) <= 200
+    ),
+    PRIMARY KEY (user_id, product_id),
+    FOREIGN KEY (user_id)
+      REFERENCES users(id)
+      ON DELETE CASCADE,
+    FOREIGN KEY (product_id)
+      REFERENCES products(id)
+      ON DELETE CASCADE
+  );
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS cart_merges (
+    user_id INTEGER NOT NULL,
+    merge_id TEXT NOT NULL,
+    skipped_product_ids TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, merge_id),
+    FOREIGN KEY (user_id)
+      REFERENCES users(id)
+      ON DELETE CASCADE
+  );
+`);
+
+// cart_merges sempat diperkenalkan di worktree Phase 3D-7C sebelum metadata
+// hasil skip disimpan. Pertahankan database development tersebut tanpa reset:
+// tambah kolom secara idempotent bila table versi awal sudah terlanjur dibuat.
+const cartMergeColumns = db.prepare('PRAGMA table_info(cart_merges)').all();
+if (!cartMergeColumns.some((column) => column.name === 'skipped_product_ids')) {
+  db.exec("ALTER TABLE cart_merges ADD COLUMN skipped_product_ids TEXT NOT NULL DEFAULT '[]'");
+}
 
 // --- 1c. Migrasi: tambah kolom `role` ke table users (Phase 3C-3: otorisasi) ---
 // Beda dengan CREATE TABLE IF NOT EXISTS di atas: table `users` sendiri
