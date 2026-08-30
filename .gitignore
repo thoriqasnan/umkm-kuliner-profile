@@ -22,3 +22,10 @@ data/*.db
 .env
 .env.*
 !.env.example
+
+# Generated Phase 4C-4 large synthetic dataset (lihat
+# python/src/sari_rasa_data/synthetic_data.py). File ini deterministic
+# (fixed seed) dan bisa dibuat ulang kapan saja dari generator, jadi
+# sengaja TIDAK ikut di-commit. Dataset kecil 30-row canonical di
+# python/data/transactions.csv TETAP tracked dan tidak diabaikan di sini.
+python/data/transactions_large.csv
