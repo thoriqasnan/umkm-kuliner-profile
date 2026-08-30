@@ -54,7 +54,7 @@ Exact historical names for Phase 3A/3B/3C are intentionally not reconstructed wi
 
 ## Quality Gate — Engineering Foundation
 
-Status: 🔄 **IN PROGRESS**
+Status: ✅ **VERIFIED COMPLETE**
 
 This Quality Gate is intentionally **not Phase 4**. Its purpose is to stabilize the JavaScript full-stack application before Python, data, ML, and AI complexity is added.
 
@@ -71,13 +71,20 @@ D — Combined Runner, Safety Audit & Final Integration     ✅ VERIFIED COMPLET
     User-performed Safari acceptance                       ✅ COMPLETE
 ```
 
-The Automated Regression Foundation is ✅ **VERIFIED COMPLETE** after implementation, repeated automated/static verification, specialist and independent review, and explicit user-performed Safari acceptance. The overall Quality Gate remains 🔄 **IN PROGRESS** because Project Documentation / Runbook is still pending.
+The Automated Regression Foundation is ✅ **VERIFIED COMPLETE** after implementation, repeated automated/static verification, specialist and independent review, and explicit user-performed Safari acceptance. Together with the verified Project Documentation / Runbook, it completes the Engineering Foundation Quality Gate.
 
 ### Project Documentation / Runbook
 
-Status: ⏳ **PLANNED**
+Status: ✅ **VERIFIED COMPLETE**
 
-Expected later documentation covers local setup, environment variables, frontend/backend startup, test commands, architecture overview, troubleshooting, manual verification, and project learning summary. This roadmap itself does not complete the documentation/runbook task.
+```text
+A — Documentation Audit & Plan                         ✅ COMPLETE
+B — README & Architecture                              ✅ VERIFIED COMPLETE
+C — Setup / Operations Runbook                         ✅ VERIFIED COMPLETE
+D — Final Documentation Verification                   ✅ VERIFIED COMPLETE
+```
+
+The completed documentation covers local setup, environment variables, frontend/backend startup, test commands, architecture overview, troubleshooting, manual verification, and project learning summary. Final static checks, the 56-test regression suite, independent review, and user-performed manual acceptance have passed.
 
 ## Phase 4 — Python & Data
 
@@ -209,7 +216,7 @@ Project 1 may be marked ✅ **VERIFIED COMPLETE** only after Phase 1, Phase 2, P
 Phase 1                           ✅ VERIFIED COMPLETE
 Phase 2                           ✅ VERIFIED COMPLETE
 Phase 3                           ✅ VERIFIED COMPLETE
-Quality Gate                      🔄 IN PROGRESS
+Quality Gate                      ✅ VERIFIED COMPLETE
   Automated Regression            ✅ VERIFIED COMPLETE
     A Safe Testability Seam       ✅ VERIFIED COMPLETE
     B Backend/DB Suite            ✅ VERIFIED COMPLETE
@@ -217,8 +224,12 @@ Quality Gate                      🔄 IN PROGRESS
     D Final Integration           ✅ VERIFIED COMPLETE
       Automated verification      ✅ COMPLETE
       User Safari acceptance      ✅ COMPLETE
-  Documentation / Runbook         ⏳ PLANNED
-Phase 4 Python & Data             ⏳ PLANNED
+  Documentation / Runbook         ✅ VERIFIED COMPLETE
+    A Documentation Audit & Plan  ✅ COMPLETE
+    B README & Architecture       ✅ VERIFIED COMPLETE
+    C Setup / Operations Runbook  ✅ VERIFIED COMPLETE
+    D Final Doc Verification      ✅ VERIFIED COMPLETE
+Phase 4 Python & Data             ⏭️ NEXT
 Phase 5 Machine Learning          ⏳ PLANNED
 Phase 6 Deep Learning             ⏳ PLANNED
 Phase 7 AI Engineering            ⏳ PLANNED
@@ -226,4 +237,4 @@ Phase 8 Full-Stack + AI           ⏳ PLANNED
 Final Engineering                 ⏳ PLANNED
 ```
 
-The **Automated Regression Foundation** is ✅ **VERIFIED COMPLETE**. Safari acceptance was performed and reported by the user. The Quality Gate remains 🔄 **IN PROGRESS** because **Project Documentation / Runbook** remains ⏳ **PLANNED**.
+The **Quality Gate — Engineering Foundation** is ✅ **VERIFIED COMPLETE**: both the Automated Regression Foundation and Project Documentation / Runbook passed automated, static, independent-review, and required user-performed manual acceptance gates. The next planned phase is **Phase 4 — Python & Data**; it has not started.
