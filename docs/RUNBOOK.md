@@ -173,7 +173,7 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
    python -m pip install -r python/requirements.txt
    ```
 
-   `pytest` is currently the only external Python dependency.
+   Phase 4C adds Pandas and NumPy alongside pytest. The requirements file remains the reproducible source for all Python dependencies.
 
 4. Run the package as a small example:
 
@@ -189,7 +189,7 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
    PYTHONPATH=python/src python -m pytest python/tests
    ```
 
-   `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests and the complete Phase 4B schema, dataset, loader, cleaning, transformation, and aggregation tests.
+   `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests, complete Phase 4B pipeline tests, Phase 4C DataFrame/filtering/grouping/NumPy-statistics tests, and the Phase 4C-4 synthetic-generator/integrated-analysis tests. The Phase 4C-4 tests generate their own temporary large dataset (they do not depend on `python/data/transactions_large.csv` existing on disk).
 
 6. Leave the virtual environment when finished:
 
@@ -210,6 +210,38 @@ sed -n '1,6p' python/data/transactions.csv
 ```
 
 The complete Python test command above verifies that every canonical row matches the schema in `python/src/sari_rasa_data/transactions.py`. No database or service needs to be running.
+
+### Phase 4C-4 — large synthetic dataset and integrated analysis (verified complete)
+
+Phase 4C-4 adds a separate, larger synthetic dataset for meaningful Pandas + NumPy analysis. It is generated on demand and is distinct from the small canonical fixture above.
+
+**Do not overwrite `python/data/transactions.csv`.** It is the small 30-row canonical regression fixture used by the Phase 4B/4C-1/4C-2/4C-3 tests, and every command below writes to a different path.
+
+Generate (or regenerate) the 10,000-row large dataset at `python/data/transactions_large.csv`, using the documented fixed seed:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -c "
+from sari_rasa_data.synthetic_data import write_synthetic_transactions_csv, DEFAULT_ROW_COUNT, DEFAULT_SEED
+count = write_synthetic_transactions_csv(
+    'python/data/transactions_large.csv', row_count=DEFAULT_ROW_COUNT, seed=DEFAULT_SEED
+)
+print(f'wrote {count} rows')
+"
+```
+
+Running this again with the same `row_count`/`seed` reproduces a byte-identical file; it does not touch the canonical fixture.
+
+Run the integrated analysis over the generated file and print the JSON summary (dataset overview, sales totals including order-level average order value, category/product/time/payment breakdowns, and NumPy statistics):
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -c "
+import json
+from sari_rasa_data.analysis_pipeline import analyze_transactions
+print(json.dumps(analyze_transactions('python/data/transactions_large.csv'), indent=2, ensure_ascii=False))
+"
+```
+
+To experiment safely, change only the `seed` (or `row_count`) argument and write to a **different** filename, for example `python/data/transactions_experiment.csv`, then point `analyze_transactions(...)` at that path instead. This regenerates a new, still-deterministic dataset without touching `transactions_large.csv` or the canonical `transactions.csv`.
 
 ## Normal user workflow
 

@@ -366,7 +366,7 @@ Tests fail before opening the real development database, including when a filesy
 
 ## Python workspace (local data foundation, not a running service)
 
-Phase 4A introduced a repository-local Python workspace at `python/`, containing a small `sari_rasa_data` package and a pytest suite (`python/tests/`). Its modules are `foundation.py` (product/order validation and basic composition), `io_utils.py` (pathlib-based JSON file read/write), `__main__.py` (a small executable entry point), `transactions.py` (transaction schema/shared validation), `data_loader.py` (CSV/JSON loading), `data_transform.py` (transaction cleaning/transformation), and `aggregations.py` (pure-Python dataset aggregation). It is a local learning workspace: it is not started as a service, is not called by `server.js` or the browser, does not read `data/umkm.db`, and performs no filesystem access outside of tests' own temporary directories and files a caller explicitly passes in. It runs inside its own repository-local `.venv`, which is not committed.
+Phase 4A introduced a repository-local Python workspace at `python/`, containing a small `sari_rasa_data` package and a pytest suite (`python/tests/`). Its modules include the Phase 4A foundations, Phase 4B transaction pipeline, the Phase 4C-1 `dataframe.py` bridge, the Phase 4C-2 `pandas_analysis.py` functions, the Phase 4C-3 `numpy_analysis.py` functions, and the Phase 4C-4 `synthetic_data.py` generator and `analysis_pipeline.py` composition. It is a local learning workspace: it is not started as a service, is not called by `server.js` or the browser, does not read `data/umkm.db`, and performs no filesystem access outside of tests' own temporary directories and files a caller explicitly passes in. It runs inside its own repository-local `.venv`, which is not committed.
 
 This workspace has no runtime relationship to the component overview above. Current state is the existing Node/Express application plus this local Python foundation workspace, with no communication between them. Node.js/Express remains the only application-facing backend. Node → Python HTTP service integration, and the Python/FastAPI data-service architecture described in the [roadmap](../ROADMAP.md) for later Phase 4 subphases, are planning targets, not current behavior.
 
@@ -422,13 +422,84 @@ pure-Python aggregation
 JSON-compatible results
 ```
 
-The aggregation boundary sums line revenue and quantity and groups them by category, product, or ISO date. It does not count transaction rows as unique customer orders. There is no average-order calculation, ranking, statistics, visualization, database access, network communication, or service. Pandas and NumPy analysis remain future Phase 4C work.
+The Phase 4B aggregation boundary sums line revenue and quantity and groups them by category, product, or ISO date. It does not count transaction rows as unique customer orders. At that checkpoint there was no average-order calculation, ranking, statistics, visualization, database access, network communication, or service; later Phase 4C work builds on this pure-Python baseline.
+
+Phase 4C-1 reuses the Phase 4B pipeline rather than bypassing its rules:
+
+```text
+Synthetic CSV
+    ↓
+Phase 4B load / validate / clean / transform
+    ↓
+validated transaction records
+    ↓
+Pandas DataFrame
+```
+
+The DataFrame bridge preserves the nine transaction columns, numeric values, input order, and JSON-compatible record conversion. Phase 4C-2 extends that boundary with Pandas filtering, `groupby` sums, and deterministic product-quantity sorting:
+
+```text
+Synthetic CSV
+    ↓
+Phase 4B pipeline
+    ↓
+Pandas DataFrame
+    ↓
+filter / groupby / sum / sort
+    ↓
+JSON-compatible analysis results
+```
+
+These operations reproduce the equivalent Phase 4B totals without replacing its validation path. Phase 4C-3 adds explicit NumPy analysis over the same Pandas columns:
+
+```text
+Synthetic CSV
+    ↓
+Phase 4B pipeline
+    ↓
+Pandas DataFrame
+    ↓
+selected numeric columns (quantity, unit_price, line_total)
+    ↓
+NumPy arrays
+    ↓
+basic statistics (mean, median, min, max, population std, percentiles)
+```
+
+`numpy_analysis.column_to_numpy` copies one approved numeric column into a new `numpy.ndarray` without mutating the source DataFrame. `mean_value`, `median_value`, `min_value`, `max_value`, `standard_deviation`, and `percentile_value` return plain Python floats (never NumPy scalar types), and each raises `ValueError` on an empty array instead of silently returning NumPy's NaN. `standard_deviation` uses population semantics (`numpy.std` default, ddof=0), and `percentile_value` validates its percentile argument is between 0 and 100 inclusive. `summarize_numeric_column` composes these into one JSON-compatible dictionary. Pandas remains responsible for tabular representation, filtering, and grouping; NumPy is used only for numeric arrays and statistics over columns Pandas already produced.
+
+### Phase 4C-4 — large synthetic dataset and integrated analysis
+
+Two transaction datasets now exist with clearly separated responsibilities:
+
+| Dataset | Path | Rows | Purpose |
+|---|---|---|---|
+| Canonical regression fixture | `python/data/transactions.csv` | 30 | small, human-inspectable, used by the Phase 4B/4C-1/4C-2/4C-3 regression tests; never modified by Phase 4C-4 |
+| Large synthetic analysis dataset | `python/data/transactions_large.csv` | 10,000 | generated on demand for meaningful Pandas + NumPy analysis; not committed to Git in this phase |
+
+`sari_rasa_data.synthetic_data` generates the large dataset from a single `random.Random(seed)` instance (`DEFAULT_SEED = 20260901`, `DEFAULT_ROW_COUNT = 10_000`), so the same seed and row count always reproduce byte-identical output. It reuses the exact Phase 4B schema fields and deliberately omits `line_total`, which stays a value derived by the Phase 4B transform step rather than raw input. Multiple transaction lines can share one `order_id`, modeling a single order containing several products. The generator encodes moderate, explainable patterns — higher weekend demand, per-month seasonal multipliers (a December peak), per-product popularity weights, a QRIS-leaning payment-method mix, and a small share of bulk-quantity lines — without hard-coding the resulting analysis numbers.
+
+```text
+Synthetic CSV (transactions_large.csv)
+    ↓
+Phase 4B pipeline (load / validate / clean / transform)
+    ↓
+Pandas DataFrame
+    ↓
+Pandas analysis (filter / groupby / rank)
+    ↓
+NumPy statistics
+    ↓
+JSON-compatible integrated summary
+```
+
+`sari_rasa_data.analysis_pipeline` composes the existing Phase 4B/4C-1/4C-2/4C-3 functions — it does not reimplement loading, filtering, grouping, or statistics. It adds only the metrics those modules did not already provide: unique-order counting, order-level average order value (`total_revenue / unique_order_count`, not divided by transaction-line count), an ISO date range, monthly revenue, a weekday/weekend comparison, and payment-method transaction-line counts (documented as line counts, not order counts, since `payment_method` is recorded per transaction line). `analyze_transactions(path)` returns one dictionary of only plain `dict`/`list`/`str`/`int`/`float` values suitable for `json.dumps`.
 
 ## Current boundaries and future scope
 
-Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, the project documentation/runbook, the Phase 4A Python foundation workspace, and the complete Phase 4B pure-Python pipeline from synthetic data through aggregation. The Python workspace remains separate from the running application.
+Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, the project documentation/runbook, the Phase 4A Python foundation workspace, the complete Phase 4B pure-Python pipeline, and the complete Phase 4C Pandas/NumPy analysis (4C-1 through 4C-4). Phase 4C-4's large synthetic dataset and integrated analysis pipeline passed implementation, automated tests, independent review, and user-performed manual analysis acceptance — see the [Roadmap](../ROADMAP.md) for the verification record. The Python workspace remains separate from the running application.
 
-Pandas/NumPy analysis, the Python/FastAPI data service, Node-to-Python integration, machine learning, deep-learning fundamentals, AI engineering, full-stack AI integration, and final deployment/portfolio engineering remain future phases. Their conceptual roadmap does not define current runtime components.
+The Python/FastAPI data service, Node-to-Python integration, machine learning, deep-learning fundamentals, AI engineering, full-stack AI integration, and final deployment/portfolio engineering remain future phases. Their conceptual roadmap does not define current runtime components.
 
 See the [Project Roadmap](../ROADMAP.md) for the approved sequence and current status.
 

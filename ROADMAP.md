@@ -171,7 +171,7 @@ python/
 
 `__main__.py` lets the package run as `python -m sari_rasa_data`, printing a small deterministic JSON report built entirely from existing `foundation.py` functions. It has no database, network, or filesystem side effects.
 
-Only `pytest` has been introduced as a dependency so far. Pandas, NumPy, FastAPI, Uvicorn, and any ML/AI library remain for later 4B–4D subphases and are not yet installed.
+At the Phase 4A checkpoint, `pytest` was the only external Python dependency. Phase 4C later added Pandas and NumPy; FastAPI, Uvicorn, and ML/AI libraries remain future work.
 
 ### 4B — Data Handling & Transformation
 
@@ -220,7 +220,24 @@ The planned dataset is a synthetic UMKM transaction dataset relevant to the exis
 
 ### 4C — Data Analysis with Pandas & NumPy
 
-Status: ⏳ **NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
+
+Approved subphases:
+
+```text
+4C-1 Pandas Foundation & DataFrame                       ✅ VERIFIED COMPLETE
+4C-2 Filtering, Grouping & Aggregation                   ✅ VERIFIED COMPLETE
+4C-3 NumPy & Basic Statistics                            ✅ VERIFIED COMPLETE
+4C-4 Analysis Pipeline & Final Review                    ✅ VERIFIED COMPLETE
+```
+
+4C-1 introduces Pandas and NumPy as the only new dependencies and adds a small DataFrame bridge over the verified Phase 4B records. Canonical CSV loading still passes through Phase 4B validation, cleaning, and transformation before DataFrame construction. At the 4C-1 checkpoint, the complete Python suite, deterministic DataFrame smoke test, and independent read-only review passed; filtering, grouping, Pandas analytics, and explicit NumPy analysis had not started.
+
+4C-2 adds canonical-value filters, inclusive ISO date-range filtering, Pandas `groupby` equivalents for the Phase 4B revenue/quantity results, and deterministic product-quantity sorting. The complete Python suite, deterministic smoke analysis, Phase 4B equivalence checks, and independent read-only review passed. Explicit NumPy analysis and statistics have not started.
+
+4C-3 adds `sari_rasa_data.numpy_analysis`, a small function-based module that converts approved numeric DataFrame columns (`quantity`, `unit_price`, `line_total`) into NumPy arrays without mutating the DataFrame, and computes mean, median, min, max, population standard deviation, and percentiles as plain JSON-compatible Python scalars. Statistics on an empty array raise `ValueError` rather than returning NumPy's silent NaN. The complete Python suite, deterministic canonical smoke analysis, and independent read-only review passed.
+
+4C-4 adds `sari_rasa_data.synthetic_data`, a deterministic (fixed-seed) large synthetic transaction generator producing a separate 10,000-line dataset at `python/data/transactions_large.csv`, and `sari_rasa_data.analysis_pipeline`, which composes the existing Phase 4B/4C-1/4C-2/4C-3 functions into one JSON-compatible summary (order-level average order value, category/product/time/payment breakdowns, and NumPy statistics). The small 30-row canonical fixture remains untouched. Implementation, the complete Python test suite, deterministic-regeneration verification, the large-dataset smoke analysis, and independent read-only review all passed. The user then personally performed the manual acceptance walkthrough — inspecting the generated dataset, confirming 10,000 transaction lines, running the integrated analysis pipeline, and verifying both dataset checksums — and it passed. 4C-4 and Phase 4C as a whole are therefore ✅ **VERIFIED COMPLETE**.
 
 Learning objectives:
 
@@ -230,14 +247,17 @@ Learning objectives:
 - basic descriptive statistics
 - DataFrame-to-JSON conversion
 - NumPy array and numerical fundamentals sufficient to prepare for ML
+- deterministic synthetic data generation
+- order-line vs. unique-order metric semantics
+- composing an integrated analysis pipeline from smaller verified functions
 
-Phase 4B established plain-Python baselines for total revenue, revenue by category, daily revenue, and quantity sold by product. Phase 4C will teach Pandas/NumPy implementations and may add total orders, average order value, top-selling product, and descriptive statistics; those Phase 4C capabilities are not implemented yet.
+Phase 4B established plain-Python baselines for total revenue, revenue by category, daily revenue, and quantity sold by product. Phase 4C-2 provides equivalent Pandas filtering and grouped totals plus deterministic product-quantity sorting. Phase 4C-3 adds NumPy-based descriptive statistics (mean, median, min, max, population standard deviation, percentiles) over Pandas numeric columns. Phase 4C-4 adds a larger, pattern-bearing synthetic dataset and an integrated Pandas + NumPy analysis pipeline over it, completing the planned Phase 4C learning arc; user manual acceptance passed on 2026-08-31.
 
 The Phase 4 dataset should be designed so it can potentially continue into Phase 5 Machine Learning instead of being discarded after Phase 4.
 
 ### 4D — Python Data Service
 
-Status: ⏳ **NOT STARTED**
+Status: ⏭️ **NEXT**
 
 Planned minimal service technology:
 
@@ -498,8 +518,12 @@ Phase 4 Python & Data                 🔄 IN PROGRESS
     4B-2 CSV/JSON Loading & Validation ✅ VERIFIED COMPLETE
     4B-3 Cleaning & Transformation   ✅ VERIFIED COMPLETE
     4B-4 Aggregation & Final Verification ✅ VERIFIED COMPLETE
-  4C Pandas & NumPy Analysis          ⏳ NOT STARTED
-  4D Python Data Service              ⏳ NOT STARTED
+  4C Pandas & NumPy Analysis          ✅ VERIFIED COMPLETE
+    4C-1 Pandas Foundation & DataFrame ✅ VERIFIED COMPLETE
+    4C-2 Filtering, Grouping & Aggregation ✅ VERIFIED COMPLETE
+    4C-3 NumPy & Basic Statistics    ✅ VERIFIED COMPLETE
+    4C-4 Analysis Pipeline & Final Review ✅ VERIFIED COMPLETE
+  4D Python Data Service              ⏭️ NEXT
   4E Node.js ↔ Python Integration  ⏳ NOT STARTED
   4F Integration & Quality Gate       ⏳ NOT STARTED
 Phase 5 Machine Learning              ⏳ PLANNED
@@ -509,4 +533,4 @@ Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
 Final Engineering                     ⏳ PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation** is ✅ **VERIFIED COMPLETE**: both the Automated Regression Foundation and Project Documentation / Runbook passed automated, static, independent-review, and required user-performed manual acceptance gates. **Phase 4 — Python & Data** remains in progress: subphases 4A and 4B, including 4B-1 through 4B-4, are verified complete after the complete Python suite, deterministic pipeline smoke test, and independent final review. Subphases 4C–4F remain not yet started.
+The **Quality Gate — Engineering Foundation** is ✅ **VERIFIED COMPLETE**: both the Automated Regression Foundation and Project Documentation / Runbook passed automated, static, independent-review, and required user-performed manual acceptance gates. **Phase 4 — Python & Data** remains in progress: subphases 4A, 4B, and 4C (with 4C-1 through 4C-4) are all verified complete, including the user-performed manual analysis acceptance for 4C-4. Subphase 4D is next; 4E–4F remain not yet started.
