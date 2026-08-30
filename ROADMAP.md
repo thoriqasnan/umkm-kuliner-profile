@@ -175,7 +175,18 @@ Only `pytest` has been introduced as a dependency so far. Pandas, NumPy, FastAPI
 
 ### 4B — Data Handling & Transformation
 
-Status: ⏳ **NOT STARTED**
+Status: 🔄 **IN PROGRESS**
+
+Approved subphases:
+
+```text
+4B-1 Dataset Foundation & Schema                         ✅ VERIFIED COMPLETE
+4B-2 CSV/JSON Loading & Validation                       ⏳ NOT STARTED
+4B-3 Cleaning & Transformation                           ⏳ NOT STARTED
+4B-4 Aggregation & Final Verification                    ⏳ NOT STARTED
+```
+
+4B-1 introduces a small canonical synthetic transaction dataset at `python/data/transactions.csv` and a beginner-readable schema module at `sari_rasa_data.transactions`. The canonical dataset and schema contract passed the complete Python suite and independent read-only review. It does not implement whole-dataset loading, cleaning, transformation, aggregation, analytics, a service, ML, or AI.
 
 Learning objectives:
 
@@ -199,7 +210,7 @@ The planned dataset is a synthetic UMKM transaction dataset relevant to the exis
 - `unit_price`
 - `payment_method`
 
-The dataset is intended to include controlled invalid and missing cases so validation and cleaning can be learned deliberately.
+Later 4B-2/4B-3 test fixtures are intended to include controlled invalid and missing cases so validation and cleaning can be learned deliberately. The canonical dataset introduced in 4B-1 remains valid and clean.
 
 ### 4C — Data Analysis with Pandas & NumPy
 
@@ -476,7 +487,11 @@ Phase 4 Python & Data                 🔄 IN PROGRESS
     4A-1 Python Foundation Scaffold  ✅ VERIFIED COMPLETE
     4A-2 Core Python Fundamentals & Error Handling ✅ VERIFIED COMPLETE
     4A-3 Python Foundation Finalization ✅ VERIFIED COMPLETE
-  4B Data Handling & Transformation  ⏳ NOT STARTED
+  4B Data Handling & Transformation  🔄 IN PROGRESS
+    4B-1 Dataset Foundation & Schema ✅ VERIFIED COMPLETE
+    4B-2 CSV/JSON Loading & Validation ⏳ NOT STARTED
+    4B-3 Cleaning & Transformation   ⏳ NOT STARTED
+    4B-4 Aggregation & Final Verification ⏳ NOT STARTED
   4C Pandas & NumPy Analysis          ⏳ NOT STARTED
   4D Python Data Service              ⏳ NOT STARTED
   4E Node.js ↔ Python Integration  ⏳ NOT STARTED
@@ -488,4 +503,4 @@ Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
 Final Engineering                     ⏳ PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation** is ✅ **VERIFIED COMPLETE**: both the Automated Regression Foundation and Project Documentation / Runbook passed automated, static, independent-review, and required user-performed manual acceptance gates. **Phase 4 — Python & Data** remains in progress: subphase 4A (Python Foundation & Environment), including 4A-1 through 4A-3, is verified complete after implementation, automated checks, the user-performed runtime smoke test, and independent final verification. Subphases 4B–4F remain not yet started.
+The **Quality Gate — Engineering Foundation** is ✅ **VERIFIED COMPLETE**: both the Automated Regression Foundation and Project Documentation / Runbook passed automated, static, independent-review, and required user-performed manual acceptance gates. **Phase 4 — Python & Data** remains in progress: subphase 4A and 4B-1 (Dataset Foundation & Schema) are verified complete, while Phase 4B remains in progress. Subphases 4B-2 through 4B-4 and 4C–4F remain not yet started.

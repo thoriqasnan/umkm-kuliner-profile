@@ -189,7 +189,7 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
    PYTHONPATH=python/src python -m pytest python/tests
    ```
 
-   `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests` (currently `test_foundation.py`, `test_io_utils.py`, and `test_main.py`), not just one module.
+   `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests and the Phase 4B-1 transaction schema/dataset tests.
 
 6. Leave the virtual environment when finished:
 
@@ -200,6 +200,16 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
 Activating or leaving `.venv` has no effect on the Node.js backend, frontend, or SQLite database, and does not require restarting them. This Python workspace is unrelated to the Node `.env`/`.env.example` files described earlier in this runbook; `.venv` is a Python virtual environment directory, not an environment-variable file.
 
 Phase 4A is ✅ **VERIFIED COMPLETE** after automated tests, deterministic package execution, the user-performed runtime smoke test, and independent final verification. Conceptual explanations are not a technical completion gate; they can be consolidated separately into Learning Notes using the implementation and commands documented here.
+
+### Inspect the synthetic transaction dataset
+
+Phase 4B-1 uses the human-readable canonical CSV at `python/data/transactions.csv`. To inspect its header and first five synthetic rows without changing the file, run from the repository root:
+
+```sh
+sed -n '1,6p' python/data/transactions.csv
+```
+
+The complete Python test command above verifies that every canonical row matches the schema in `python/src/sari_rasa_data/transactions.py`. No database or service needs to be running.
 
 ## Normal user workflow
 
