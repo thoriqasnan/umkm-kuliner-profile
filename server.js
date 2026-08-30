@@ -14,7 +14,21 @@ const { requireAdmin } = require('./middleware/authorize');
 const { loginRateLimiter, registerRateLimiter } = require('./middleware/rateLimit');
 
 const app = express();
-const PORT = 3000;
+const DEFAULT_PORT = 3000;
+
+function parseConfiguredPort(value) {
+  if (value === undefined) return DEFAULT_PORT;
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) {
+    throw new Error('PORT harus berupa angka bulat antara 1 dan 65535.');
+  }
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error('PORT harus berupa angka bulat antara 1 dan 65535.');
+  }
+  return port;
+}
+
+const PORT = parseConfiguredPort(process.env.PORT);
 
 // --- Phase 3C-4: matikan header X-Powered-By ---
 // Express secara default menambahkan header response `X-Powered-By: Express`
@@ -1462,6 +1476,24 @@ app.use((err, req, res, next) => {
   res.status(500).json({ status: 'error', message: 'Internal Server Error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server jalan di http://localhost:${PORT}`);
-});
+function startServer(port = PORT) {
+  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    throw new Error('Port listener harus berupa angka bulat antara 0 dan 65535.');
+  }
+  const server = app.listen(port, () => {
+    const address = appServerAddress(server);
+    console.log(`Server jalan di http://localhost:${address.port}`);
+  });
+  return server;
+}
+
+function appServerAddress(server) {
+  const address = server.address();
+  return typeof address === 'object' && address ? address : { port: PORT };
+}
+
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { app, startServer, parseConfiguredPort };

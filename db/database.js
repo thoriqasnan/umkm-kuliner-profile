@@ -20,7 +20,28 @@ const Database = require('better-sqlite3');
 // lalu masuk ke folder data/. Kalau folder data/ belum ada, better-sqlite3
 // TIDAK otomatis membuat foldernya (cuma file-nya) - makanya folder data/
 // harus kita buat sendiri lebih dulu di bawah.
-const DB_PATH = path.join(__dirname, '..', 'data', 'umkm.db');
+const DEFAULT_DB_PATH = path.join(__dirname, '..', 'data', 'umkm.db');
+
+if (process.env.NODE_ENV === 'test' && !process.env.DATABASE_PATH) {
+  throw new Error('DATABASE_PATH wajib di-set secara eksplisit ketika NODE_ENV=test.');
+}
+
+const DB_PATH = process.env.DATABASE_PATH
+  ? path.resolve(process.env.DATABASE_PATH)
+  : DEFAULT_DB_PATH;
+
+if (process.env.NODE_ENV === 'test') {
+  const canonicalDatabasePath = fs.existsSync(DB_PATH) ? fs.realpathSync(DB_PATH) : DB_PATH;
+  const canonicalDefaultPath = fs.existsSync(DEFAULT_DB_PATH) ? fs.realpathSync(DEFAULT_DB_PATH) : DEFAULT_DB_PATH;
+  const pointsToDefaultFile = fs.existsSync(DB_PATH) && fs.existsSync(DEFAULT_DB_PATH) && (() => {
+    const selectedStat = fs.statSync(DB_PATH);
+    const defaultStat = fs.statSync(DEFAULT_DB_PATH);
+    return selectedStat.dev === defaultStat.dev && selectedStat.ino === defaultStat.ino;
+  })();
+  if (canonicalDatabasePath === canonicalDefaultPath || pointsToDefaultFile) {
+    throw new Error('DATABASE_PATH test tidak boleh mengarah ke database development data/umkm.db.');
+  }
+}
 
 // Pastikan folder data/ ada sebelum file .db dibuka/dibuat. Penting untuk
 // fresh clone: folder data/ di-gitignore (tidak ter-track git), jadi di clone
@@ -487,4 +508,4 @@ if (row.count === 0) {
 }
 
 // Ekspor koneksi `db` supaya server.js bisa pakai untuk query SELECT.
-module.exports = { db };
+module.exports = { db, DB_PATH };

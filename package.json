@@ -4,7 +4,13 @@
   "description": "Backend Node.js + Express untuk UMKM Sari Rasa",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "node --test --test-concurrency=1 tests/backend/*.test.js",
+    "test:frontend": "node --test --test-concurrency=1 tests/frontend/*.test.js"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "license": "ISC",
   "type": "commonjs",
