@@ -4,7 +4,7 @@
 
 Sari Rasa currently consists of a static browser frontend, a Node.js/Express API, and a local SQLite database. It implements a bilingual product menu, cookie-based authentication, database-authoritative roles, product administration, guest and authenticated carts, and WhatsApp checkout handoff.
 
-The Python, data, machine-learning, deep-learning, and AI components described in the [roadmap](../ROADMAP.md) are future learning phases. They are not present in the current runtime architecture. The project is also not presented as a production deployment.
+The data, machine-learning, deep-learning, and AI components described in the [roadmap](../ROADMAP.md) are future learning phases and are not present in the current runtime architecture. A Phase 4A Python foundation workspace exists in the repository (see [Python workspace](#python-workspace-phase-4a-foundation-not-a-running-service) below), but it is not a running service and has no runtime relationship to the application. The project is also not presented as a production deployment.
 
 ## Component overview
 
@@ -364,11 +364,17 @@ Merge receipts make guest-cart transfer retry-safe. Per-product serialization, c
 
 Tests fail before opening the real development database, including when a filesystem alias points to the same file. This turns preservation of developer-owned local state into an enforced invariant rather than a convention.
 
+## Python workspace (Phase 4A foundation, not a running service)
+
+Phase 4A introduced a repository-local Python workspace at `python/`, containing a small `sari_rasa_data` package and a pytest suite (`python/tests/`). The package currently has three modules: `foundation.py` (product/order validation, list/dict processing, function composition), `io_utils.py` (pathlib-based JSON file read/write), and `__main__.py` (a small executable entry point that composes `foundation.py` functions into one JSON report). It is a foundation-only learning workspace: it is not started as a service, is not called by `server.js` or the browser, does not read `data/umkm.db`, and performs no filesystem access outside of tests' own temporary directories and files a caller explicitly passes in. It runs inside its own repository-local `.venv`, which is not committed.
+
+This workspace has no runtime relationship to the component overview above. Current state is the existing Node/Express application plus this local Python foundation workspace, with no communication between them. Node.js/Express remains the only application-facing backend. Node → Python HTTP service integration, and the Python/FastAPI data-service architecture described in the [roadmap](../ROADMAP.md) for later Phase 4 subphases, are planning targets, not current behavior.
+
 ## Current boundaries and future scope
 
-Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, and the project documentation/runbook.
+Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, the project documentation/runbook, and the Phase 4A Python foundation workspace (foundation-only, not a running service).
 
-Python and data work, machine learning, deep-learning fundamentals, AI engineering, full-stack AI integration, and final deployment/portfolio engineering remain future phases. Their conceptual roadmap does not define current runtime components.
+Python data handling, the Python/FastAPI data service, Node-to-Python integration, machine learning, deep-learning fundamentals, AI engineering, full-stack AI integration, and final deployment/portfolio engineering remain future phases. Their conceptual roadmap does not define current runtime components.
 
 See the [Project Roadmap](../ROADMAP.md) for the approved sequence and current status.
 

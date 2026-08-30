@@ -88,7 +88,7 @@ The completed documentation covers local setup, environment variables, frontend/
 
 ## Phase 4 — Python & Data
 
-Status: ⏭️ **NEXT / PLANNED**
+Status: 🔄 **IN PROGRESS**
 
 Phase 4 is the bridge between the verified full-stack engineering foundation and the later Machine Learning and AI Engineering phases. Python will be introduced through application-relevant data problems rather than isolated syntax exercises.
 
@@ -117,7 +117,17 @@ This is an approved planning boundary, not a description of currently implemente
 
 ### 4A — Python Foundation & Environment
 
-Status: ⏳ **NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
+
+Verified subphases:
+
+```text
+4A-1 Python Foundation Scaffold                          ✅ VERIFIED COMPLETE
+4A-2 Core Python Fundamentals & Error Handling            ✅ VERIFIED COMPLETE
+4A-3 Python Foundation Finalization                       ✅ VERIFIED COMPLETE
+```
+
+4A-1 established a repository-local `.venv`, the minimal `python/` workspace, a small foundation module (`sari_rasa_data.foundation`), and a passing pytest suite. 4A-2 extended `sari_rasa_data.foundation` with list/dict/loop processing, conditions, and function composition over UMKM-style order data, and added a new `sari_rasa_data.io_utils` module for pathlib-based JSON read/write. 4A-3 added a small `__main__.py` entry point so the package can be executed with `python -m sari_rasa_data`, added tests for that entry point, and consolidated documentation for the finished foundation. Independent final verification confirmed deterministic package execution and 36 passing Python tests. No data handling, FastAPI, ML, or AI work has started; 4B–4F remain not started.
 
 Learning objectives:
 
@@ -142,16 +152,26 @@ Implementation intent:
 - create only small, meaningful foundation modules and tests needed for learning; and
 - add no user-facing AI or ML feature yet.
 
-The eventual structure may resemble:
+4A-1 through 4A-3 together produced this structure:
 
 ```text
 python/
 ├── requirements.txt
 ├── src/
+│   └── sari_rasa_data/
+│       ├── __init__.py
+│       ├── __main__.py
+│       ├── foundation.py
+│       └── io_utils.py
 └── tests/
+    ├── test_foundation.py
+    ├── test_io_utils.py
+    └── test_main.py
 ```
 
-This structure does not exist yet and must not be created until 4A implementation is explicitly started.
+`__main__.py` lets the package run as `python -m sari_rasa_data`, printing a small deterministic JSON report built entirely from existing `foundation.py` functions. It has no database, network, or filesystem side effects.
+
+Only `pytest` has been introduced as a dependency so far. Pandas, NumPy, FastAPI, Uvicorn, and any ML/AI library remain for later 4B–4D subphases and are not yet installed.
 
 ### 4B — Data Handling & Transformation
 
@@ -451,8 +471,11 @@ Quality Gate                      ✅ VERIFIED COMPLETE
     B README & Architecture       ✅ VERIFIED COMPLETE
     C Setup / Operations Runbook  ✅ VERIFIED COMPLETE
     D Final Doc Verification      ✅ VERIFIED COMPLETE
-Phase 4 Python & Data                 ⏭️ NEXT / PLANNED
-  4A Python Foundation & Environment ⏳ NOT STARTED
+Phase 4 Python & Data                 🔄 IN PROGRESS
+  4A Python Foundation & Environment ✅ VERIFIED COMPLETE
+    4A-1 Python Foundation Scaffold  ✅ VERIFIED COMPLETE
+    4A-2 Core Python Fundamentals & Error Handling ✅ VERIFIED COMPLETE
+    4A-3 Python Foundation Finalization ✅ VERIFIED COMPLETE
   4B Data Handling & Transformation  ⏳ NOT STARTED
   4C Pandas & NumPy Analysis          ⏳ NOT STARTED
   4D Python Data Service              ⏳ NOT STARTED
@@ -465,4 +488,4 @@ Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
 Final Engineering                     ⏳ PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation** is ✅ **VERIFIED COMPLETE**: both the Automated Regression Foundation and Project Documentation / Runbook passed automated, static, independent-review, and required user-performed manual acceptance gates. The next planned phase is **Phase 4 — Python & Data**; it has not started.
+The **Quality Gate — Engineering Foundation** is ✅ **VERIFIED COMPLETE**: both the Automated Regression Foundation and Project Documentation / Runbook passed automated, static, independent-review, and required user-performed manual acceptance gates. **Phase 4 — Python & Data** remains in progress: subphase 4A (Python Foundation & Environment), including 4A-1 through 4A-3, is verified complete after implementation, automated checks, the user-performed runtime smoke test, and independent final verification. Subphases 4B–4F remain not yet started.

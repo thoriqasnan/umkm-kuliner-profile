@@ -1,5 +1,12 @@
 node_modules/
 
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
 # File database SQLite adalah hasil GENERATE (dibuat otomatis oleh
 # db/database.js saat server pertama kali jalan, lalu diisi seed data).
 # Tidak perlu dan tidak sebaiknya ikut di-commit ke git - sama seperti

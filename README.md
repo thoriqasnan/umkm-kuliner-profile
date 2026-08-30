@@ -2,7 +2,7 @@
 
 Sari Rasa is a full-stack learning and portfolio application for a local Indonesian culinary business. Customers can browse a bilingual menu, maintain a guest or account-backed cart, and hand an order off to WhatsApp. Authenticated administrators can manage the product catalog.
 
-The currently implemented system uses a vanilla browser frontend, an Express API, and SQLite persistence. Python, machine learning, deep learning, and AI integration are future roadmap work; this repository does not present them as current capabilities or claim a production deployment.
+The currently implemented system uses a vanilla browser frontend, an Express API, and SQLite persistence. A separate, foundation-only Python learning workspace (`python/`) exists for Phase 4A: it can be run locally as a small example (`python -m sari_rasa_data`) and has its own pytest suite, but it is not a running service and is not part of the application. Data handling, machine learning, deep learning, and AI integration remain future roadmap work; this repository does not present them as current capabilities or claim a production deployment.
 
 ## Implemented features
 
@@ -196,7 +196,11 @@ These controls are appropriate to the current learning project; they are not a c
 - Automated Regression Foundation: verified complete
 - Project Documentation / Runbook: verified complete
 - Quality Gate — Engineering Foundation: verified complete
-- Python, data, machine learning, deep learning, and AI phases: planned future work
+- Phase 4A-1 — Python Foundation Scaffold: verified complete (foundation-only workspace, not a running service)
+- Phase 4A-2 — Core Python Fundamentals & Error Handling: verified complete (list/dict/loop processing, pathlib, and JSON read/write; still foundation-only)
+- Phase 4A-3 — Python Foundation Finalization: verified complete (adds a tested `python -m sari_rasa_data` entry point)
+- Phase 4A overall: verified complete
+- Remaining Phase 4 work, machine learning, deep learning, and AI phases: planned future work
 
 See the [Project Roadmap](ROADMAP.md) for the approved phase sequence and current source of truth.
 

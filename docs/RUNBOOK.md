@@ -147,6 +147,60 @@ Use these packaged commands without manually setting `NODE_ENV`, `SESSION_SECRET
 
 Never set test `DATABASE_PATH` to `data/umkm.db`. Test-mode startup intentionally refuses the development database, including canonical/symlink aliases and existing hard links that identify the same file. Frontend tests run `script.js` inside `node:vm`; they do not start the normal backend or make real network calls.
 
+## Python environment (Phase 4A foundation)
+
+This section covers the repository-local Python workspace under `python/`, introduced in Phase 4A. It is a learning/foundation workspace only: it is not a running service, and it is not required to use the Node.js/Express application or run its tests.
+
+Requires a Homebrew-installed Python 3 (verified with 3.14.7). Do not use the Apple-provided `/usr/bin/python3` as the project baseline; it must remain untouched. Every command below runs inside the project's own virtual environment, never the system/Homebrew Python directly.
+
+The Python workspace uses a project-local virtual environment (`.venv`) at the repository root. `.venv` is local only: it is gitignored and never committed, and each contributor creates their own.
+
+1. Create it once, from the repository root, using the Homebrew-installed `python3`:
+
+   ```sh
+   python3 -m venv .venv
+   ```
+
+2. Activate it before installing dependencies or running Python commands:
+
+   ```sh
+   source .venv/bin/activate
+   ```
+
+3. Install the Python requirements inside the active virtual environment:
+
+   ```sh
+   python -m pip install -r python/requirements.txt
+   ```
+
+   `pytest` is currently the only external Python dependency.
+
+4. Run the package as a small example:
+
+   ```sh
+   PYTHONPATH=python/src python -m sari_rasa_data
+   ```
+
+   This prints a small deterministic JSON report built from a sample UMKM order, demonstrating `if __name__ == "__main__"` and package execution. It has no database, network, or filesystem side effects.
+
+5. Run the Python tests:
+
+   ```sh
+   PYTHONPATH=python/src python -m pytest python/tests
+   ```
+
+   `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests` (currently `test_foundation.py`, `test_io_utils.py`, and `test_main.py`), not just one module.
+
+6. Leave the virtual environment when finished:
+
+   ```sh
+   deactivate
+   ```
+
+Activating or leaving `.venv` has no effect on the Node.js backend, frontend, or SQLite database, and does not require restarting them. This Python workspace is unrelated to the Node `.env`/`.env.example` files described earlier in this runbook; `.venv` is a Python virtual environment directory, not an environment-variable file.
+
+Phase 4A is ✅ **VERIFIED COMPLETE** after automated tests, deterministic package execution, the user-performed runtime smoke test, and independent final verification. Conceptual explanations are not a technical completion gate; they can be consolidated separately into Learning Notes using the implementation and commands documented here.
+
 ## Normal user workflow
 
 The normal browser workflow is:
