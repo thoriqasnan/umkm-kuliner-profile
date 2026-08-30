@@ -189,7 +189,7 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
    PYTHONPATH=python/src python -m pytest python/tests
    ```
 
-   `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests and the Phase 4B-1 transaction schema/dataset tests.
+   `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests and the complete Phase 4B schema, dataset, loader, cleaning, transformation, and aggregation tests.
 
 6. Leave the virtual environment when finished:
 

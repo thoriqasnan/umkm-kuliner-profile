@@ -1,4 +1,4 @@
-"""Transaction schema and small validation helpers for Phase 4B-1."""
+"""Transaction schema and shared validation helpers for Phase 4B."""
 
 from datetime import date
 from typing import Mapping, TypedDict
@@ -20,7 +20,7 @@ class Transaction(TypedDict):
     """Normalized shape of one synthetic UMKM transaction row."""
 
     order_id: str
-    order_date: date
+    order_date: str
     product_id: str
     product_name: str
     category: str
@@ -29,7 +29,7 @@ class Transaction(TypedDict):
     payment_method: str
 
 
-def _required_text(row: Mapping[str, str], field: str) -> str:
+def _required_text(row: Mapping[str, object], field: str) -> str:
     """Return a trimmed required text value."""
     if field not in row:
         raise KeyError(f"missing required field: {field}")
@@ -40,21 +40,30 @@ def _required_text(row: Mapping[str, str], field: str) -> str:
     return value.strip()
 
 
-def _required_integer(row: Mapping[str, str], field: str) -> int:
-    """Convert one required CSV field to an integer."""
-    text = _required_text(row, field)
+def _required_integer(row: Mapping[str, object], field: str) -> int:
+    """Return an integer from a JSON integer or a CSV integer string."""
+    if field not in row:
+        raise KeyError(f"missing required field: {field}")
+
+    value = row[field]
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field} must be an integer")
+
     try:
-        return int(text)
+        return int(value.strip())
     except ValueError as error:
         raise ValueError(f"{field} must be an integer") from error
 
 
-def parse_transaction_row(row: Mapping[str, str]) -> Transaction:
-    """Validate and normalize one CSV-style transaction row.
+def parse_transaction_row(row: Mapping[str, object]) -> Transaction:
+    """Validate and normalize one CSV- or JSON-style transaction row.
 
     Dates must use ISO ``YYYY-MM-DD`` format. Quantity must be positive and
-    unit price must be non-negative. Full dataset loading and cleaning remain
-    responsibilities of later Phase 4B subphases.
+    unit price must be non-negative. The returned dict uses only
+    JSON-compatible values. Category/payment cleanup is composed separately
+    by the Phase 4B-3 transformation helpers.
     """
     for field in REQUIRED_TRANSACTION_FIELDS:
         if field not in row:
@@ -78,7 +87,7 @@ def parse_transaction_row(row: Mapping[str, str]) -> Transaction:
 
     return {
         "order_id": _required_text(row, "order_id"),
-        "order_date": order_date,
+        "order_date": order_date.isoformat(),
         "product_id": _required_text(row, "product_id"),
         "product_name": _required_text(row, "product_name"),
         "category": _required_text(row, "category"),

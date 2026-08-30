@@ -1,5 +1,4 @@
 import csv
-from datetime import date
 from pathlib import Path
 
 import pytest
@@ -48,7 +47,7 @@ def test_dataset_has_expected_columns():
 def test_parse_transaction_row_accepts_and_normalizes_valid_row():
     transaction = parse_transaction_row(_valid_row())
 
-    assert transaction["order_date"] == date(2026, 7, 1)
+    assert transaction["order_date"] == "2026-07-01"
     assert transaction["quantity"] == 2
     assert transaction["unit_price"] == 18000
 

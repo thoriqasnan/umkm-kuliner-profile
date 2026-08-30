@@ -4,7 +4,7 @@
 
 Sari Rasa currently consists of a static browser frontend, a Node.js/Express API, and a local SQLite database. It implements a bilingual product menu, cookie-based authentication, database-authoritative roles, product administration, guest and authenticated carts, and WhatsApp checkout handoff.
 
-The data, machine-learning, deep-learning, and AI components described in the [roadmap](../ROADMAP.md) are future learning phases and are not present in the current runtime architecture. A Phase 4A Python foundation workspace exists in the repository (see [Python workspace](#python-workspace-phase-4a-foundation-not-a-running-service) below), but it is not a running service and has no runtime relationship to the application. The project is also not presented as a production deployment.
+The application-facing data, machine-learning, deep-learning, and AI components described in the [roadmap](../ROADMAP.md) are future learning phases and are not present in the current runtime architecture. A local Python data-foundation workspace exists in the repository (see [Python workspace](#python-workspace-local-data-foundation-not-a-running-service) below), but it is not a running service and has no runtime relationship to the application. The project is also not presented as a production deployment.
 
 ## Component overview
 
@@ -366,17 +366,69 @@ Tests fail before opening the real development database, including when a filesy
 
 ## Python workspace (local data foundation, not a running service)
 
-Phase 4A introduced a repository-local Python workspace at `python/`, containing a small `sari_rasa_data` package and a pytest suite (`python/tests/`). Its modules are `foundation.py` (product/order validation, list/dict processing, function composition), `io_utils.py` (pathlib-based JSON file read/write), `__main__.py` (a small executable entry point), and the Phase 4B-1 `transactions.py` schema module. It is a local learning workspace: it is not started as a service, is not called by `server.js` or the browser, does not read `data/umkm.db`, and performs no filesystem access outside of tests' own temporary directories and files a caller explicitly passes in. It runs inside its own repository-local `.venv`, which is not committed.
+Phase 4A introduced a repository-local Python workspace at `python/`, containing a small `sari_rasa_data` package and a pytest suite (`python/tests/`). Its modules are `foundation.py` (product/order validation and basic composition), `io_utils.py` (pathlib-based JSON file read/write), `__main__.py` (a small executable entry point), `transactions.py` (transaction schema/shared validation), `data_loader.py` (CSV/JSON loading), `data_transform.py` (transaction cleaning/transformation), and `aggregations.py` (pure-Python dataset aggregation). It is a local learning workspace: it is not started as a service, is not called by `server.js` or the browser, does not read `data/umkm.db`, and performs no filesystem access outside of tests' own temporary directories and files a caller explicitly passes in. It runs inside its own repository-local `.venv`, which is not committed.
 
 This workspace has no runtime relationship to the component overview above. Current state is the existing Node/Express application plus this local Python foundation workspace, with no communication between them. Node.js/Express remains the only application-facing backend. Node → Python HTTP service integration, and the Python/FastAPI data-service architecture described in the [roadmap](../ROADMAP.md) for later Phase 4 subphases, are planning targets, not current behavior.
 
 Phase 4B-1 adds `python/data/transactions.csv` as the canonical synthetic learning dataset and `sari_rasa_data.transactions` as its schema boundary. Each CSV row contains an order ID, ISO date, product ID and name, category, quantity, unit price, and payment method. The schema helper converts CSV-style date and integer strings into typed Python values and rejects missing or invalid required values. It does not load whole datasets, clean data, calculate analytics, access SQLite, or expose a service; those capabilities remain later roadmap work.
 
+Phase 4B-2 adds `sari_rasa_data.data_loader` with separate CSV and JSON file entry points. Both loaders send each record through `parse_transaction_row`, producing the same JSON-compatible dictionary shape with an ISO date string and integer quantity/unit price:
+
+```text
+CSV / JSON
+    ↓
+standard-library loader
+    ↓
+shared transaction normalization and validation
+    ↓
+validated JSON-compatible dictionaries
+```
+
+The loaders fail on malformed input rather than silently skipping records.
+
+Phase 4B-3 adds `sari_rasa_data.data_transform` for transaction-level cleaning and transformation:
+
+```text
+CSV / JSON
+    ↓
+standard-library loader
+    ↓
+shared transaction normalization and validation
+    ↓
+known category/payment normalization
+    ↓
+line_total transformation
+    ↓
+validated JSON-compatible dictionaries
+```
+
+Cleaning trims text through the shared parser and normalizes only known category and payment-method case variants. Unknown values and invalid dates, quantities, or prices still fail rather than being repaired silently. Transformation adds only `line_total = quantity * unit_price`, returns new dictionaries, and preserves batch order.
+
+Phase 4B-4 completes the plain-Python baseline with dataset-level aggregation over transformed transaction lines:
+
+```text
+Synthetic CSV
+    ↓
+CSV / JSON loader
+    ↓
+shared validation
+    ↓
+cleaning
+    ↓
+transaction transformation
+    ↓
+pure-Python aggregation
+    ↓
+JSON-compatible results
+```
+
+The aggregation boundary sums line revenue and quantity and groups them by category, product, or ISO date. It does not count transaction rows as unique customer orders. There is no average-order calculation, ranking, statistics, visualization, database access, network communication, or service. Pandas and NumPy analysis remain future Phase 4C work.
+
 ## Current boundaries and future scope
 
-Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, the project documentation/runbook, the Phase 4A Python foundation workspace, and the Phase 4B-1 synthetic dataset/schema foundation. The Python workspace remains separate from the running application.
+Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, the project documentation/runbook, the Phase 4A Python foundation workspace, and the complete Phase 4B pure-Python pipeline from synthetic data through aggregation. The Python workspace remains separate from the running application.
 
-Python data handling, the Python/FastAPI data service, Node-to-Python integration, machine learning, deep-learning fundamentals, AI engineering, full-stack AI integration, and final deployment/portfolio engineering remain future phases. Their conceptual roadmap does not define current runtime components.
+Pandas/NumPy analysis, the Python/FastAPI data service, Node-to-Python integration, machine learning, deep-learning fundamentals, AI engineering, full-stack AI integration, and final deployment/portfolio engineering remain future phases. Their conceptual roadmap does not define current runtime components.
 
 See the [Project Roadmap](../ROADMAP.md) for the approved sequence and current status.
 
