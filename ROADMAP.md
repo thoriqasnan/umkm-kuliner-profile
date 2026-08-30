@@ -88,25 +88,219 @@ The completed documentation covers local setup, environment variables, frontend/
 
 ## Phase 4 — Python & Data
 
-Status: ⏳ **PLANNED**
+Status: ⏭️ **NEXT / PLANNED**
 
-Goal: introduce Python through actual application and data problems rather than isolated syntax exercises.
+Phase 4 is the bridge between the verified full-stack engineering foundation and the later Machine Learning and AI Engineering phases. Python will be introduced through application-relevant data problems rather than isolated syntax exercises.
 
-Expected learning areas include Python project structure, virtual environments, variables and data structures, appropriate functions/classes, exceptions, JSON/CSV, data ingestion, cleaning, transformation, aggregation, pandas, NumPy, exploratory data analysis, and connecting Python output or services to the existing application.
+Python will **not** replace the existing Node.js/Express backend. Node.js/Express remains the application-facing backend and gateway; Python is planned as a specialized data-processing service so later ML and AI capabilities can be added without unnecessarily rewriting the existing application architecture.
 
-A possible direction is UMKM transaction/order/menu analytics using realistic synthetic or application-generated data.
-
-Do not replace Node/Express merely to introduce Python. Preferred conceptual architecture:
+Target architecture for Phase 4 and later phases:
 
 ```text
-Frontend
-   ↓
-Node / Express
-   ├── SQLite
-   └── Python data/AI service
+Browser
+  ↓
+JavaScript Frontend
+  ↓
+Node.js / Express
+  ├── SQLite
+  │
+  └── HTTP / JSON
+         ↓
+      Python Service
+         ↓
+   Data Processing
+         ↓
+   ML / AI in later phases
 ```
 
-The exact architecture must be designed when Phase 4 begins from repository evidence at that time.
+This is an approved planning boundary, not a description of currently implemented Python functionality.
+
+### 4A — Python Foundation & Environment
+
+Status: ⏳ **NOT STARTED**
+
+Learning objectives:
+
+- Python syntax and core types
+- lists and dictionaries
+- conditions and loops
+- functions
+- modules and imports
+- exception handling
+- filesystem and path fundamentals
+- JSON fundamentals
+- basic type hints
+- `__name__ == "__main__"`
+- Python virtual environments
+- dependency management
+
+Implementation intent:
+
+- introduce a clean Python workspace inside the repository;
+- use an isolated virtual environment;
+- establish reproducible Python dependencies;
+- create only small, meaningful foundation modules and tests needed for learning; and
+- add no user-facing AI or ML feature yet.
+
+The eventual structure may resemble:
+
+```text
+python/
+├── requirements.txt
+├── src/
+└── tests/
+```
+
+This structure does not exist yet and must not be created until 4A implementation is explicitly started.
+
+### 4B — Data Handling & Transformation
+
+Status: ⏳ **NOT STARTED**
+
+Learning objectives:
+
+- CSV and JSON handling
+- reading structured datasets
+- validation
+- cleaning
+- transformation
+- aggregation
+- invalid and missing data handling
+- converting processed results to structured JSON
+
+The planned dataset is a synthetic UMKM transaction dataset relevant to the existing application rather than an unrelated tutorial dataset. Potential fields are:
+
+- `order_id`
+- `order_date`
+- `product_id`
+- `product_name`
+- `category`
+- `quantity`
+- `unit_price`
+- `payment_method`
+
+The dataset is intended to include controlled invalid and missing cases so validation and cleaning can be learned deliberately.
+
+### 4C — Data Analysis with Pandas & NumPy
+
+Status: ⏳ **NOT STARTED**
+
+Learning objectives:
+
+- Pandas DataFrame fundamentals
+- filtering, grouping, aggregation, and sorting
+- missing-value handling
+- basic descriptive statistics
+- DataFrame-to-JSON conversion
+- NumPy array and numerical fundamentals sufficient to prepare for ML
+
+Planned analytics may include total revenue, total orders, average order value, top-selling product, revenue by category, daily sales, and quantity sold by product. None of these analytics are implemented yet.
+
+The Phase 4 dataset should be designed so it can potentially continue into Phase 5 Machine Learning instead of being discarded after Phase 4.
+
+### 4D — Python Data Service
+
+Status: ⏳ **NOT STARTED**
+
+Planned minimal service technology:
+
+- FastAPI
+- Uvicorn
+
+Learning objectives:
+
+- expose Python functions through HTTP
+- API routes and the request/response lifecycle
+- structured JSON responses and validation
+- service-level error handling
+- a health endpoint
+
+Potential planning targets include:
+
+- `GET /health`
+- `GET /analytics/summary`
+- `GET /analytics/products`
+- `GET /analytics/categories`
+
+These endpoints are planning targets, not currently implemented API contracts.
+
+### 4E — Node.js ↔ Python Integration
+
+Status: ⏳ **NOT STARTED**
+
+Target request flow:
+
+```text
+Browser
+  ↓
+Node.js / Express
+  ↓ HTTP / JSON
+Python / FastAPI
+  ↓
+Data Processing / Analytics
+  ↓
+Node.js / Express
+  ↓
+Browser
+```
+
+Learning objectives:
+
+- service-to-service HTTP communication
+- Node.js as the application/API gateway
+- Python as a specialized data-processing service
+- JSON contracts between services
+- timeout and failure handling
+- controlled errors when Python is unavailable
+- preventing frontend crashes when a downstream service fails
+
+The frontend should not directly depend on the Python service unless a later explicitly approved architecture decision changes this boundary. Existing Node.js `fetch` capabilities are the approved minimal direction for Node-to-Python HTTP communication.
+
+### 4F — Integration & Quality Gate
+
+Status: ⏳ **NOT STARTED**
+
+Expected verification categories:
+
+- existing Node/backend regression tests
+- existing frontend regression tests
+- Python tests
+- service integration tests
+- Node-to-Python failure behavior
+- manual acceptance
+- documentation verification
+- independent review
+- Git checkpoint
+
+Exact test counts must come from implementation evidence and are intentionally not defined during planning.
+
+### Phase 4 Technology and Scope Boundaries
+
+Approved minimal technology direction:
+
+- Python 3
+- `venv`
+- CSV and JSON
+- Pandas
+- NumPy
+- FastAPI
+- Uvicorn
+- pytest
+- existing Node.js `fetch` capabilities for Node-to-Python HTTP communication
+
+Avoid premature infrastructure. Phase 4 must not introduce the following unless separately approved for a concrete later learning objective:
+
+- Docker
+- Kubernetes
+- Redis
+- Celery
+- message queues
+- Airflow
+- a second persistent application database
+- cloud deployment infrastructure
+- unnecessary Python frameworks
+- Machine Learning libraries
+- LLM or AI libraries
 
 ## Phase 5 — Machine Learning
 
@@ -209,6 +403,34 @@ Project 1 may be marked ✅ **VERIFIED COMPLETE** only after Phase 1, Phase 2, P
 10. Update Current Position before the relevant Git checkpoint.
 11. A Git checkpoint follows the approved project workflow.
 12. Git push always requires separate explicit user approval.
+13. Documentation is part of implementation, not an afterthought. Whenever a verified change affects roadmap status, architecture, setup/operations, testing workflow, or portfolio-facing capabilities, update the appropriate Markdown documentation within the relevant phase or checkpoint.
+14. Use `ROADMAP.md` for roadmap, subphase, Current Position, and status decisions.
+15. Use `README.md` for portfolio-facing implemented capabilities and the project overview.
+16. Use `docs/ARCHITECTURE.md` for implemented architecture, data flows, and technical decisions.
+17. Use `docs/RUNBOOK.md` for reproducible setup, commands, operations, tests, and troubleshooting.
+18. Planned functionality must never be documented as already implemented.
+
+## Project Workflow
+
+```text
+Plan
+  ↓
+Implement
+  ↓
+Automated Checks
+  ↓
+Independent Review when appropriate
+  ↓
+Manual / Integration Acceptance when required
+  ↓
+Documentation Update
+  ↓
+Git Checkpoint
+  ↓
+Push only after explicit user approval
+```
+
+A phase is not verified merely because code exists. Use 🟡 **PROVISIONALLY COMPLETE** when implementation, automated/static checks, and review are complete but a required manual or integration acceptance checkpoint remains. Use ✅ **VERIFIED COMPLETE** only after all required verification and manual/integration acceptance have passed.
 
 ## Current Position
 
@@ -229,12 +451,18 @@ Quality Gate                      ✅ VERIFIED COMPLETE
     B README & Architecture       ✅ VERIFIED COMPLETE
     C Setup / Operations Runbook  ✅ VERIFIED COMPLETE
     D Final Doc Verification      ✅ VERIFIED COMPLETE
-Phase 4 Python & Data             ⏭️ NEXT
-Phase 5 Machine Learning          ⏳ PLANNED
-Phase 6 Deep Learning             ⏳ PLANNED
-Phase 7 AI Engineering            ⏳ PLANNED
-Phase 8 Full-Stack + AI           ⏳ PLANNED
-Final Engineering                 ⏳ PLANNED
+Phase 4 Python & Data                 ⏭️ NEXT / PLANNED
+  4A Python Foundation & Environment ⏳ NOT STARTED
+  4B Data Handling & Transformation  ⏳ NOT STARTED
+  4C Pandas & NumPy Analysis          ⏳ NOT STARTED
+  4D Python Data Service              ⏳ NOT STARTED
+  4E Node.js ↔ Python Integration  ⏳ NOT STARTED
+  4F Integration & Quality Gate       ⏳ NOT STARTED
+Phase 5 Machine Learning              ⏳ PLANNED
+Phase 6 Deep Learning Fundamentals    ⏳ PLANNED
+Phase 7 AI Engineering                ⏳ PLANNED
+Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
+Final Engineering                     ⏳ PLANNED
 ```
 
 The **Quality Gate — Engineering Foundation** is ✅ **VERIFIED COMPLETE**: both the Automated Regression Foundation and Project Documentation / Runbook passed automated, static, independent-review, and required user-performed manual acceptance gates. The next planned phase is **Phase 4 — Python & Data**; it has not started.
