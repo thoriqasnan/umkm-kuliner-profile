@@ -88,7 +88,7 @@ The completed documentation covers local setup, environment variables, frontend/
 
 ## Phase 4 — Python & Data
 
-Status: 🔄 **IN PROGRESS**
+Status: ✅ **VERIFIED COMPLETE**
 
 Phase 4 is the bridge between the verified full-stack engineering foundation and the later Machine Learning and AI Engineering phases. Python will be introduced through application-relevant data problems rather than isolated syntax exercises.
 
@@ -274,7 +274,7 @@ Approved subphases:
 
 4D-3 adds `GET /analytics/products` and `GET /analytics/categories` over the same canonical dataset. Product results contain name, total quantity, and total revenue, ordered by quantity descending and then name ascending; category results contain category and total revenue in alphabetical category order. The service composes the verified loading, product-ranking, and grouped aggregation functions without putting Pandas grouping in the routes. Implementation, 15 targeted service tests, the complete 208-test Python suite, documentation, independent review, and user-performed manual API acceptance all passed. Manual acceptance confirmed that `GET /health`, `GET /analytics/summary`, `GET /analytics/products`, and `GET /analytics/categories` returned HTTP 200 with their expected contracts, including the documented canonical product and category values in deterministic order. 4D-3 is therefore ✅ **VERIFIED COMPLETE**. Broader error handling and final verification remain 4D-4 work, and Node-to-Python integration is not implemented.
 
-4D-4 hardens and verifies the existing service without adding endpoints. Expected dataset, CSV parsing, validation, and analytics failures retain small endpoint-specific public HTTP 500 details while internal exception text and paths remain redacted. Final regression coverage verifies exact success contracts, deterministic ordering, canonical source-relative dataset use, independence from `transactions_large.csv` and the shell working directory, no import-time analytics/data access, and in-process service testing without Uvicorn. The service test dependency declaration was corrected, documentation was finalized, and the complete Python suite and independent cumulative Phase 4D review passed. Final user manual acceptance then confirmed that Uvicorn started successfully, all four endpoints returned their expected canonical responses and deterministic ordering, and the service stopped safely. 4D-4 and Phase 4D are therefore ✅ **VERIFIED COMPLETE**; Phase 4E is next and has not started.
+4D-4 hardens and verifies the existing service without adding endpoints. Expected dataset, CSV parsing, validation, and analytics failures retain small endpoint-specific public HTTP 500 details while internal exception text and paths remain redacted. Final regression coverage verifies exact success contracts, deterministic ordering, canonical source-relative dataset use, independence from `transactions_large.csv` and the shell working directory, no import-time analytics/data access, and in-process service testing without Uvicorn. The service test dependency declaration was corrected, documentation was finalized, and the complete Python suite and independent cumulative Phase 4D review passed. Final user manual acceptance then confirmed that Uvicorn started successfully, all four endpoints returned their expected canonical responses and deterministic ordering, and the service stopped safely. 4D-4 and Phase 4D are therefore ✅ **VERIFIED COMPLETE**.
 
 Planned minimal service technology:
 
@@ -296,11 +296,11 @@ Implemented contracts are:
 - `GET /analytics/products`
 - `GET /analytics/categories`
 
-All four routes above are implemented Python-service contracts. Node-to-Python integration remains future Phase 4E work.
+All four routes above are implemented Python-service contracts. Phase 4E now consumes the three analytics contracts through Node/Express while keeping the browser independent of FastAPI.
 
 ### 4E — Node.js ↔ Python Integration
 
-Status: ⏭️ **NEXT / NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
 
 Target request flow:
 
@@ -330,9 +330,11 @@ Learning objectives:
 
 The frontend should not directly depend on the Python service unless a later explicitly approved architecture decision changes this boundary. Existing Node.js `fetch` capabilities are the approved minimal direction for Node-to-Python HTTP communication.
 
+Phase 4E adds three application-facing Node routes — `GET /api/analytics/summary`, `GET /api/analytics/products`, and `GET /api/analytics/categories` — backed by a small shared client using Node's built-in `fetch`. `PYTHON_SERVICE_URL` defaults to `http://127.0.0.1:8000`. Successful FastAPI JSON is explicitly validated and forwarded without chart-specific transformation. Requests have a three-second timeout and no retries; timeouts return a controlled HTTP 504, while connection, upstream status, JSON parsing, and response-contract failures return controlled HTTP 502 responses without exposing upstream details. Deterministic mock-upstream integration coverage and the complete 31-test backend plus 26-test frontend regression suites passed. Final user manual integration acceptance then proved the live Node → HTTP → FastAPI success path for summary, products, and categories, plus the controlled failure path: with FastAPI stopped, Node returned the expected HTTP 502 response and remained healthy at `GET /api/health`. Phase 4E is therefore ✅ **VERIFIED COMPLETE**. No frontend analytics UI or direct browser-to-FastAPI dependency was added.
+
 ### 4F — Integration & Quality Gate
 
-Status: ⏳ **NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
 
 Expected verification categories:
 
@@ -347,6 +349,8 @@ Expected verification categories:
 - Git checkpoint
 
 Exact test counts must come from implementation evidence and are intentionally not defined during planning.
+
+Phase 4F verifies the complete canonical-data → Python analytics → FastAPI → HTTP/JSON → Node gateway chain. The canonical checksum, 213-test Python suite, Python compilation/import checks, exact FastAPI routes, deterministic contracts, 31-test backend suite, 26-test frontend suite, failure behavior, security boundary, dependencies, and documentation all passed focused review. The deterministic mock-upstream suite remains the permanent Node integration test; a spawned-Uvicorn test was not added because it would couple `npm test` to a platform-specific `.venv`, introduce process/port lifecycle races, and duplicate the already-passed live Phase 4E manual acceptance. Final user acceptance then confirmed that the Node analytics summary returned HTTP 200 with the canonical result and Node health remained HTTP 200. Phase 4F and Phase 4 are therefore ✅ **VERIFIED COMPLETE**.
 
 ### Phase 4 Technology and Scope Boundaries
 
@@ -378,7 +382,7 @@ Avoid premature infrastructure. Phase 4 must not introduce the following unless 
 
 ## Phase 5 — Machine Learning
 
-Status: ⏳ **PLANNED**
+Status: ⏭️ **NEXT / NOT STARTED**
 
 Goal: learn practical ML using meaningful UMKM data. Expected concepts include problem formulation, dataset preparation, train/validation/test concepts, feature engineering, baseline models, training, metrics, overfitting/underfitting, inference, model persistence, and application integration.
 
@@ -525,7 +529,7 @@ Quality Gate                      ✅ VERIFIED COMPLETE
     B README & Architecture       ✅ VERIFIED COMPLETE
     C Setup / Operations Runbook  ✅ VERIFIED COMPLETE
     D Final Doc Verification      ✅ VERIFIED COMPLETE
-Phase 4 Python & Data                 🔄 IN PROGRESS
+Phase 4 Python & Data                 ✅ VERIFIED COMPLETE
   4A Python Foundation & Environment ✅ VERIFIED COMPLETE
     4A-1 Python Foundation Scaffold  ✅ VERIFIED COMPLETE
     4A-2 Core Python Fundamentals & Error Handling ✅ VERIFIED COMPLETE
@@ -545,13 +549,13 @@ Phase 4 Python & Data                 🔄 IN PROGRESS
     4D-2 Analytics Summary API        ✅ VERIFIED COMPLETE
     4D-3 Products & Categories API    ✅ VERIFIED COMPLETE
     4D-4 Error Handling & Final Verification ✅ VERIFIED COMPLETE
-  4E Node.js ↔ Python Integration  ⏭️ NEXT / NOT STARTED
-  4F Integration & Quality Gate       ⏳ NOT STARTED
-Phase 5 Machine Learning              ⏳ PLANNED
+  4E Node.js ↔ Python Integration  ✅ VERIFIED COMPLETE
+  4F Integration & Quality Gate       ✅ VERIFIED COMPLETE
+Phase 5 Machine Learning              ⏭️ NEXT / NOT STARTED
 Phase 6 Deep Learning Fundamentals    ⏳ PLANNED
 Phase 7 AI Engineering                ⏳ PLANNED
 Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
 Final Engineering                     ⏳ PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation** is ✅ **VERIFIED COMPLETE**: both the Automated Regression Foundation and Project Documentation / Runbook passed automated, static, independent-review, and required user-performed manual acceptance gates. **Phase 4 — Python & Data** remains in progress: subphases 4A, 4B, 4C, and 4D are verified complete. Phase 4D-1 through 4D-4 are all verified complete after final user manual acceptance. Phase 4E is the next engineering task and has not started; Phase 4F remains not started.
+The **Quality Gate — Engineering Foundation** and **Phase 4 — Python & Data** are ✅ **VERIFIED COMPLETE**. Subphases 4A through 4F are verified complete after automated verification, focused review, and required user-performed manual acceptance. Phase 5 — Machine Learning is next and has not started.

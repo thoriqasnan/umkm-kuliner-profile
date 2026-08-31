@@ -12,6 +12,11 @@ const { sign, COOKIE_NAME, MAX_AGE_MS } = require('./lib/session');
 const { requireAuth } = require('./middleware/auth');
 const { requireAdmin } = require('./middleware/authorize');
 const { loginRateLimiter, registerRateLimiter } = require('./middleware/rateLimit');
+const {
+  getAnalyticsSummary,
+  getProductsAnalytics,
+  getCategoriesAnalytics,
+} = require('./lib/pythonAnalyticsClient');
 
 const app = express();
 const DEFAULT_PORT = 3000;
@@ -1422,6 +1427,37 @@ app.delete('/api/cart', requireAuth, (req, res) => {
     res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
   }
 });
+
+// --- Phase 4E: Node remains the application-facing analytics gateway ---
+function analyticsRoute(handler, routeLabel) {
+  return async (req, res) => {
+    try {
+      res.json(await handler());
+    } catch (error) {
+      const timedOut = error?.code === 'PYTHON_SERVICE_TIMEOUT';
+      console.error(`[GET ${routeLabel}] Layanan analitik upstream ${timedOut ? 'timeout' : 'gagal'}`);
+      res.status(timedOut ? 504 : 502).json({
+        status: 'error',
+        message: timedOut
+          ? 'Layanan analitik tidak merespons tepat waktu'
+          : 'Layanan analitik tidak tersedia',
+      });
+    }
+  };
+}
+
+app.get(
+  '/api/analytics/summary',
+  analyticsRoute(getAnalyticsSummary, '/api/analytics/summary')
+);
+app.get(
+  '/api/analytics/products',
+  analyticsRoute(getProductsAnalytics, '/api/analytics/products')
+);
+app.get(
+  '/api/analytics/categories',
+  analyticsRoute(getCategoriesAnalytics, '/api/analytics/categories')
+);
 
 // --- 404 handler ---
 // Jalan kalau tidak ada route di atas yang cocok dengan request-nya (baik

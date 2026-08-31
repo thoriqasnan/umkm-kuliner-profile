@@ -2,7 +2,7 @@
 
 Sari Rasa is a full-stack learning and portfolio application for a local Indonesian culinary business. Customers can browse a bilingual menu, maintain a guest or account-backed cart, and hand an order off to WhatsApp. Authenticated administrators can manage the product catalog.
 
-The currently implemented system uses a vanilla browser frontend, an Express API, and SQLite persistence. A separate local Python workspace (`python/`) contains the verified Phase 4A foundation, complete Phase 4B pipeline, verified Phase 4C Pandas/NumPy analysis, and an independent FastAPI service. The Python service exposes `GET /health` plus canonical summary, product, and category analytics endpoints. It does not communicate with Node/Express or the browser. All synthetic data is fictional; it does not represent any real customer or company. Node/Express remains the application-facing backend. Node-to-Python integration, machine learning, deep learning, and AI integration remain future roadmap work.
+The currently implemented system uses a vanilla browser frontend, an Express API, and SQLite persistence. A separate local Python workspace (`python/`) contains the verified Phase 4A foundation, complete Phase 4B pipeline, verified Phase 4C Pandas/NumPy analysis, and a FastAPI analytics service. Node/Express remains the application-facing backend and now exposes server-side analytics gateway routes that call FastAPI over HTTP/JSON. The browser does not call FastAPI directly, and no analytics dashboard is implemented. All synthetic data is fictional; it does not represent any real customer or company. Machine learning, deep learning, and AI integration remain future roadmap work.
 
 ## Implemented features
 
@@ -42,7 +42,7 @@ The currently implemented system uses a vanilla browser frontend, an Express API
 - Actual `index.html` ↔ `script.js` element contracts
 - Frontend ↔ backend API route and method contracts
 - Guards that prevent tests from opening the development database directly, through symlinks, or through hard-link aliases
-- Combined `npm test` runner with 56 verified tests
+- Combined `npm test` runner with 57 passing tests
 
 ## Technology stack
 
@@ -62,10 +62,14 @@ flowchart LR
     Browser[Browser<br/>HTML, CSS, JavaScript]
     API[Express API<br/>Node.js]
     DB[(SQLite)]
+    PY[Python FastAPI<br/>Analytics]
+    CSV[(Canonical CSV)]
     WA[WhatsApp]
 
     Browser -->|JSON requests<br/>credentials where required| API
     API --> DB
+    API -->|server-to-server HTTP/JSON| PY
+    PY --> CSV
     Browser -->|checkout handoff| WA
 ```
 
@@ -73,7 +77,7 @@ The browser owns presentation and guest state. The Express API is authoritative 
 
 See [Architecture](docs/ARCHITECTURE.md) for component boundaries, security decisions, cart transitions, and test design.
 
-## Quick start
+## Core web app quick start
 
 ### Prerequisites
 
@@ -111,6 +115,8 @@ Use `localhost` consistently for both origins. Do not mix `localhost` and `127.0
 
 This is only the shortest supported local path. See the [Local Development Runbook](docs/RUNBOOK.md) for detailed setup, operations, and troubleshooting.
 
+The analytics gateway additionally requires FastAPI to start before Node. Follow the runbook's Python-service and Node-to-Python integration sequence; the browser still has no analytics UI.
+
 ## Environment variables
 
 | Variable | Required | Current behavior |
@@ -119,6 +125,7 @@ This is only the shortest supported local path. See the [Local Development Runbo
 | `NODE_ENV` | Required for local HTTP authentication | `development` is the only value that disables the cookie's `Secure` flag. Every other value fails closed to `Secure=true`, which requires HTTPS for browser authentication. |
 | `DATABASE_PATH` | No for normal runtime | Defaults to `data/umkm.db`. Under `NODE_ENV=test`, an explicit isolated path is mandatory and aliases to the development database are rejected. |
 | `PORT` | No | Defaults to `3000`; accepted values are integers from 1 through 65535. |
+| `PYTHON_SERVICE_URL` | No | FastAPI base URL used only by Node analytics routes; defaults to `http://127.0.0.1:8000`. |
 
 The backend port is configurable, but the current frontend API base URL is fixed to `http://localhost:3000`. Changing `PORT` alone therefore breaks frontend API communication unless the frontend implementation is changed too.
 
@@ -143,9 +150,10 @@ Current verified baseline:
 
 | Suite | Tests | Result |
 |---|---:|---|
-| Backend and database | 30 | 30 passed |
+| Backend and database | 31 | 31 passed |
 | Frontend VM and contracts | 26 | 26 passed |
-| Combined | 56 | 56 passed |
+| Combined | 57 | 57 passed |
+| Python data/service | 213 | 213 passed |
 
 The backend suite uses Node's built-in test runner, temporary SQLite databases, and ephemeral HTTP ports. It covers authentication, authorization, products, carts, merge idempotency, constraints, cascades, schema evolution, and development-database protection.
 
@@ -217,7 +225,10 @@ These controls are appropriate to the current learning project; they are not a c
 - Phase 4D-3 — Products & Categories API: verified complete
 - Phase 4D-4 — Error Handling & Final Verification: verified complete
 - Phase 4D overall: verified complete (final user manual acceptance passed)
-- Phase 4E — Node.js ↔ Python Integration: next / not started
+- Phase 4E — Node.js ↔ Python Integration: verified complete (manual integration acceptance passed)
+- Phase 4F — Integration & Quality Gate: provisionally complete (awaiting final user acceptance)
+- Phase 4 overall: provisionally complete (awaiting final user acceptance)
+- Phase 5 — Machine Learning: next / not started
 - Remaining Phase 4 work, machine learning, deep learning, and AI phases: future work
 
 See the [Project Roadmap](ROADMAP.md) for the approved phase sequence and current source of truth.

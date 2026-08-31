@@ -49,6 +49,7 @@ The application does not include `dotenv` and does not automatically load `.env`
 | `NODE_ENV` | Set exactly to `development` for authentication over local HTTP. Any other or missing value keeps the session cookie `Secure`. |
 | `DATABASE_PATH` | Normally omit it. Runtime then uses `data/umkm.db`. Tests require an explicit isolated path internally. |
 | `PORT` | Optional. Defaults to `3000`; valid values are integer strings from 1 through 65535. |
+| `PYTHON_SERVICE_URL` | Optional. Trusted operator-controlled FastAPI base URL used by Node analytics routes; defaults to `http://127.0.0.1:8000`. Use HTTP/HTTPS without credentials, query, or fragment; never derive it from browser/request input. |
 
 Generate a random 32-byte value with the already-required Node runtime and export it into the current shell without printing it:
 
@@ -139,9 +140,9 @@ Current verified baseline:
 
 | Command | Expected tests | Current result |
 |---|---:|---|
-| `npm run test:backend` | 30 | 30 passed |
+| `npm run test:backend` | 31 | 31 passed |
 | `npm run test:frontend` | 26 | 26 passed |
-| `npm test` | 56 total | 56 passed |
+| `npm test` | 57 total | 57 passed |
 
 Use these packaged commands without manually setting `NODE_ENV`, `SESSION_SECRET`, or `DATABASE_PATH`. The backend harness creates an isolated temporary SQLite database per test file, chooses an ephemeral HTTP port, restores environment variables, closes its server and database, and removes temporary resources.
 
@@ -149,7 +150,7 @@ Never set test `DATABASE_PATH` to `data/umkm.db`. Test-mode startup intentionall
 
 ## Python environment and FastAPI service
 
-This section covers the repository-local Python workspace under `python/`, introduced in Phase 4A and extended with the independent FastAPI foundation in Phase 4D-1. The service is not required to use the Node.js/Express application or run its tests. Node/Express does not call it yet, and the browser must not call it directly.
+This section covers the repository-local Python workspace under `python/`, introduced in Phase 4A and extended with the FastAPI service in Phase 4D. Phase 4E makes Node/Express its application-facing HTTP gateway. The two processes still start separately, and the browser must not call FastAPI directly.
 
 Requires a Homebrew-installed Python 3 (verified with 3.14.7). Do not use the Apple-provided `/usr/bin/python3` as the project baseline; it must remain untouched. Every command below runs inside the project's own virtual environment, never the system/Homebrew Python directly.
 
@@ -190,6 +191,8 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
    ```
 
    `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests, complete Phase 4B pipeline tests, Phase 4C DataFrame/filtering/grouping/NumPy-statistics tests, the Phase 4C-4 synthetic-generator/integrated-analysis tests, and FastAPI service contract/error tests. Service tests use FastAPI's in-process `TestClient`; Uvicorn does not need to be started manually. The Phase 4C-4 tests generate their own temporary large dataset (they do not depend on `python/data/transactions_large.csv` existing on disk).
+
+   Current verified Phase 4 quality-gate result: `213 passed`.
 
 ### Start and check the Python service
 
@@ -244,6 +247,29 @@ curl --fail-with-body -i http://127.0.0.1:8000/analytics/categories
 The `categories` array contains `category` and numeric `total_revenue`, ordered alphabetically by category. Both endpoints derive their values from `python/data/transactions.csv`, use the same source-relative path as the summary endpoint, and do not use `transactions_large.csv`, SQLite, Node/Express, or the browser.
 
 If canonical dataset loading, validation, or analytics fails, the analytics routes return HTTP `500` with a stable generic JSON detail: `analytics summary unavailable`, `product analytics unavailable`, or `category analytics unavailable`, matching the requested endpoint. Responses do not expose exception text, filesystem paths, Pandas details, or other internals. Do not modify the canonical dataset to test this behavior; the automated service tests safely inject controlled failures.
+
+### Verify Node-to-Python analytics integration
+
+Keep the FastAPI service running on `127.0.0.1:8000`. In a second terminal, start Node with its normal development variables. The default Python URL needs no extra setting; an explicit equivalent is:
+
+```sh
+NODE_ENV=development \
+SESSION_SECRET="$SESSION_SECRET" \
+PYTHON_SERVICE_URL=http://127.0.0.1:8000 \
+npm start
+```
+
+In a third terminal, call the application-facing Node routes:
+
+```sh
+curl --fail-with-body -i http://localhost:3000/api/analytics/summary
+curl --fail-with-body -i http://localhost:3000/api/analytics/products
+curl --fail-with-body -i http://localhost:3000/api/analytics/categories
+```
+
+Node calls the matching FastAPI routes and returns the validated JSON unchanged. The gateway has a three-second timeout and no retries. A timeout returns HTTP `504`; an unavailable service, non-2xx upstream response, invalid JSON, or invalid response contract returns HTTP `502`. Both use the existing Node `{status:"error", message:"..."}` shape without exposing upstream bodies, paths, or network errors.
+
+For a safe failure check, stop only FastAPI with `Ctrl-C`, call `http://localhost:3000/api/analytics/summary` again, and confirm the controlled HTTP `502` response. Then call `http://localhost:3000/api/health` to confirm Node remains running. This workflow requires no frontend changes.
 
 6. Leave the virtual environment when finished:
 
@@ -365,21 +391,23 @@ Begin with read-only checks. Preserve the development database and avoid changin
 | Backend reports a `SESSION_SECRET` startup error | Secret is missing, blank, or shorter than 16 characters | Review how variables were supplied to the current backend process; do not print or share the real value | Provide a new long random local value through the shell and restart the backend; never commit it |
 | SQLite reports an open, path, or lock error | Path is unavailable, permissions are insufficient, or another process holds the file | Confirm the selected path and parent-directory permissions; identify running backend/database tools; preserve the file | Stop known processes through normal controls and retry. Do not delete the database as a lock-recovery shortcut |
 | Tests reject `DATABASE_PATH` | A manually constructed test environment omitted an isolated path or points to the development DB or an alias | Run the packaged command without custom test environment variables; review the rejected path without opening the DB | Use `npm test` or the standalone packaged suite; do not weaken the guard or redirect it to `data/umkm.db` |
+| Node analytics route returns 502 or 504 | FastAPI is stopped/unreachable, `PYTHON_SERVICE_URL` is invalid, the upstream contract failed validation, or the three-second timeout elapsed | Check FastAPI `GET /health`, confirm the trusted operator-provided service URL and startup order, and distinguish 502 from timeout 504 without printing secrets | Start or repair FastAPI, then restart Node only if its environment configuration changed; do not expose raw upstream errors or point the browser directly at FastAPI |
 | Test backend cannot bind an ephemeral port | Local security policy or another environment restriction blocks loopback listeners | Read the exact `listen` error and confirm no normal backend is required by the test | Permit isolated local test listeners according to the machine's security policy, then rerun; do not rewrite tests to use the development server |
 
 If a symptom persists, record the exact command, URL, HTTP status, and non-secret error text before changing files. Do not include session cookies, password values, or `SESSION_SECRET` in reports.
 
 ## Shutdown and cleanup
 
-1. In the backend terminal, press `Ctrl+C` once and wait for the process to exit.
-2. Stop VS Code Live Server through its normal **Go Live**/status-bar control.
-3. Confirm the terminals have returned to their shell prompts before closing them.
+1. If FastAPI is running, press `Ctrl+C` in its terminal and wait for Uvicorn to exit.
+2. In the backend terminal, press `Ctrl+C` once and wait for Node to exit.
+3. Stop VS Code Live Server through its normal **Go Live**/status-bar control if it is running.
+4. Confirm both service terminals have returned to their shell prompts before closing them.
 
 Normal shutdown does not require deleting `data/umkm.db`, browser storage, or dependency files. The packaged backend tests close their servers and databases and remove their temporary directories automatically.
 
-## Manual verification checklist
+## Existing application and documentation checklist
 
-Use this concise clean-room checklist during Documentation Subphase D. It verifies the documentation journey rather than repeating the full Safari feature regression.
+This historical checklist covers the established web application and documentation journey rather than repeating the full Safari feature regression.
 
 ### Environment and setup
 
@@ -404,10 +432,17 @@ Use this concise clean-room checklist during Documentation Subphase D. It verifi
 
 ### Tests and documentation navigation
 
-- [ ] `npm test` passes 56 tests.
-- [ ] `npm run test:backend` passes 30 tests.
+- [ ] `npm test` passes 57 tests.
+- [ ] `npm run test:backend` passes 31 tests.
 - [ ] `npm run test:frontend` passes 26 tests.
 - [ ] Navigation among [README](../README.md), [Architecture](ARCHITECTURE.md), this runbook, and the [Roadmap](../ROADMAP.md) works.
+
+### Phase 4 final quality-gate acceptance
+
+- [ ] Start FastAPI, then Node, using the documented local commands.
+- [ ] `GET /api/analytics/summary` returns the canonical summary through Node.
+- [ ] `GET /api/health` confirms Node remains healthy.
+- [ ] Stop FastAPI and Node cleanly with `Ctrl+C`.
 
 ## Known limitations
 

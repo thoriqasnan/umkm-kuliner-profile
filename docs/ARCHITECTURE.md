@@ -4,7 +4,7 @@
 
 Sari Rasa currently consists of a static browser frontend, a Node.js/Express API, and a local SQLite database. It implements a bilingual product menu, cookie-based authentication, database-authoritative roles, product administration, guest and authenticated carts, and WhatsApp checkout handoff.
 
-The application-facing data, machine-learning, deep-learning, and AI components described in the [roadmap](../ROADMAP.md) remain future learning phases. A local Python workspace and independent FastAPI data service now exist (see [Python workspace](#python-workspace-and-independent-data-service-foundation) below), but there is no runtime communication between that service, Node/Express, or the browser. The project is also not presented as a production deployment.
+The machine-learning, deep-learning, and AI components described in the [roadmap](../ROADMAP.md) remain future learning phases. A local Python workspace and FastAPI data service now exist (see [Python workspace](#python-workspace-and-independent-data-service-foundation) below). Node/Express calls that service over server-to-server HTTP/JSON and remains the only application-facing backend; the browser does not call FastAPI directly. The project is also not presented as a production deployment.
 
 ## Component overview
 
@@ -332,7 +332,7 @@ Contract tests read the real files to verify that:
 - required class-based controls and the production script reference exist; and
 - frontend API paths and methods correspond to Express routes.
 
-The verified automated baseline is 30 backend tests plus 26 frontend tests, for 56 combined passing tests. Automated VM coverage is distinct from the user-performed Safari acceptance that validated real browser semantics and interaction.
+The current automated baseline is 31 backend tests plus 26 frontend tests, for 57 combined passing tests. Automated VM coverage is distinct from the user-performed Safari acceptance that validated real browser semantics and interaction.
 
 ## Key engineering decisions
 
@@ -368,7 +368,20 @@ Tests fail before opening the real development database, including when a filesy
 
 Phase 4A introduced a repository-local Python workspace at `python/`, containing a small `sari_rasa_data` package and a pytest suite (`python/tests/`). Its modules include the Phase 4A foundations, Phase 4B transaction pipeline, Phase 4C Pandas/NumPy analysis, and the Phase 4D `service.py` FastAPI boundary. The service exposes health, compact summary, product, and category endpoints. Importing the application performs no analysis; each analytics endpoint loads and analyzes the canonical CSV only when requested. The workspace runs inside its own repository-local `.venv`, which is not committed.
 
-The FastAPI process is an independent specialized service and has no runtime relationship to the browser/Express component overview above yet. Node.js/Express remains the only application-facing backend. There is no Node-to-Python or browser-to-Python communication; that integration remains a later phase.
+The FastAPI process is a separately started specialized service. Node.js/Express remains the only application-facing backend and delegates its three `/api/analytics/*` routes through `lib/pythonAnalyticsClient.js` to the matching FastAPI analytics routes. `PYTHON_SERVICE_URL` selects the service base URL and defaults to `http://127.0.0.1:8000`. It is trusted server-operator configuration, never request/frontend input; only HTTP/HTTPS URLs without embedded credentials, queries, or fragments are accepted, and callers cannot choose arbitrary upstream paths. The client uses built-in Node `fetch`, enforces exact upstream JSON contracts, and aborts requests after three seconds. Timeout responses are controlled HTTP 504 errors; connection, upstream status, JSON parsing, and contract failures are controlled HTTP 502 errors. Raw Python or network details are never forwarded. There are no retries, background polling, direct browser-to-Python requests, or frontend analytics UI.
+
+```text
+Browser (no analytics integration yet)
+
+API client / manual request
+    ↓
+Node / Express
+    ├── GET /api/analytics/summary
+    ├── GET /api/analytics/products
+    └── GET /api/analytics/categories
+            ↓ built-in fetch, HTTP/JSON, 3-second timeout
+        Python FastAPI service
+```
 
 Expected dataset, validation, and analytics failures are translated at the route boundary into stable endpoint-specific HTTP 500 details. Internal exception text, filesystem paths, Pandas diagnostics, and implementation details are not returned to clients. The health route remains independent of analytics and data access.
 
@@ -515,9 +528,9 @@ JSON-compatible integrated summary
 
 ## Current boundaries and future scope
 
-Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, the project documentation/runbook, the Phase 4A Python foundation workspace, the complete Phase 4B pure-Python pipeline, and the complete Phase 4C Pandas/NumPy analysis (4C-1 through 4C-4). Phase 4D-1 through 4D-4 and Phase 4D as a whole are verified complete after hardening, automated verification, documentation, independent review, and final user manual acceptance; the Python service remains separate from the application.
+Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, the project documentation/runbook, the Phase 4A Python foundation workspace, the complete Phase 4B pure-Python pipeline, and the complete Phase 4C Pandas/NumPy analysis (4C-1 through 4C-4). Phase 4D-1 through 4D-4 and Phase 4D as a whole are verified complete after hardening, automated verification, documentation, independent review, and final user manual acceptance. The Python service remains a separately started process and is now integrated behind Node's Phase 4E analytics routes.
 
-Node-to-Python integration, machine learning, deep-learning fundamentals, AI engineering, full-stack AI integration, and final deployment/portfolio engineering remain future phases. Their conceptual roadmap does not define current runtime components.
+Phase 4E Node-to-Python integration is verified complete after successful live manual acceptance. Phase 4F and Phase 4 are provisionally complete pending final user acceptance. Frontend analytics integration remains outside the implemented scope; Phase 5 Machine Learning is next and has not started, while later deep-learning, AI, integration, and final engineering phases remain future work.
 
 See the [Project Roadmap](../ROADMAP.md) for the approved sequence and current status.
 

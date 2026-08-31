@@ -9,7 +9,7 @@ function isPathInside(parentPath, childPath) {
   return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
-async function createBackendHarness() {
+async function createBackendHarness(options = {}) {
   const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'umkm-backend-test-'));
   const databasePath = path.join(temporaryDirectory, 'test.sqlite');
   const previousEnvironment = {
@@ -17,6 +17,7 @@ async function createBackendHarness() {
     SESSION_SECRET: process.env.SESSION_SECRET,
     DATABASE_PATH: process.env.DATABASE_PATH,
     PORT: process.env.PORT,
+    PYTHON_SERVICE_URL: process.env.PYTHON_SERVICE_URL,
   };
   let server = null;
   let db = null;
@@ -30,6 +31,8 @@ async function createBackendHarness() {
     process.env.SESSION_SECRET = TEST_SESSION_SECRET;
     process.env.DATABASE_PATH = databasePath;
     delete process.env.PORT;
+    if (options.pythonServiceUrl === undefined) delete process.env.PYTHON_SERVICE_URL;
+    else process.env.PYTHON_SERVICE_URL = options.pythonServiceUrl;
 
     const { app, startServer } = require('../../server');
     const databaseModule = require('../../db/database');
