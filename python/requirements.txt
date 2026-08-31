@@ -1,3 +1,6 @@
 pytest
 pandas
 numpy
+fastapi
+uvicorn
+httpx

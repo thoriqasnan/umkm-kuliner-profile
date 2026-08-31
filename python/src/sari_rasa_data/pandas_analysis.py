@@ -96,6 +96,11 @@ def pandas_quantity_by_product(dataframe: pd.DataFrame) -> dict[str, int]:
     return _grouped_integer_totals(dataframe, "product_name", "quantity")
 
 
+def pandas_revenue_by_product(dataframe: pd.DataFrame) -> dict[str, int]:
+    """Return revenue grouped by product name."""
+    return _grouped_integer_totals(dataframe, "product_name", "line_total")
+
+
 def pandas_daily_revenue(dataframe: pd.DataFrame) -> dict[str, int]:
     """Return revenue grouped by ISO date."""
     return _grouped_integer_totals(dataframe, "order_date", "line_total")

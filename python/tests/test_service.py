@@ -1,0 +1,263 @@
+import csv
+import pathlib
+import sqlite3
+import subprocess
+import sys
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from sari_rasa_data import service
+from sari_rasa_data.service import app
+
+
+def test_service_exposes_fastapi_application():
+    assert isinstance(app, FastAPI)
+
+
+def test_service_import_does_not_read_canonical_dataset():
+    source_root = pathlib.Path(__file__).resolve().parents[1] / "src"
+    import_probe = """
+import sys
+
+def reject_dataset_open(event, args):
+    if event == "open" and "transactions.csv" in str(args[0]):
+        raise AssertionError("service import must not read the canonical dataset")
+
+sys.addaudithook(reject_dataset_open)
+import sari_rasa_data.service
+"""
+
+    result = subprocess.run(
+        [sys.executable, "-c", import_probe],
+        cwd=pathlib.Path(__file__).resolve().parents[2],
+        env={"PYTHONPATH": str(source_root)},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_health_returns_stable_json_contract():
+    with TestClient(app) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/json")
+    assert response.json() == {"status": "ok"}
+
+
+def test_health_does_not_access_datasets_or_database(monkeypatch):
+    def fail_path_open(*args, **kwargs):
+        raise AssertionError("health endpoint must not open dataset files")
+
+    def fail_sqlite_connect(*args, **kwargs):
+        raise AssertionError("health endpoint must not connect to SQLite")
+
+    monkeypatch.setattr(pathlib.Path, "open", fail_path_open)
+    monkeypatch.setattr(sqlite3, "connect", fail_sqlite_connect)
+
+    with TestClient(app) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_analytics_summary_returns_canonical_json_contract():
+    with TestClient(app) as client:
+        response = client.get("/analytics/summary")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/json")
+    assert response.json() == {
+        "total_revenue": 745000,
+        "unique_orders": 20,
+        "total_quantity": 53,
+        "average_order_value": 37250.0,
+    }
+    for value in response.json().values():
+        assert isinstance(value, (int, float))
+        assert not isinstance(value, bool)
+
+
+def test_analytics_summary_uses_canonical_path_independent_of_cwd(
+    monkeypatch, tmp_path
+):
+    expected_path = (
+        pathlib.Path(__file__).resolve().parents[1] / "data" / "transactions.csv"
+    )
+    assert service.CANONICAL_DATASET_PATH == expected_path
+
+    monkeypatch.chdir(tmp_path)
+    with TestClient(app) as client:
+        response = client.get("/analytics/summary")
+
+    assert response.status_code == 200
+    assert response.json()["total_revenue"] == 745000
+
+
+def test_analytics_summary_does_not_read_large_dataset(monkeypatch):
+    original_path_open = pathlib.Path.open
+
+    def guarded_path_open(path, *args, **kwargs):
+        if path.name == "transactions_large.csv":
+            raise AssertionError("summary endpoint must not read the large dataset")
+        return original_path_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(pathlib.Path, "open", guarded_path_open)
+
+    with TestClient(app) as client:
+        response = client.get("/analytics/summary")
+
+    assert response.status_code == 200
+    assert response.json()["unique_orders"] == 20
+
+
+def test_analytics_summary_redacts_expected_pipeline_errors(monkeypatch):
+    internal_detail = "private canonical path and validation detail"
+
+    def fail_summary(path):
+        raise ValueError(internal_detail)
+
+    monkeypatch.setattr(service, "build_analytics_summary", fail_summary)
+
+    with TestClient(app) as client:
+        response = client.get("/analytics/summary")
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "analytics summary unavailable"}
+    assert internal_detail not in response.text
+
+
+def test_products_analytics_returns_canonical_json_in_quantity_order():
+    with TestClient(app) as client:
+        response = client.get("/analytics/products")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/json")
+    assert response.json() == {
+        "products": [
+            {"product_name": "Es Teh", "total_quantity": 9, "total_revenue": 45000},
+            {"product_name": "Nasi Goreng", "total_quantity": 6, "total_revenue": 108000},
+            {"product_name": "Pisang Goreng", "total_quantity": 6, "total_revenue": 72000},
+            {"product_name": "Soto Ayam", "total_quantity": 6, "total_revenue": 120000},
+            {"product_name": "Tahu Isi", "total_quantity": 6, "total_revenue": 48000},
+            {"product_name": "Nasi Ayam", "total_quantity": 5, "total_revenue": 120000},
+            {"product_name": "Jus Jeruk", "total_quantity": 4, "total_revenue": 40000},
+            {"product_name": "Mie Goreng", "total_quantity": 4, "total_revenue": 68000},
+            {"product_name": "Sate Ayam", "total_quantity": 4, "total_revenue": 88000},
+            {"product_name": "Kopi Susu", "total_quantity": 3, "total_revenue": 36000},
+        ]
+    }
+    for product in response.json()["products"]:
+        for field in ("total_quantity", "total_revenue"):
+            assert isinstance(product[field], int)
+            assert not isinstance(product[field], bool)
+
+
+def test_categories_analytics_returns_canonical_json_in_name_order():
+    with TestClient(app) as client:
+        response = client.get("/analytics/categories")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/json")
+    assert response.json() == {
+        "categories": [
+            {"category": "Camilan", "total_revenue": 120000},
+            {"category": "Makanan", "total_revenue": 504000},
+            {"category": "Minuman", "total_revenue": 121000},
+        ]
+    }
+    for category in response.json()["categories"]:
+        assert isinstance(category["total_revenue"], int)
+        assert not isinstance(category["total_revenue"], bool)
+
+
+@pytest.mark.parametrize("endpoint", ["/analytics/products", "/analytics/categories"])
+def test_grouped_analytics_paths_are_independent_of_cwd(endpoint, monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+
+    with TestClient(app) as client:
+        response = client.get(endpoint)
+
+    assert response.status_code == 200
+
+
+@pytest.mark.parametrize("endpoint", ["/analytics/products", "/analytics/categories"])
+def test_grouped_analytics_do_not_read_large_dataset(endpoint, monkeypatch):
+    original_path_open = pathlib.Path.open
+
+    def guarded_path_open(path, *args, **kwargs):
+        if path.name == "transactions_large.csv":
+            raise AssertionError("analytics endpoints must not read the large dataset")
+        return original_path_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(pathlib.Path, "open", guarded_path_open)
+
+    with TestClient(app) as client:
+        response = client.get(endpoint)
+
+    assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    ("endpoint", "builder_name", "public_detail", "error_type"),
+    [
+        (
+            "/analytics/products",
+            "build_products_analytics",
+            "product analytics unavailable",
+            ValueError,
+        ),
+        (
+            "/analytics/categories",
+            "build_categories_analytics",
+            "category analytics unavailable",
+            ValueError,
+        ),
+        (
+            "/analytics/summary",
+            "build_analytics_summary",
+            "analytics summary unavailable",
+            OSError,
+        ),
+        (
+            "/analytics/products",
+            "build_products_analytics",
+            "product analytics unavailable",
+            OSError,
+        ),
+        (
+            "/analytics/categories",
+            "build_categories_analytics",
+            "category analytics unavailable",
+            OSError,
+        ),
+        (
+            "/analytics/summary",
+            "build_analytics_summary",
+            "analytics summary unavailable",
+            csv.Error,
+        ),
+    ],
+)
+def test_analytics_routes_redact_expected_pipeline_errors(
+    endpoint, builder_name, public_detail, error_type, monkeypatch
+):
+    internal_detail = "/private/internal/path/transactions.csv: validation detail"
+
+    def fail_analytics(path):
+        raise error_type(internal_detail)
+
+    monkeypatch.setattr(service, builder_name, fail_analytics)
+
+    with TestClient(app) as client:
+        response = client.get(endpoint)
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": public_detail}
+    assert internal_detail not in response.text

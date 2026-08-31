@@ -171,7 +171,7 @@ python/
 
 `__main__.py` lets the package run as `python -m sari_rasa_data`, printing a small deterministic JSON report built entirely from existing `foundation.py` functions. It has no database, network, or filesystem side effects.
 
-At the Phase 4A checkpoint, `pytest` was the only external Python dependency. Phase 4C later added Pandas and NumPy; FastAPI, Uvicorn, and ML/AI libraries remain future work.
+At the Phase 4A checkpoint, `pytest` was the only external Python dependency. Phase 4C later added Pandas and NumPy; Phase 4D-1 adds FastAPI and Uvicorn. ML/AI libraries remain future work.
 
 ### 4B — Data Handling & Transformation
 
@@ -257,7 +257,24 @@ The Phase 4 dataset should be designed so it can potentially continue into Phase
 
 ### 4D — Python Data Service
 
-Status: ⏭️ **NEXT**
+Status: ✅ **VERIFIED COMPLETE**
+
+Approved subphases:
+
+```text
+4D-1 FastAPI Foundation & Health Endpoint                ✅ VERIFIED COMPLETE
+4D-2 Analytics Summary API                               ✅ VERIFIED COMPLETE
+4D-3 Products & Categories API                           ✅ VERIFIED COMPLETE
+4D-4 Error Handling & Final Verification                 ✅ VERIFIED COMPLETE
+```
+
+4D-1 adds an importable `sari_rasa_data.service:app` FastAPI boundary and the intentionally small `GET /health` contract. Health returns `{"status":"ok"}` without reading datasets, running analytics, accessing SQLite, or depending on Node.js. Implementation, 3 targeted service tests, the complete 196-test Python regression suite, documentation, independent review, and user-performed manual API acceptance all passed. Manual acceptance confirmed that Uvicorn started successfully and `GET /health` returned HTTP 200, an `application/json` content type, and the expected response body. 4D-1 is therefore ✅ **VERIFIED COMPLETE**. No analytics endpoint or Node-to-Python integration is implemented at this checkpoint; 4D-2 is the next engineering task.
+
+4D-2 adds `GET /analytics/summary`, a compact JSON contract over the canonical `python/data/transactions.csv` dataset. The thin FastAPI route composes the verified Phase 4B/4C loading and analytics functions at request time and returns total revenue, distinct-order count, total quantity, and order-level average order value as plain numeric JSON values. Its deterministic source-relative path does not depend on the shell working directory or the generated large dataset. Implementation, 7 targeted service tests, the complete 200-test Python suite, documentation, independent review, and user-performed manual API acceptance all passed. Manual acceptance confirmed that `GET /health` returned HTTP 200 with `{"status":"ok"}` and `GET /analytics/summary` returned HTTP 200 with total revenue 745000, 20 unique orders, total quantity 53, and average order value 37250.0. 4D-2 is therefore ✅ **VERIFIED COMPLETE**. Product/category endpoints and Node-to-Python integration are not implemented; 4D-3 is the next engineering task.
+
+4D-3 adds `GET /analytics/products` and `GET /analytics/categories` over the same canonical dataset. Product results contain name, total quantity, and total revenue, ordered by quantity descending and then name ascending; category results contain category and total revenue in alphabetical category order. The service composes the verified loading, product-ranking, and grouped aggregation functions without putting Pandas grouping in the routes. Implementation, 15 targeted service tests, the complete 208-test Python suite, documentation, independent review, and user-performed manual API acceptance all passed. Manual acceptance confirmed that `GET /health`, `GET /analytics/summary`, `GET /analytics/products`, and `GET /analytics/categories` returned HTTP 200 with their expected contracts, including the documented canonical product and category values in deterministic order. 4D-3 is therefore ✅ **VERIFIED COMPLETE**. Broader error handling and final verification remain 4D-4 work, and Node-to-Python integration is not implemented.
+
+4D-4 hardens and verifies the existing service without adding endpoints. Expected dataset, CSV parsing, validation, and analytics failures retain small endpoint-specific public HTTP 500 details while internal exception text and paths remain redacted. Final regression coverage verifies exact success contracts, deterministic ordering, canonical source-relative dataset use, independence from `transactions_large.csv` and the shell working directory, no import-time analytics/data access, and in-process service testing without Uvicorn. The service test dependency declaration was corrected, documentation was finalized, and the complete Python suite and independent cumulative Phase 4D review passed. Final user manual acceptance then confirmed that Uvicorn started successfully, all four endpoints returned their expected canonical responses and deterministic ordering, and the service stopped safely. 4D-4 and Phase 4D are therefore ✅ **VERIFIED COMPLETE**; Phase 4E is next and has not started.
 
 Planned minimal service technology:
 
@@ -272,18 +289,18 @@ Learning objectives:
 - service-level error handling
 - a health endpoint
 
-Potential planning targets include:
+Implemented contracts are:
 
 - `GET /health`
 - `GET /analytics/summary`
 - `GET /analytics/products`
 - `GET /analytics/categories`
 
-These endpoints are planning targets, not currently implemented API contracts.
+All four routes above are implemented Python-service contracts. Node-to-Python integration remains future Phase 4E work.
 
 ### 4E — Node.js ↔ Python Integration
 
-Status: ⏳ **NOT STARTED**
+Status: ⏭️ **NEXT / NOT STARTED**
 
 Target request flow:
 
@@ -523,8 +540,12 @@ Phase 4 Python & Data                 🔄 IN PROGRESS
     4C-2 Filtering, Grouping & Aggregation ✅ VERIFIED COMPLETE
     4C-3 NumPy & Basic Statistics    ✅ VERIFIED COMPLETE
     4C-4 Analysis Pipeline & Final Review ✅ VERIFIED COMPLETE
-  4D Python Data Service              ⏭️ NEXT
-  4E Node.js ↔ Python Integration  ⏳ NOT STARTED
+  4D Python Data Service              ✅ VERIFIED COMPLETE
+    4D-1 FastAPI Foundation & Health Endpoint ✅ VERIFIED COMPLETE
+    4D-2 Analytics Summary API        ✅ VERIFIED COMPLETE
+    4D-3 Products & Categories API    ✅ VERIFIED COMPLETE
+    4D-4 Error Handling & Final Verification ✅ VERIFIED COMPLETE
+  4E Node.js ↔ Python Integration  ⏭️ NEXT / NOT STARTED
   4F Integration & Quality Gate       ⏳ NOT STARTED
 Phase 5 Machine Learning              ⏳ PLANNED
 Phase 6 Deep Learning Fundamentals    ⏳ PLANNED
@@ -533,4 +554,4 @@ Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
 Final Engineering                     ⏳ PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation** is ✅ **VERIFIED COMPLETE**: both the Automated Regression Foundation and Project Documentation / Runbook passed automated, static, independent-review, and required user-performed manual acceptance gates. **Phase 4 — Python & Data** remains in progress: subphases 4A, 4B, and 4C (with 4C-1 through 4C-4) are all verified complete, including the user-performed manual analysis acceptance for 4C-4. Subphase 4D is next; 4E–4F remain not yet started.
+The **Quality Gate — Engineering Foundation** is ✅ **VERIFIED COMPLETE**: both the Automated Regression Foundation and Project Documentation / Runbook passed automated, static, independent-review, and required user-performed manual acceptance gates. **Phase 4 — Python & Data** remains in progress: subphases 4A, 4B, 4C, and 4D are verified complete. Phase 4D-1 through 4D-4 are all verified complete after final user manual acceptance. Phase 4E is the next engineering task and has not started; Phase 4F remains not started.

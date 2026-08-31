@@ -147,9 +147,9 @@ Use these packaged commands without manually setting `NODE_ENV`, `SESSION_SECRET
 
 Never set test `DATABASE_PATH` to `data/umkm.db`. Test-mode startup intentionally refuses the development database, including canonical/symlink aliases and existing hard links that identify the same file. Frontend tests run `script.js` inside `node:vm`; they do not start the normal backend or make real network calls.
 
-## Python environment (Phase 4A foundation)
+## Python environment and FastAPI service
 
-This section covers the repository-local Python workspace under `python/`, introduced in Phase 4A. It is a learning/foundation workspace only: it is not a running service, and it is not required to use the Node.js/Express application or run its tests.
+This section covers the repository-local Python workspace under `python/`, introduced in Phase 4A and extended with the independent FastAPI foundation in Phase 4D-1. The service is not required to use the Node.js/Express application or run its tests. Node/Express does not call it yet, and the browser must not call it directly.
 
 Requires a Homebrew-installed Python 3 (verified with 3.14.7). Do not use the Apple-provided `/usr/bin/python3` as the project baseline; it must remain untouched. Every command below runs inside the project's own virtual environment, never the system/Homebrew Python directly.
 
@@ -173,7 +173,7 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
    python -m pip install -r python/requirements.txt
    ```
 
-   Phase 4C adds Pandas and NumPy alongside pytest. The requirements file remains the reproducible source for all Python dependencies.
+   Phase 4C adds Pandas and NumPy alongside pytest. Phase 4D-1 adds FastAPI, Uvicorn, and the HTTP test dependency used by FastAPI's test client. The requirements file is the project's dependency declaration; exact dependency locking is not part of this local learning phase.
 
 4. Run the package as a small example:
 
@@ -189,7 +189,61 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
    PYTHONPATH=python/src python -m pytest python/tests
    ```
 
-   `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests, complete Phase 4B pipeline tests, Phase 4C DataFrame/filtering/grouping/NumPy-statistics tests, and the Phase 4C-4 synthetic-generator/integrated-analysis tests. The Phase 4C-4 tests generate their own temporary large dataset (they do not depend on `python/data/transactions_large.csv` existing on disk).
+   `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests, complete Phase 4B pipeline tests, Phase 4C DataFrame/filtering/grouping/NumPy-statistics tests, the Phase 4C-4 synthetic-generator/integrated-analysis tests, and FastAPI service contract/error tests. Service tests use FastAPI's in-process `TestClient`; Uvicorn does not need to be started manually. The Phase 4C-4 tests generate their own temporary large dataset (they do not depend on `python/data/transactions_large.csv` existing on disk).
+
+### Start and check the Python service
+
+From the repository root, start the local-only service on `http://127.0.0.1:8000`:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m uvicorn sari_rasa_data.service:app --reload --host 127.0.0.1 --port 8000
+```
+
+In another terminal, check the service health endpoint:
+
+```sh
+curl --fail-with-body -i http://127.0.0.1:8000/health
+```
+
+Expect HTTP `200`, a JSON content type, and this response body:
+
+```json
+{"status":"ok"}
+```
+
+The URL can also be opened at `http://127.0.0.1:8000/health` in a browser. Return to the Uvicorn terminal and press `Ctrl-C` to stop the service safely. The health route proves only that the Python HTTP service is running: it does not read either transaction dataset, access SQLite, perform analytics, or depend on Node/Express.
+
+Check the compact analytics summary derived from the canonical dataset at `python/data/transactions.csv`:
+
+```sh
+curl --fail-with-body -i http://127.0.0.1:8000/analytics/summary
+```
+
+Expect HTTP `200`, a JSON content type, and this response body:
+
+```json
+{"total_revenue":745000,"unique_orders":20,"total_quantity":53,"average_order_value":37250.0}
+```
+
+The summary uses numeric JSON values and counts distinct `order_id` values for `unique_orders`; average order value is total revenue divided by those 20 orders. Its default dataset path is resolved from the installed source module rather than the shell's current directory. It does not use the generated `transactions_large.csv`, access SQLite, or depend on Node/Express.
+
+Check product analytics:
+
+```sh
+curl --fail-with-body -i http://127.0.0.1:8000/analytics/products
+```
+
+The `products` array contains `product_name`, numeric `total_quantity`, and numeric `total_revenue`. Products are ordered by total quantity descending, then product name ascending when quantities tie.
+
+Check category analytics:
+
+```sh
+curl --fail-with-body -i http://127.0.0.1:8000/analytics/categories
+```
+
+The `categories` array contains `category` and numeric `total_revenue`, ordered alphabetically by category. Both endpoints derive their values from `python/data/transactions.csv`, use the same source-relative path as the summary endpoint, and do not use `transactions_large.csv`, SQLite, Node/Express, or the browser.
+
+If canonical dataset loading, validation, or analytics fails, the analytics routes return HTTP `500` with a stable generic JSON detail: `analytics summary unavailable`, `product analytics unavailable`, or `category analytics unavailable`, matching the requested endpoint. Responses do not expose exception text, filesystem paths, Pandas details, or other internals. Do not modify the canonical dataset to test this behavior; the automated service tests safely inject controlled failures.
 
 6. Leave the virtual environment when finished:
 
