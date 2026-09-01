@@ -16,6 +16,7 @@ const {
   getAnalyticsSummary,
   getProductsAnalytics,
   getCategoriesAnalytics,
+  getSalesTrendAnalytics,
 } = require('./lib/pythonAnalyticsClient');
 
 const app = express();
@@ -1429,11 +1430,33 @@ app.delete('/api/cart', requireAuth, (req, res) => {
 });
 
 // --- Phase 4E: Node remains the application-facing analytics gateway ---
+function readAnalyticsRange(req) {
+  const allowedKeys = new Set(['start_date', 'end_date']);
+  const keys = Object.keys(req.query);
+  const isIsoDate = (value) => {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  };
+  if (keys.some((key) => !allowedKeys.has(key)) ||
+      (req.query.start_date !== undefined && !isIsoDate(req.query.start_date)) ||
+      (req.query.end_date !== undefined && !isIsoDate(req.query.end_date)) ||
+      (req.query.start_date && req.query.end_date && req.query.start_date > req.query.end_date)) {
+    return null;
+  }
+  return { startDate: req.query.start_date, endDate: req.query.end_date };
+}
+
 function analyticsRoute(handler, routeLabel) {
   return async (req, res) => {
+    const range = readAnalyticsRange(req);
+    if (!range) return res.status(400).json({ status: 'error', message: 'Rentang tanggal tidak valid' });
     try {
-      res.json(await handler());
+      res.json(await handler(range));
     } catch (error) {
+      if (error?.code === 'INVALID_ANALYTICS_RANGE') {
+        return res.status(400).json({ status: 'error', message: 'Rentang tanggal tidak valid' });
+      }
       const timedOut = error?.code === 'PYTHON_SERVICE_TIMEOUT';
       console.error(`[GET ${routeLabel}] Layanan analitik upstream ${timedOut ? 'timeout' : 'gagal'}`);
       res.status(timedOut ? 504 : 502).json({
@@ -1458,6 +1481,7 @@ app.get(
   '/api/analytics/categories',
   analyticsRoute(getCategoriesAnalytics, '/api/analytics/categories')
 );
+app.get('/api/analytics/sales-trend', analyticsRoute(getSalesTrendAnalytics, '/api/analytics/sales-trend'));
 
 // --- 404 handler ---
 // Jalan kalau tidak ada route di atas yang cocok dengan request-nya (baik

@@ -140,9 +140,9 @@ Current verified baseline:
 
 | Command | Expected tests | Current result |
 |---|---:|---|
-| `npm run test:backend` | 31 | 31 passed |
-| `npm run test:frontend` | 26 | 26 passed |
-| `npm test` | 57 total | 57 passed |
+| `npm run test:backend` | 32 | 32 passed |
+| `npm run test:frontend` | 57 | 57 passed |
+| `npm test` | 89 total | 89 passed |
 
 Use these packaged commands without manually setting `NODE_ENV`, `SESSION_SECRET`, or `DATABASE_PATH`. The backend harness creates an isolated temporary SQLite database per test file, chooses an ephemeral HTTP port, restores environment variables, closes its server and database, and removes temporary resources.
 
@@ -192,7 +192,7 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
 
    `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests, complete Phase 4B pipeline tests, Phase 4C DataFrame/filtering/grouping/NumPy-statistics tests, the Phase 4C-4 synthetic-generator/integrated-analysis tests, and FastAPI service contract/error tests. Service tests use FastAPI's in-process `TestClient`; Uvicorn does not need to be started manually. The Phase 4C-4 tests generate their own temporary large dataset (they do not depend on `python/data/transactions_large.csv` existing on disk).
 
-   Current verified Phase 4 quality-gate result: `213 passed`.
+   Current verified Python data/service result: `228 passed`.
 
 ### Start and check the Python service
 
@@ -242,6 +242,7 @@ Check category analytics:
 
 ```sh
 curl --fail-with-body -i http://127.0.0.1:8000/analytics/categories
+curl --fail-with-body -i 'http://127.0.0.1:8000/analytics/sales-trend?start_date=2026-07-01&end_date=2026-07-15'
 ```
 
 The `categories` array contains `category` and numeric `total_revenue`, ordered alphabetically by category. Both endpoints derive their values from `python/data/transactions.csv`, use the same source-relative path as the summary endpoint, and do not use `transactions_large.csv`, SQLite, Node/Express, or the browser.
@@ -265,6 +266,12 @@ In a third terminal, call the application-facing Node routes:
 curl --fail-with-body -i http://localhost:3000/api/analytics/summary
 curl --fail-with-body -i http://localhost:3000/api/analytics/products
 curl --fail-with-body -i http://localhost:3000/api/analytics/categories
+curl --fail-with-body -i 'http://localhost:3000/api/analytics/sales-trend?start_date=2026-07-01&end_date=2026-07-15'
+
+# The same optional inclusive period is supported by every analytics route.
+curl --fail-with-body -i 'http://localhost:3000/api/analytics/summary?start_date=2026-07-05&end_date=2026-07-10'
+curl --fail-with-body -i 'http://localhost:3000/api/analytics/products?start_date=2026-07-05&end_date=2026-07-10'
+curl --fail-with-body -i 'http://localhost:3000/api/analytics/categories?start_date=2026-07-05&end_date=2026-07-10'
 ```
 
 Node calls the matching FastAPI routes and returns the validated JSON unchanged. The gateway has a three-second timeout and no retries. A timeout returns HTTP `504`; an unavailable service, non-2xx upstream response, invalid JSON, or invalid response contract returns HTTP `502`. Both use the existing Node `{status:"error", message:"..."}` shape without exposing upstream bodies, paths, or network errors.

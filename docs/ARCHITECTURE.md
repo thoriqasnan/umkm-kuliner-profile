@@ -332,7 +332,7 @@ Contract tests read the real files to verify that:
 - required class-based controls and the production script reference exist; and
 - frontend API paths and methods correspond to Express routes.
 
-The current automated baseline is 31 backend tests plus 26 frontend tests, for 57 combined passing tests. Automated VM coverage is distinct from the user-performed Safari acceptance that validated real browser semantics and interaction.
+The current automated baseline is 32 backend tests plus 57 frontend tests, for 89 combined Node tests, alongside 228 Python tests. Automated VM coverage is distinct from user-performed browser acceptance, which validated real responsive, keyboard, chart, calendar, global-filter, and failure/recovery behavior.
 
 ## Key engineering decisions
 
@@ -368,17 +368,16 @@ Tests fail before opening the real development database, including when a filesy
 
 Phase 4A introduced a repository-local Python workspace at `python/`, containing a small `sari_rasa_data` package and a pytest suite (`python/tests/`). Its modules include the Phase 4A foundations, Phase 4B transaction pipeline, Phase 4C Pandas/NumPy analysis, and the Phase 4D `service.py` FastAPI boundary. The service exposes health, compact summary, product, and category endpoints. Importing the application performs no analysis; each analytics endpoint loads and analyzes the canonical CSV only when requested. The workspace runs inside its own repository-local `.venv`, which is not committed.
 
-The FastAPI process is a separately started specialized service. Node.js/Express remains the only application-facing backend and delegates its three `/api/analytics/*` routes through `lib/pythonAnalyticsClient.js` to the matching FastAPI analytics routes. `PYTHON_SERVICE_URL` selects the service base URL and defaults to `http://127.0.0.1:8000`. It is trusted server-operator configuration, never request/frontend input; only HTTP/HTTPS URLs without embedded credentials, queries, or fragments are accepted, and callers cannot choose arbitrary upstream paths. The client uses built-in Node `fetch`, enforces exact upstream JSON contracts, and aborts requests after three seconds. Timeout responses are controlled HTTP 504 errors; connection, upstream status, JSON parsing, and contract failures are controlled HTTP 502 errors. Raw Python or network details are never forwarded. There are no retries, background polling, direct browser-to-Python requests, or frontend analytics UI.
+The FastAPI process is a separately started specialized service. Node.js/Express remains the only application-facing backend and delegates its four `/api/analytics/*` routes through `lib/pythonAnalyticsClient.js` to the matching FastAPI analytics routes. All four accept the same optional, inclusive `start_date` and `end_date` query parameters; omitted dates retain the full-dataset contract. Sales Trend also returns dataset-derived `min_available_date` and `max_available_date`, which bound the frontend calendar without hardcoded dataset dates. `PYTHON_SERVICE_URL` is trusted server-operator configuration, never request/frontend input; callers cannot choose arbitrary upstream paths. The client uses built-in Node `fetch`, exact contracts, and a three-second timeout. Errors remain controlled and redacted. There are no retries, background polling, or direct browser-to-Python requests. Each dashboard section has an independent status/cache while sharing one applied period.
 
 ```text
-Browser (no analytics integration yet)
-
-API client / manual request
+Admin Analytics browser UI
     ↓
 Node / Express
-    ├── GET /api/analytics/summary
-    ├── GET /api/analytics/products
-    └── GET /api/analytics/categories
+    ├── GET /api/analytics/summary?start_date=&end_date=
+    ├── GET /api/analytics/products?start_date=&end_date=
+    ├── GET /api/analytics/categories?start_date=&end_date=
+    └── GET /api/analytics/sales-trend?start_date=&end_date=
             ↓ built-in fetch, HTTP/JSON, 3-second timeout
         Python FastAPI service
 ```
@@ -388,9 +387,10 @@ Expected dataset, validation, and analytics failures are translated at the route
 ```text
 Python service process
     ├── GET /health → {"status":"ok"} (no data access)
-    ├── GET /analytics/summary
-    ├── GET /analytics/products
-    └── GET /analytics/categories
+    ├── GET /analytics/summary?start_date=&end_date=
+    ├── GET /analytics/products?start_date=&end_date=
+    ├── GET /analytics/categories?start_date=&end_date=
+    └── GET /analytics/sales-trend?start_date=&end_date=
             ↓
         canonical transactions.csv
             ↓
@@ -530,7 +530,7 @@ JSON-compatible integrated summary
 
 Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, the project documentation/runbook, the Phase 4A Python foundation workspace, the complete Phase 4B pure-Python pipeline, and the complete Phase 4C Pandas/NumPy analysis (4C-1 through 4C-4). Phase 4D-1 through 4D-4 and Phase 4D as a whole are verified complete after hardening, automated verification, documentation, independent review, and final user manual acceptance. The Python service remains a separately started process and is now integrated behind Node's Phase 4E analytics routes.
 
-Phase 4E Node-to-Python integration is verified complete after successful live manual acceptance. Phase 4F and Phase 4 are provisionally complete pending final user acceptance. Frontend analytics integration remains outside the implemented scope; Phase 5 Machine Learning is next and has not started, while later deep-learning, AI, integration, and final engineering phases remain future work.
+Phase 4E Node-to-Python integration, Phase 4F, and Phase 4 are verified complete. The approved post-quality-gate Phase 4G extension is also verified complete: the Admin Analytics Dashboard presents KPI Summary, native-SVG Sales Trend, Product Performance, and proportional Revenue by Category using one dataset-bounded inclusive applied period through Browser → Node/Express → FastAPI → Pandas → canonical CSV. Phase 5 Machine Learning is next and has not started, while later deep-learning, AI, integration, and final engineering phases remain future work.
 
 See the [Project Roadmap](../ROADMAP.md) for the approved sequence and current status.
 

@@ -3,6 +3,7 @@ const http = require('node:http');
 const test = require('node:test');
 
 const { createBackendHarness } = require('../helpers/backend-harness');
+const { isSalesTrendResponse } = require('../../lib/pythonAnalyticsClient');
 
 const SUMMARY = {
   total_revenue: 745000,
@@ -23,6 +24,24 @@ const CATEGORIES = {
     { category: 'Minuman', total_revenue: 121000 },
   ],
 };
+const SALES_TREND = {
+  available_period: { min_available_date: '2026-07-01', max_available_date: '2026-07-15' },
+  start_date: '2026-07-01', end_date: '2026-07-02',
+  summary: { total_revenue: 105000, unique_orders: 3, total_quantity: 8, average_order_value: 35000 },
+  daily_sales: [
+    { date: '2026-07-01', total_revenue: 68000, unique_orders: 2, total_quantity: 5 },
+    { date: '2026-07-02', total_revenue: 37000, unique_orders: 1, total_quantity: 3 },
+  ],
+  high_day: { date: '2026-07-01', total_revenue: 68000 },
+  low_day: { date: '2026-07-02', total_revenue: 37000 },
+};
+
+test('sales trend validator rejects inconsistent AOV, empty totals, and excessive point counts', () => {
+  assert.equal(isSalesTrendResponse(SALES_TREND), true);
+  assert.equal(isSalesTrendResponse({ ...SALES_TREND, summary: { ...SALES_TREND.summary, average_order_value: 1 } }), false);
+  assert.equal(isSalesTrendResponse({ ...SALES_TREND, daily_sales: [] , high_day: null, low_day: null }), false);
+  assert.equal(isSalesTrendResponse({ ...SALES_TREND, daily_sales: Array.from({ length: 3661 }, (_, index) => ({ date: `2026-07-${String(index + 1).padStart(2, '0')}`, total_revenue: 0, unique_orders: 0, total_quantity: 0 })) }), false);
+});
 
 async function listen(server) {
   server.listen(0, '127.0.0.1');
@@ -45,6 +64,7 @@ test('Node analytics gateway validates FastAPI responses and controls upstream f
   let mode = 'success';
   const upstream = http.createServer((req, res) => {
     requestedPaths.push(req.url);
+    const pathname = new URL(req.url, 'http://upstream').pathname;
 
     if (mode === 'timeout') return;
     if (mode === 'body-timeout') {
@@ -56,6 +76,10 @@ test('Node analytics gateway validates FastAPI responses and controls upstream f
       res.writeHead(500, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ detail: '/private/python/path: internal failure' }));
     }
+    if (mode === 'upstream-range-error') {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ detail: '/private/python/path must stay hidden' }));
+    }
     if (mode === 'invalid-json') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end('{not-json');
@@ -66,7 +90,8 @@ test('Node analytics gateway validates FastAPI responses and controls upstream f
         '/analytics/summary': { total_revenue: 'not-a-number' },
         '/analytics/products': { products: [{ product_name: 'Es Teh', total_quantity: 'nine', total_revenue: 45000 }] },
         '/analytics/categories': { categories: [{ category: '', total_revenue: 120000 }] },
-      }[req.url];
+        '/analytics/sales-trend': { ...SALES_TREND, daily_sales: [...SALES_TREND.daily_sales].reverse() },
+      }[pathname];
       return res.end(JSON.stringify(invalidBody));
     }
     if (mode === 'extra-fields') {
@@ -79,7 +104,8 @@ test('Node analytics gateway validates FastAPI responses and controls upstream f
         '/analytics/categories': {
           categories: [{ ...CATEGORIES.categories[0], internal_debug: 'must not pass through' }],
         },
-      }[req.url];
+        '/analytics/sales-trend': { ...SALES_TREND, internal_debug: true },
+      }[pathname];
       return res.end(JSON.stringify(extraBody));
     }
 
@@ -87,7 +113,8 @@ test('Node analytics gateway validates FastAPI responses and controls upstream f
       '/analytics/summary': SUMMARY,
       '/analytics/products': PRODUCTS,
       '/analytics/categories': CATEGORIES,
-    }[req.url];
+      '/analytics/sales-trend': SALES_TREND,
+    }[pathname];
     res.writeHead(body ? 200 : 404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(body || { detail: 'not found' }));
   });
@@ -108,16 +135,44 @@ test('Node analytics gateway validates FastAPI responses and controls upstream f
     assert.deepEqual(await (await request('/api/analytics/summary')).json(), SUMMARY);
     assert.deepEqual(await (await request('/api/analytics/products')).json(), PRODUCTS);
     assert.deepEqual(await (await request('/api/analytics/categories')).json(), CATEGORIES);
-    assert.deepEqual(requestedPaths.slice(0, 3), [
+    assert.deepEqual(await (await request('/api/analytics/sales-trend?start_date=2026-07-01&end_date=2026-07-02')).json(), SALES_TREND);
+    assert.deepEqual(requestedPaths.slice(0, 4), [
       '/analytics/summary',
       '/analytics/products',
       '/analytics/categories',
+      '/analytics/sales-trend?start_date=2026-07-01&end_date=2026-07-02',
     ]);
+
+    for (const endpoint of ['summary', 'products', 'categories', 'sales-trend']) {
+      const response = await request(`/api/analytics/${endpoint}?start_date=2026-07-01&end_date=2026-07-02`);
+      assert.equal(response.status, 200);
+    }
+    assert.deepEqual(requestedPaths.slice(4, 8), [
+      '/analytics/summary?start_date=2026-07-01&end_date=2026-07-02',
+      '/analytics/products?start_date=2026-07-01&end_date=2026-07-02',
+      '/analytics/categories?start_date=2026-07-01&end_date=2026-07-02',
+      '/analytics/sales-trend?start_date=2026-07-01&end_date=2026-07-02',
+    ]);
+
+    const requestCount = requestedPaths.length;
+    assert.equal((await request('/api/analytics/sales-trend?start_date=bad&end_date=2026-07-02')).status, 400);
+    assert.equal((await request('/api/analytics/sales-trend?start_date=2026-07-03&end_date=2026-07-02')).status, 400);
+    assert.equal((await request('/api/analytics/sales-trend?upstream_url=http://evil.test')).status, 400);
+    assert.equal((await request('/api/analytics/products?path=analytics%2Fsummary')).status, 400);
+    assert.equal((await request('/api/analytics/summary?start_date=2026-07-01&start_date=2026-07-02')).status, 400);
+    assert.equal(requestedPaths.length, requestCount);
 
     mode = 'upstream-error';
     const upstreamError = await request('/api/analytics/summary');
     await assertControlledFailure(upstreamError, 502, 'Layanan analitik tidak tersedia');
     assert.doesNotMatch(JSON.stringify(await (await request('/api/health')).json()), /private|python/i);
+
+    mode = 'upstream-range-error';
+    await assertControlledFailure(
+      await request('/api/analytics/products?start_date=2026-07-01&end_date=2026-07-02'),
+      400,
+      'Rentang tanggal tidak valid'
+    );
 
     mode = 'invalid-json';
     await assertControlledFailure(
@@ -127,7 +182,7 @@ test('Node analytics gateway validates FastAPI responses and controls upstream f
     );
 
     mode = 'invalid-contract';
-    for (const endpoint of ['summary', 'products', 'categories']) {
+    for (const endpoint of ['summary', 'products', 'categories', 'sales-trend']) {
       await assertControlledFailure(
         await request(`/api/analytics/${endpoint}`),
         502,
@@ -136,7 +191,7 @@ test('Node analytics gateway validates FastAPI responses and controls upstream f
     }
 
     mode = 'extra-fields';
-    for (const endpoint of ['summary', 'products', 'categories']) {
+    for (const endpoint of ['summary', 'products', 'categories', 'sales-trend']) {
       await assertControlledFailure(
         await request(`/api/analytics/${endpoint}`),
         502,
@@ -146,14 +201,14 @@ test('Node analytics gateway validates FastAPI responses and controls upstream f
 
     mode = 'timeout';
     await assertControlledFailure(
-      await request('/api/analytics/summary'),
+      await request('/api/analytics/sales-trend'),
       504,
       'Layanan analitik tidak merespons tepat waktu'
     );
 
     mode = 'body-timeout';
     await assertControlledFailure(
-      await request('/api/analytics/summary'),
+      await request('/api/analytics/sales-trend'),
       504,
       'Layanan analitik tidak merespons tepat waktu'
     );

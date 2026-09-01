@@ -1150,6 +1150,392 @@ h2 {
 }
 
 /* ==========================================================
+   ADMIN ANALYTICS (Phase 4G - Analytics Dashboard UI)
+   KPI memakai .admin-overview-card yang sama (4 kolom) supaya konsisten
+   visual dengan #adminOverview di atasnya. Data KPI/tabel/kategori diisi
+   lewat fetch ke Node saat admin membuka "Analitik" (Phase 4G-2), dengan
+   bar proporsional kategori dari Phase 4G-3 dan perbaikan fokus/live-region
+   dari Phase 4G-4.
+   ========================================================== */
+.admin-analytics {
+  margin-top: 32px;
+}
+
+.admin-analytics-intro {
+  margin-bottom: 16px;
+}
+
+.admin-analytics-intro h3 {
+  margin-bottom: 4px;
+}
+
+.admin-analytics-intro p {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.admin-analytics-kpi {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-analytics-panels {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+.admin-analytics-panel {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-bg);
+}
+
+.admin-analytics-panel h4 {
+  margin-bottom: 12px;
+  font-size: 1rem;
+}
+
+.admin-sales-trend {
+  margin-bottom: 16px;
+}
+
+.admin-sales-trend-header,
+.admin-sales-trend-form,
+.admin-sales-trend-extremes {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-sales-trend-header > div > p,
+.admin-sales-trend-extremes span {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.admin-sales-trend-form label {
+  display: grid;
+  gap: 5px;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.analytics-date-trigger,
+.analytics-calendar select {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.analytics-date-picker {
+  position: relative;
+  display: grid;
+  gap: 5px;
+}
+
+.analytics-date-label {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.analytics-date-trigger {
+  min-width: 170px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.analytics-calendar {
+  position: fixed;
+  z-index: 20;
+  box-sizing: border-box;
+  width: min(320px, calc(100vw - 32px));
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
+}
+
+.analytics-calendar-header {
+  display: grid;
+  grid-template-columns: 40px 1fr 88px 40px;
+  gap: 6px;
+  align-items: center;
+}
+
+.analytics-calendar-nav,
+.analytics-calendar-grid button {
+  min-width: 40px;
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.analytics-calendar-nav:disabled,
+.analytics-calendar-grid button:disabled {
+  color: var(--color-text-muted);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.analytics-calendar-weekdays,
+.analytics-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  text-align: center;
+}
+
+.analytics-calendar-weekdays {
+  margin: 12px 0 4px;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.analytics-calendar-grid button:hover:not(:disabled),
+.analytics-calendar-grid button:focus-visible {
+  border-color: var(--color-accent);
+  background: var(--color-bg-soft);
+}
+
+.analytics-calendar-grid button.is-selected {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 700;
+}
+
+.analytics-calendar-grid button[aria-current="date"]:not(.is-selected) {
+  border-color: var(--color-accent-dark);
+}
+
+.analytics-available-period,
+.analytics-active-period {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.analytics-active-period {
+  margin-top: 3px;
+}
+
+.admin-sales-trend-metrics {
+  display: grid;
+  grid-template-columns: 1.5fr repeat(3, 1fr);
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.admin-sales-trend-metrics article {
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--color-bg-soft);
+}
+
+.admin-sales-trend-metrics p {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.admin-sales-trend-metrics strong {
+  display: block;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-sales-trend-total strong {
+  color: var(--color-accent-dark);
+  font-size: 1.55rem;
+}
+
+.admin-sales-trend-extremes {
+  align-items: start;
+  justify-content: flex-start;
+  margin-bottom: 14px;
+}
+
+.admin-sales-trend-extremes p {
+  display: grid;
+  gap: 3px;
+  min-width: min(100%, 240px);
+}
+
+.admin-sales-chart-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+}
+
+.admin-sales-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.admin-sales-chart-grid { stroke: var(--color-border); stroke-width: 1; }
+.admin-sales-chart-line { fill: none; stroke: var(--color-accent); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.admin-sales-chart-active-marker { fill: var(--color-bg); stroke: var(--color-accent-dark); stroke-width: 3; pointer-events: none; }
+.admin-sales-chart-active-marker.is-hidden,
+.admin-sales-chart-active-marker[hidden] { display: none; }
+.admin-sales-chart-hit-area { fill: transparent; cursor: crosshair; }
+.admin-sales-chart-label { fill: var(--color-text-muted); font-size: 12px; }
+
+.admin-sales-chart.is-entering {
+  animation: admin-sales-chart-reveal 240ms ease-out;
+}
+
+@keyframes admin-sales-chart-reveal {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-sales-tooltip {
+  position: absolute;
+  z-index: 2;
+  max-width: 220px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.analytics-date-trigger:focus-visible,
+.analytics-calendar select:focus-visible,
+.analytics-calendar button:focus-visible,
+.admin-sales-trend-form button:focus-visible,
+.admin-sales-chart-hit-area:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.admin-analytics-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.admin-analytics-table th,
+.admin-analytics-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-analytics-table th {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Nama produk boleh membungkus (bisa panjang); kolom angka tetap ringkas,
+   rata kanan, dan pakai tabular-nums supaya angka mudah dipindai. */
+.admin-analytics-table td:first-child {
+  white-space: normal;
+  word-break: break-word;
+}
+
+.admin-analytics-table th:nth-child(2),
+.admin-analytics-table th:nth-child(3),
+.admin-analytics-table td:nth-child(2),
+.admin-analytics-table td:nth-child(3) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-analytics-category-chart {
+  min-height: 160px;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  padding: 4px 16px;
+}
+
+/* Daftar kategori dengan bar proporsional CSS murni (Phase 4G-3) - lebar bar
+   dihitung di script.js (computeCategoryBarWidth) relatif terhadap revenue
+   kategori terbesar. Nilai revenue asli tetap tampil sebagai teks; bar hanya
+   bantuan visual (aria-hidden), bukan sumber informasi satu-satunya. */
+.admin-analytics-category-list {
+  margin: 12px 0;
+  list-style: none;
+}
+
+.admin-analytics-category-item {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-analytics-category-item:last-child {
+  border-bottom: none;
+}
+
+.admin-analytics-category-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.admin-analytics-category-meta span:last-child {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.admin-analytics-category-track {
+  height: 8px;
+  border-radius: var(--radius);
+  background-color: var(--color-bg-soft);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.admin-analytics-category-fill {
+  height: 100%;
+  background-color: var(--color-accent);
+  border-radius: var(--radius);
+}
+
+/* ==========================================================
    12. FOCUS STATES (KEYBOARD NAVIGATION)
    ========================================================== */
 .filter-btn:focus-visible,
@@ -1179,7 +1565,9 @@ h2 {
 .btn-admin-delete:focus-visible,
 .admin-entry:focus-visible,
 .admin-nav-link:focus-visible,
-.admin-overview:focus-visible {
+.admin-overview:focus-visible,
+.admin-analytics:focus-visible,
+.admin-analytics-table-wrap:focus-visible {
   outline: 2px solid var(--color-accent-dark);
   outline-offset: 2px;
 }
@@ -1193,6 +1581,14 @@ h2 {
   }
 
   .keunggulan-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-analytics-kpi {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-sales-trend-metrics {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -1335,6 +1731,36 @@ h2 {
 
   .admin-overview {
     grid-template-columns: 1fr;
+  }
+
+  .admin-analytics-kpi {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-analytics-panels {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sales-trend-form,
+  .admin-sales-trend-form label,
+  .analytics-date-picker,
+  .analytics-date-trigger,
+  .admin-sales-trend-form button {
+    width: 100%;
+  }
+
+  .analytics-calendar {
+    width: min(320px, calc(100vw - 24px));
+  }
+
+  .admin-sales-trend-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-sales-chart.is-entering {
+    animation: none;
   }
 }
 

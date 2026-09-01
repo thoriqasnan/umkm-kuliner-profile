@@ -2,7 +2,7 @@
 
 Sari Rasa is a full-stack learning and portfolio application for a local Indonesian culinary business. Customers can browse a bilingual menu, maintain a guest or account-backed cart, and hand an order off to WhatsApp. Authenticated administrators can manage the product catalog.
 
-The currently implemented system uses a vanilla browser frontend, an Express API, and SQLite persistence. A separate local Python workspace (`python/`) contains the verified Phase 4A foundation, complete Phase 4B pipeline, verified Phase 4C Pandas/NumPy analysis, and a FastAPI analytics service. Node/Express remains the application-facing backend and now exposes server-side analytics gateway routes that call FastAPI over HTTP/JSON. The browser does not call FastAPI directly, and no analytics dashboard is implemented. All synthetic data is fictional; it does not represent any real customer or company. Machine learning, deep learning, and AI integration remain future roadmap work.
+The currently implemented system uses a vanilla browser frontend, an Express API, and SQLite persistence. A separate local Python workspace (`python/`) contains the verified Phase 4A foundation, complete Phase 4B pipeline, verified Phase 4C Pandas/NumPy analysis, and a FastAPI analytics service. Node/Express remains the application-facing backend and exposes server-side analytics gateway routes that call FastAPI over HTTP/JSON. The Admin Analytics Dashboard includes summary KPIs, product performance, proportional Revenue by Category bars, and a native-SVG Sales Trend. One dataset-bounded calendar period filters all four sections consistently; its available dates are derived from transaction data rather than frontend constants. The browser does not call FastAPI directly. All synthetic data is fictional; it does not represent any real customer or company. Machine learning, deep learning, and AI integration remain future roadmap work.
 
 ## Implemented features
 
@@ -150,10 +150,10 @@ Current verified baseline:
 
 | Suite | Tests | Result |
 |---|---:|---|
-| Backend and database | 31 | 31 passed |
-| Frontend VM and contracts | 26 | 26 passed |
-| Combined | 57 | 57 passed |
-| Python data/service | 213 | 213 passed |
+| Backend and database | 32 | 32 passed |
+| Frontend VM and contracts | 57 | 57 passed |
+| Combined Node suites | 89 | 89 passed |
+| Python data/service | 228 | 228 passed |
 
 The backend suite uses Node's built-in test runner, temporary SQLite databases, and ephemeral HTTP ports. It covers authentication, authorization, products, carts, merge idempotency, constraints, cascades, schema evolution, and development-database protection.
 
@@ -226,10 +226,11 @@ These controls are appropriate to the current learning project; they are not a c
 - Phase 4D-4 — Error Handling & Final Verification: verified complete
 - Phase 4D overall: verified complete (final user manual acceptance passed)
 - Phase 4E — Node.js ↔ Python Integration: verified complete (manual integration acceptance passed)
-- Phase 4F — Integration & Quality Gate: provisionally complete (awaiting final user acceptance)
-- Phase 4 overall: provisionally complete (awaiting final user acceptance)
+- Phase 4F — Integration & Quality Gate: verified complete
+- Phase 4 overall: verified complete
+- Phase 4G — Analytics Dashboard UI: verified complete (final user browser acceptance passed)
 - Phase 5 — Machine Learning: next / not started
-- Remaining Phase 4 work, machine learning, deep learning, and AI phases: future work
+- Machine learning, deep learning, and AI phases: future work
 
 See the [Project Roadmap](ROADMAP.md) for the approved phase sequence and current source of truth.
 

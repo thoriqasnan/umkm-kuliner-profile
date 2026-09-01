@@ -106,6 +106,28 @@ def pandas_daily_revenue(dataframe: pd.DataFrame) -> dict[str, int]:
     return _grouped_integer_totals(dataframe, "order_date", "line_total")
 
 
+def pandas_daily_sales(dataframe: pd.DataFrame) -> list[dict[str, str | int]]:
+    """Return daily revenue, distinct orders, and quantity in date order."""
+    grouped = (
+        dataframe.groupby("order_date", as_index=False)
+        .agg(
+            total_revenue=("line_total", "sum"),
+            unique_orders=("order_id", "nunique"),
+            total_quantity=("quantity", "sum"),
+        )
+        .sort_values("order_date", kind="stable")
+    )
+    return [
+        {
+            "date": str(row.order_date),
+            "total_revenue": int(row.total_revenue),
+            "unique_orders": int(row.unique_orders),
+            "total_quantity": int(row.total_quantity),
+        }
+        for row in grouped.itertuples(index=False)
+    ]
+
+
 def product_quantity_ranking(dataframe: pd.DataFrame) -> list[dict[str, str | int]]:
     """Return products by quantity descending, then name ascending for ties."""
     quantities = (

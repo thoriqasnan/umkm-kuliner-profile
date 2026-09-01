@@ -1366,6 +1366,44 @@ const translations = {
     "admin.dashboardNav": "Dashboard",
     "admin.productsNav": "Produk",
     "admin.viewWebsiteNav": "Lihat Website",
+    "admin.analyticsNav": "Analitik",
+    "admin.analyticsTitle": "Analitik Penjualan",
+    "admin.analyticsDesc": "Ringkasan performa penjualan yang didukung layanan analitik.",
+    "admin.analyticsRevenue": "Total Pendapatan",
+    "admin.analyticsOrders": "Pesanan Unik",
+    "admin.analyticsQuantity": "Jumlah Terjual",
+    "admin.analyticsAOV": "Rata-rata Nilai Pesanan",
+    "admin.analyticsProductPerfTitle": "Performa Produk",
+    "admin.analyticsTableCaption": "Tabel performa produk berdasarkan jumlah terjual dan pendapatan",
+    "admin.analyticsColProduct": "Produk",
+    "admin.analyticsColQuantity": "Jumlah Terjual",
+    "admin.analyticsColRevenue": "Pendapatan",
+    "admin.analyticsCategoryTitle": "Pendapatan per Kategori",
+    "admin.analyticsLoading": "Memuat data analitik...",
+    "admin.analyticsError": "Gagal memuat data analitik. Silakan coba lagi.",
+    "admin.analyticsProductsEmpty": "Belum ada data performa produk.",
+    "admin.analyticsCategoriesEmpty": "Belum ada data kategori.",
+    "admin.salesTrendTitle": "Tren Penjualan",
+    "admin.salesTrendStart": "Tanggal Mulai",
+    "admin.salesTrendEnd": "Tanggal Akhir",
+    "admin.salesTrendApply": "Terapkan",
+    "admin.salesTrendTotal": "Total Penjualan",
+    "admin.salesTrendHigh": "Hari Penjualan Tertinggi",
+    "admin.salesTrendLow": "Hari Penjualan Terendah",
+    "admin.salesTrendDate": "Tanggal",
+    "admin.salesTrendTableCaption": "Data penjualan harian untuk rentang terpilih",
+    "admin.salesTrendLoading": "Memuat tren penjualan...",
+    "admin.salesTrendError": "Tren penjualan tidak dapat dimuat. Silakan coba lagi.",
+    "admin.salesTrendEmpty": "Tidak ada penjualan pada periode terpilih.",
+    "admin.salesTrendInvalid": "Pilih rentang tanggal yang valid.",
+    "admin.activePeriod": "Periode aktif",
+    "admin.availablePeriod": "Data tersedia",
+    "admin.calendarPrev": "Bulan sebelumnya",
+    "admin.calendarNext": "Bulan berikutnya",
+    "admin.calendarMonth": "Bulan",
+    "admin.calendarYear": "Tahun",
+    "admin.calendarOpen": "Buka kalender",
+    "admin.chartExplore": "Jelajahi detail tanggal dengan tombol panah kiri dan kanan",
     "admin.totalProducts": "Total Produk",
     "admin.productsLoading": "Memuat...",
     "admin.productsUnavailable": "Tidak tersedia",
@@ -1527,6 +1565,44 @@ const translations = {
     "admin.dashboardNav": "Dashboard",
     "admin.productsNav": "Products",
     "admin.viewWebsiteNav": "View Website",
+    "admin.analyticsNav": "Analytics",
+    "admin.analyticsTitle": "Sales Analytics",
+    "admin.analyticsDesc": "Sales performance summary powered by the analytics service.",
+    "admin.analyticsRevenue": "Total Revenue",
+    "admin.analyticsOrders": "Unique Orders",
+    "admin.analyticsQuantity": "Quantity Sold",
+    "admin.analyticsAOV": "Average Order Value",
+    "admin.analyticsProductPerfTitle": "Product Performance",
+    "admin.analyticsTableCaption": "Table of product performance by quantity sold and revenue",
+    "admin.analyticsColProduct": "Product",
+    "admin.analyticsColQuantity": "Quantity Sold",
+    "admin.analyticsColRevenue": "Revenue",
+    "admin.analyticsCategoryTitle": "Revenue by Category",
+    "admin.analyticsLoading": "Loading analytics data...",
+    "admin.analyticsError": "Failed to load analytics data. Please try again.",
+    "admin.analyticsProductsEmpty": "No product performance data yet.",
+    "admin.analyticsCategoriesEmpty": "No category data yet.",
+    "admin.salesTrendTitle": "Sales Trend",
+    "admin.salesTrendStart": "Start Date",
+    "admin.salesTrendEnd": "End Date",
+    "admin.salesTrendApply": "Apply",
+    "admin.salesTrendTotal": "Total Sales",
+    "admin.salesTrendHigh": "Highest Sales Day",
+    "admin.salesTrendLow": "Lowest Sales Day",
+    "admin.salesTrendDate": "Date",
+    "admin.salesTrendTableCaption": "Daily sales data for the selected range",
+    "admin.salesTrendLoading": "Loading sales trend...",
+    "admin.salesTrendError": "Unable to load sales trend. Please try again.",
+    "admin.salesTrendEmpty": "No sales in selected period.",
+    "admin.salesTrendInvalid": "Choose a valid date range.",
+    "admin.activePeriod": "Active period",
+    "admin.availablePeriod": "Data available",
+    "admin.calendarPrev": "Previous month",
+    "admin.calendarNext": "Next month",
+    "admin.calendarMonth": "Month",
+    "admin.calendarYear": "Year",
+    "admin.calendarOpen": "Open calendar",
+    "admin.chartExplore": "Explore date details with the left and right arrow keys",
     "admin.totalProducts": "Total Products",
     "admin.productsLoading": "Loading...",
     "admin.productsUnavailable": "Unavailable",
@@ -1632,7 +1708,15 @@ function applyLanguage(lang) {
 }
 
 langButtons.forEach((btn) => {
-  btn.addEventListener("click", () => applyLanguage(btn.dataset.lang));
+  btn.addEventListener("click", () => {
+    applyLanguage(btn.dataset.lang);
+    if (analyticsState && analyticsState.trend && analyticsState.trend.data) {
+      renderSalesTrend(analyticsState.trend.data);
+      renderAvailablePeriod();
+      if (!startCalendar.calendar.hidden) renderCalendar(startCalendar);
+      if (!endCalendar.calendar.hidden) renderCalendar(endCalendar);
+    }
+  });
 });
 
 // Bahasa terakhir yang dipilih customer disimpan di localStorage,
@@ -1759,6 +1843,7 @@ const adminCurrentRole = document.getElementById("adminCurrentRole");
 const adminLoggedInEmail = document.getElementById("adminLoggedInEmail");
 const adminTotalProducts = document.getElementById("adminTotalProducts");
 const adminOverview = document.getElementById("adminOverview");
+const adminAnalytics = document.getElementById("adminAnalytics");
 const adminNavLinks = document.querySelectorAll(".admin-nav-link[data-admin-destination]");
 const adminLogoutBtn = document.getElementById("adminLogoutBtn");
 
@@ -1913,6 +1998,835 @@ function isBackdropClick(dialog, event) {
 }
 
 // ----------------------------------------------------------
+// 9a-2. ANALITIK ADMIN (Phase 4G-2 Integrasi API, Phase 4G-3 Visualisasi)
+// ----------------------------------------------------------
+// Tiga endpoint Node (bukan layanan Python di baliknya secara langsung - lihat
+// lib/pythonAnalyticsClient.js di backend) dimuat lazy sekali per sesi admin,
+// saat nav "Analitik" pertama kali diklik. Kegagalan satu bagian (summary/
+// products/categories) TIDAK
+// boleh menghapus bagian lain yang berhasil - karena itu tiga status
+// independen (bukan satu status global seperti #menuStatus) dan tiga
+// fetch terpisah lewat Promise.allSettled, bukan Promise.all.
+const adminAnalyticsStatusEl = document.getElementById("adminAnalyticsStatus");
+const adminAnalyticsRevenueEl = document.getElementById("adminAnalyticsRevenue");
+const adminAnalyticsOrdersEl = document.getElementById("adminAnalyticsOrders");
+const adminAnalyticsQuantityEl = document.getElementById("adminAnalyticsQuantity");
+const adminAnalyticsAOVEl = document.getElementById("adminAnalyticsAOV");
+const adminAnalyticsProductBodyEl = document.getElementById("adminAnalyticsProductBody");
+const adminAnalyticsProductsStatusEl = document.getElementById("adminAnalyticsProductsStatus");
+const adminAnalyticsCategoryChartEl = document.getElementById("adminAnalyticsCategoryChart");
+const adminAnalyticsCategoriesStatusEl = document.getElementById("adminAnalyticsCategoriesStatus");
+const adminSalesTrendFormEl = document.getElementById("adminSalesTrendForm");
+const adminSalesTrendStartEl = document.getElementById("adminSalesTrendStartInput");
+const adminSalesTrendEndEl = document.getElementById("adminSalesTrendEndInput");
+const adminSalesTrendStatusEl = document.getElementById("adminSalesTrendStatus");
+const adminSalesTrendRangeEl = document.getElementById("adminSalesTrendRange");
+const adminSalesTrendRevenueEl = document.getElementById("adminSalesTrendRevenue");
+const adminSalesTrendOrdersEl = document.getElementById("adminSalesTrendOrders");
+const adminSalesTrendQuantityEl = document.getElementById("adminSalesTrendQuantity");
+const adminSalesTrendAOVEl = document.getElementById("adminSalesTrendAOV");
+const adminSalesTrendHighEl = document.getElementById("adminSalesTrendHigh");
+const adminSalesTrendLowEl = document.getElementById("adminSalesTrendLow");
+const adminSalesTrendChartEl = document.getElementById("adminSalesTrendChart");
+const adminSalesTrendTooltipEl = document.getElementById("adminSalesTrendTooltip");
+const adminSalesTrendTableBodyEl = document.getElementById("adminSalesTrendTableBody");
+const adminAnalyticsAvailablePeriodEl = document.getElementById("adminAnalyticsAvailablePeriod");
+const adminAnalyticsAppliedPeriodEl = document.getElementById("adminAnalyticsAppliedPeriod");
+const adminSalesTrendApplyBtnEl = document.getElementById("adminSalesTrendApplyBtn");
+
+function calendarElements(prefix) {
+  return {
+    picker: document.getElementById(`${prefix}Picker`),
+    trigger: document.getElementById(`${prefix}Trigger`),
+    value: document.getElementById(`${prefix}Value`),
+    input: document.getElementById(`${prefix}Input`),
+    calendar: document.getElementById(`${prefix}Calendar`),
+    prev: document.getElementById(`${prefix}Prev`),
+    next: document.getElementById(`${prefix}Next`),
+    month: document.getElementById(`${prefix}Month`),
+    year: document.getElementById(`${prefix}Year`),
+    weekdays: document.getElementById(`${prefix}Weekdays`),
+    grid: document.getElementById(`${prefix}Grid`),
+    viewDate: null,
+  };
+}
+const startCalendar = calendarElements("adminSalesTrendStart");
+const endCalendar = calendarElements("adminSalesTrendEnd");
+
+// analyticsGeneration dinaikkan setiap kali identitas admin efektif berubah
+// (logout, role turun, atau ganti akun admin) - loader yang masih berjalan
+// mengecek generation sebelum merender supaya respons "telat" dari admin/sesi
+// sebelumnya tidak pernah tampil setelah identitas berubah.
+let analyticsGeneration = 0;
+let analyticsAdminUserId = null;
+let analyticsState = null;
+let analyticsChartTransitionTimer = null;
+
+function createAnalyticsState() {
+  return {
+    summary: { status: "idle", data: null, cache: new Map(), requestId: 0, rangeKey: null },
+    products: { status: "idle", data: null, cache: new Map(), requestId: 0, rangeKey: null },
+    categories: { status: "idle", data: null, cache: new Map(), requestId: 0, rangeKey: null },
+    trend: { status: "idle", data: null, rangeKey: null, cache: new Map(), requestId: 0 },
+    minAvailableDate: null,
+    maxAvailableDate: null,
+    appliedStartDate: null,
+    appliedEndDate: null,
+  };
+}
+
+function showAnalyticsSectionStatus(el, key, type) {
+  el.dataset.i18n = key;
+  el.textContent = translations[document.documentElement.lang][key];
+  el.className = `menu-status ${type}`;
+  const isError = type === "error";
+  el.setAttribute("role", isError ? "alert" : "status");
+  // aria-live eksplisit HARUS ikut role: "alert" secara implisit berarti
+  // assertive, tapi atribut aria-live eksplisit menang atas role kalau
+  // nilainya berbeda - tanpa baris ini status error bisa dianggap "polite"
+  // oleh sebagian AT walau role-nya "alert".
+  el.setAttribute("aria-live", isError ? "assertive" : "polite");
+}
+
+function hideAnalyticsSectionStatus(el) {
+  el.className = "menu-status hide";
+  el.removeAttribute("data-i18n");
+  el.textContent = "";
+  el.setAttribute("role", "status");
+  el.setAttribute("aria-live", "polite");
+}
+
+function resetAnalyticsDom() {
+  if (analyticsChartTransitionTimer !== null) clearTimeout(analyticsChartTransitionTimer);
+  analyticsChartTransitionTimer = null;
+  adminAnalyticsRevenueEl.textContent = "—";
+  adminAnalyticsOrdersEl.textContent = "—";
+  adminAnalyticsQuantityEl.textContent = "—";
+  adminAnalyticsAOVEl.textContent = "—";
+  adminAnalyticsProductBodyEl.innerHTML = "";
+  adminAnalyticsCategoryChartEl.innerHTML = "";
+  hideAnalyticsSectionStatus(adminAnalyticsStatusEl);
+  hideAnalyticsSectionStatus(adminAnalyticsProductsStatusEl);
+  hideAnalyticsSectionStatus(adminAnalyticsCategoriesStatusEl);
+  adminSalesTrendRangeEl.textContent = "—";
+  adminSalesTrendRevenueEl.textContent = "—";
+  adminSalesTrendOrdersEl.textContent = "—";
+  adminSalesTrendQuantityEl.textContent = "—";
+  adminSalesTrendAOVEl.textContent = "—";
+  adminSalesTrendHighEl.textContent = "—";
+  adminSalesTrendLowEl.textContent = "—";
+  adminSalesTrendChartEl.innerHTML = "";
+  adminSalesTrendTableBodyEl.innerHTML = "";
+  adminSalesTrendStartEl.value = "";
+  adminSalesTrendEndEl.value = "";
+  startCalendar.value.textContent = "—";
+  endCalendar.value.textContent = "—";
+  startCalendar.trigger.disabled = true;
+  endCalendar.trigger.disabled = true;
+  adminSalesTrendApplyBtnEl.disabled = true;
+  adminAnalyticsAvailablePeriodEl.textContent = "—";
+  adminAnalyticsAppliedPeriodEl.textContent = "—";
+  hideAnalyticsSectionStatus(adminSalesTrendStatusEl);
+}
+
+function analyticsRangeQuery(startDate, endDate) {
+  const query = new URLSearchParams();
+  if (startDate) query.set("start_date", startDate);
+  if (endDate) query.set("end_date", endDate);
+  return query.toString() ? `?${query.toString()}` : "";
+}
+
+async function fetchAnalyticsSummary(startDate, endDate) {
+  const response = await fetch(`${API_BASE_URL}/api/analytics/summary${analyticsRangeQuery(startDate, endDate)}`, { credentials: "include" });
+  if (!response.ok) throw new Error(`Analytics summary API gagal dengan status ${response.status}`);
+  const data = await response.json();
+  if (
+    !data ||
+    typeof data !== "object" ||
+    typeof data.total_revenue !== "number" ||
+    !Number.isFinite(data.total_revenue) ||
+    data.total_revenue < 0 ||
+    !Number.isInteger(data.unique_orders) ||
+    data.unique_orders < 0 ||
+    !Number.isInteger(data.total_quantity) ||
+    data.total_quantity < 0 ||
+    typeof data.average_order_value !== "number" ||
+    !Number.isFinite(data.average_order_value) ||
+    data.average_order_value < 0
+  ) {
+    throw new Error("Respons analytics summary tidak valid");
+  }
+  return data;
+}
+
+async function fetchAnalyticsProducts(startDate, endDate) {
+  const response = await fetch(`${API_BASE_URL}/api/analytics/products${analyticsRangeQuery(startDate, endDate)}`, { credentials: "include" });
+  if (!response.ok) throw new Error(`Analytics products API gagal dengan status ${response.status}`);
+  const data = await response.json();
+  const products = data && typeof data === "object" ? data.products : null;
+  const isValid =
+    Array.isArray(products) &&
+    products.every(
+      (product) =>
+        product &&
+        typeof product === "object" &&
+        typeof product.product_name === "string" &&
+        product.product_name.trim().length > 0 &&
+        Number.isInteger(product.total_quantity) &&
+        product.total_quantity >= 0 &&
+        typeof product.total_revenue === "number" &&
+        Number.isFinite(product.total_revenue) &&
+        product.total_revenue >= 0
+    );
+  if (!isValid) throw new Error("Respons analytics products tidak valid");
+  return products;
+}
+
+async function fetchAnalyticsCategories(startDate, endDate) {
+  const response = await fetch(`${API_BASE_URL}/api/analytics/categories${analyticsRangeQuery(startDate, endDate)}`, { credentials: "include" });
+  if (!response.ok) throw new Error(`Analytics categories API gagal dengan status ${response.status}`);
+  const data = await response.json();
+  const categories = data && typeof data === "object" ? data.categories : null;
+  const isValid =
+    Array.isArray(categories) &&
+    categories.every(
+      (category) =>
+        category &&
+        typeof category === "object" &&
+        typeof category.category === "string" &&
+        category.category.trim().length > 0 &&
+        typeof category.total_revenue === "number" &&
+        Number.isFinite(category.total_revenue) &&
+        category.total_revenue >= 0
+    );
+  if (!isValid) throw new Error("Respons analytics categories tidak valid");
+  return categories;
+}
+
+function isIsoCalendarDate(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function validateSalesTrend(data) {
+  if (!data || typeof data !== "object" || !isIsoCalendarDate(data.start_date) ||
+      !isIsoCalendarDate(data.end_date) || data.start_date > data.end_date || !data.summary ||
+      !data.available_period || !isIsoCalendarDate(data.available_period.min_available_date) ||
+      !isIsoCalendarDate(data.available_period.max_available_date) ||
+      data.available_period.min_available_date > data.start_date ||
+      data.end_date > data.available_period.max_available_date ||
+      !Array.isArray(data.daily_sales) || data.daily_sales.length > 3660) return false;
+  const summary = data.summary;
+  if (typeof summary.total_revenue !== "number" || !Number.isFinite(summary.total_revenue) || summary.total_revenue < 0 ||
+      !Number.isInteger(summary.unique_orders) || summary.unique_orders < 0 ||
+      !Number.isInteger(summary.total_quantity) || summary.total_quantity < 0 ||
+      typeof summary.average_order_value !== "number" || !Number.isFinite(summary.average_order_value) || summary.average_order_value < 0) return false;
+  const expectedAov = summary.unique_orders === 0 ? 0 : summary.total_revenue / summary.unique_orders;
+  if (Math.abs(summary.average_order_value - expectedAov) > 1e-9) return false;
+  let previous = "";
+  let revenue = 0;
+  let quantity = 0;
+  for (const point of data.daily_sales) {
+    if (!point || typeof point !== "object" || !isIsoCalendarDate(point.date) || point.date <= previous ||
+        point.date < data.start_date || point.date > data.end_date ||
+        typeof point.total_revenue !== "number" || !Number.isFinite(point.total_revenue) || point.total_revenue < 0 ||
+        !Number.isInteger(point.unique_orders) || point.unique_orders < 0 ||
+        !Number.isInteger(point.total_quantity) || point.total_quantity < 0) return false;
+    previous = point.date;
+    revenue += point.total_revenue;
+    quantity += point.total_quantity;
+  }
+  if (revenue !== summary.total_revenue || quantity !== summary.total_quantity) return false;
+  if (data.daily_sales.length === 0) return data.high_day === null && data.low_day === null && summary.total_revenue === 0 && summary.unique_orders === 0 && summary.total_quantity === 0 && summary.average_order_value === 0;
+  const validDay = (day) => day && isIsoCalendarDate(day.date) && typeof day.total_revenue === "number" && Number.isFinite(day.total_revenue);
+  if (!validDay(data.high_day) || !validDay(data.low_day)) return false;
+  const high = data.daily_sales.reduce((best, point) => point.total_revenue > best.total_revenue ? point : best);
+  const low = data.daily_sales.reduce((best, point) => point.total_revenue < best.total_revenue ? point : best);
+  return data.high_day.date === high.date && data.high_day.total_revenue === high.total_revenue &&
+    data.low_day.date === low.date && data.low_day.total_revenue === low.total_revenue;
+}
+
+async function fetchSalesTrend(startDate, endDate) {
+  const query = new URLSearchParams();
+  if (startDate) query.set("start_date", startDate);
+  if (endDate) query.set("end_date", endDate);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await fetch(`${API_BASE_URL}/api/analytics/sales-trend${suffix}`, { credentials: "include" });
+  if (!response.ok) throw new Error(`Sales trend API gagal dengan status ${response.status}`);
+  const data = await response.json();
+  if (!validateSalesTrend(data)) throw new Error("Respons sales trend tidak valid");
+  return data;
+}
+
+function formatAnalyticsDate(value) {
+  const locale = document.documentElement.lang === "en" ? "en-GB" : "id-ID";
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })
+    .format(new Date(`${value}T00:00:00Z`));
+}
+
+function isoFromDate(dateValue) {
+  return dateValue.toISOString().slice(0, 10);
+}
+
+function monthStart(isoDate) {
+  const dateValue = new Date(`${isoDate}T00:00:00Z`);
+  return new Date(Date.UTC(dateValue.getUTCFullYear(), dateValue.getUTCMonth(), 1));
+}
+
+function renderAvailablePeriod() {
+  if (!analyticsState || !analyticsState.minAvailableDate) return;
+  const lang = document.documentElement.lang;
+  adminAnalyticsAvailablePeriodEl.textContent = `${translations[lang]["admin.availablePeriod"]}: ${formatAnalyticsDate(analyticsState.minAvailableDate)} – ${formatAnalyticsDate(analyticsState.maxAvailableDate)}`;
+  adminAnalyticsAppliedPeriodEl.textContent = `${formatAnalyticsDate(analyticsState.appliedStartDate)} – ${formatAnalyticsDate(analyticsState.appliedEndDate)}`;
+  startCalendar.value.textContent = formatAnalyticsDate(adminSalesTrendStartEl.value);
+  endCalendar.value.textContent = formatAnalyticsDate(adminSalesTrendEndEl.value);
+}
+
+function closeCalendar(calendar, returnFocus = false) {
+  calendar.calendar.hidden = true;
+  calendar.trigger.setAttribute("aria-expanded", "false");
+  if (returnFocus) calendar.trigger.focus();
+}
+
+function visibleBottomObstructionTop(viewportBottom, margin) {
+  const cartBar = document.getElementById("cartBar");
+  if (!cartBar || cartBar.hidden) return viewportBottom - margin;
+  const rect = cartBar.getBoundingClientRect();
+  const overlapsViewportBottom = rect.height > 0 && rect.top < viewportBottom && rect.bottom >= viewportBottom - margin;
+  return overlapsViewportBottom ? rect.top - margin : viewportBottom - margin;
+}
+
+function visibleTopObstructionBottom(viewportTop, margin, gap) {
+  const defaultTop = viewportTop + margin;
+  const navbar = document.getElementById("navbar");
+  if (!navbar || navbar.hidden || !navbar.classList.contains("navbar")) return defaultTop;
+  const rect = navbar.getBoundingClientRect();
+  const overlapsViewportTop = rect.height > 0 && rect.top <= defaultTop && rect.bottom > viewportTop;
+  return overlapsViewportTop ? Math.max(defaultTop, rect.bottom + gap) : defaultTop;
+}
+
+function positionCalendar(calendar) {
+  if (calendar.calendar.hidden) return;
+  const margin = 12;
+  const gap = 8;
+  const visualViewport = window.visualViewport;
+  const viewportLeft = visualViewport ? visualViewport.offsetLeft : 0;
+  const viewportTop = visualViewport ? visualViewport.offsetTop : 0;
+  const viewportWidth = visualViewport?.width || window.innerWidth || document.documentElement.clientWidth;
+  const viewportHeight = visualViewport?.height || window.innerHeight || document.documentElement.clientHeight;
+  const viewportBottom = viewportTop + viewportHeight;
+  const usableTop = visibleTopObstructionBottom(viewportTop, margin, gap);
+  const triggerRect = calendar.trigger.getBoundingClientRect();
+  const calendarRect = calendar.calendar.getBoundingClientRect();
+  const desiredHeight = calendar.calendar.scrollHeight || calendarRect.height;
+  const usableBottom = Math.max(usableTop, visibleBottomObstructionTop(viewportBottom, margin));
+  const availableBelow = Math.max(0, usableBottom - triggerRect.bottom - gap);
+  const availableAbove = Math.max(0, triggerRect.top - gap - usableTop);
+  const fitsBelow = desiredHeight <= availableBelow;
+  const fitsAbove = desiredHeight <= availableAbove;
+  const openAbove = !fitsBelow && (fitsAbove || availableAbove > availableBelow);
+  const availableHeight = Math.max(0, Math.min(usableBottom - usableTop, openAbove ? availableAbove : availableBelow));
+  const renderedHeight = Math.min(desiredHeight, availableHeight);
+  const minLeft = viewportLeft + margin;
+  const maxLeft = Math.max(minLeft, viewportLeft + viewportWidth - calendarRect.width - margin);
+  const naturalTop = openAbove ? triggerRect.top - gap - renderedHeight : triggerRect.bottom + gap;
+  const maxTop = Math.max(usableTop, usableBottom - renderedHeight);
+  const clampedTop = Math.max(usableTop, Math.min(maxTop, naturalTop));
+
+  calendar.calendar.classList.toggle("opens-above", openAbove);
+  calendar.calendar.style.left = `${Math.max(minLeft, Math.min(maxLeft, triggerRect.right - calendarRect.width))}px`;
+  calendar.calendar.style.right = "auto";
+  calendar.calendar.style.top = `${clampedTop}px`;
+  calendar.calendar.style.bottom = "auto";
+  calendar.calendar.style.maxHeight = `${availableHeight}px`;
+}
+
+function renderCalendar(calendar) {
+  if (!analyticsState || !analyticsState.minAvailableDate) return;
+  const minDate = analyticsState.minAvailableDate;
+  const maxDate = analyticsState.maxAvailableDate;
+  const selectedDate = calendar.input.value;
+  const view = calendar.viewDate || monthStart(selectedDate || minDate);
+  calendar.viewDate = view;
+  const year = view.getUTCFullYear();
+  const month = view.getUTCMonth();
+  const min = new Date(`${minDate}T00:00:00Z`); const max = new Date(`${maxDate}T00:00:00Z`);
+  const lang = document.documentElement.lang === "en" ? "en-US" : "id-ID";
+
+  calendar.year.innerHTML = "";
+  for (let value = min.getUTCFullYear(); value <= max.getUTCFullYear(); value += 1) {
+    const option = document.createElement("option"); option.value = String(value); option.textContent = String(value); option.selected = value === year; calendar.year.appendChild(option);
+  }
+  calendar.year.value = String(year);
+  calendar.month.innerHTML = "";
+  for (let value = 0; value < 12; value += 1) {
+    const option = document.createElement("option"); option.value = String(value);
+    option.textContent = new Intl.DateTimeFormat(lang, { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2020, value, 1)));
+    option.disabled = (year === min.getUTCFullYear() && value < min.getUTCMonth()) || (year === max.getUTCFullYear() && value > max.getUTCMonth());
+    option.selected = value === month; calendar.month.appendChild(option);
+  }
+  calendar.month.value = String(month);
+  const currentMonthIndex = year * 12 + month;
+  calendar.prev.disabled = currentMonthIndex <= min.getUTCFullYear() * 12 + min.getUTCMonth();
+  calendar.next.disabled = currentMonthIndex >= max.getUTCFullYear() * 12 + max.getUTCMonth();
+  calendar.weekdays.innerHTML = "";
+  for (let day = 0; day < 7; day += 1) {
+    const label = document.createElement("span"); label.textContent = new Intl.DateTimeFormat(lang, { weekday: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2026, 7, 2 + day))); calendar.weekdays.appendChild(label);
+  }
+  calendar.grid.innerHTML = "";
+  const firstWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay();
+  for (let index = 0; index < firstWeekday; index += 1) calendar.grid.appendChild(document.createElement("span"));
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const today = isoFromDate(new Date());
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const isoDate = isoFromDate(new Date(Date.UTC(year, month, day)));
+    const button = document.createElement("button"); button.type = "button"; button.textContent = String(day); button.dataset.date = isoDate;
+    button.setAttribute("role", "gridcell"); button.setAttribute("aria-label", formatAnalyticsDate(isoDate));
+    button.disabled = isoDate < minDate || isoDate > maxDate;
+    button.setAttribute("aria-selected", isoDate === selectedDate ? "true" : "false");
+    if (isoDate === selectedDate) button.classList.add("is-selected");
+    if (isoDate === today) button.setAttribute("aria-current", "date");
+    button.addEventListener("click", () => {
+      calendar.input.value = isoDate; calendar.value.textContent = formatAnalyticsDate(isoDate); closeCalendar(calendar, true);
+    });
+    button.addEventListener("keydown", (event) => {
+      const offsets = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+      if (!(event.key in offsets)) return;
+      event.preventDefault();
+      const next = new Date(`${isoDate}T00:00:00Z`); next.setUTCDate(next.getUTCDate() + offsets[event.key]);
+      const nextIso = isoFromDate(next);
+      if (nextIso < minDate || nextIso > maxDate) return;
+      calendar.viewDate = monthStart(nextIso); renderCalendar(calendar);
+      queueMicrotask(() => calendar.grid.querySelector(`[data-date="${nextIso}"]`)?.focus());
+    });
+    calendar.grid.appendChild(button);
+  }
+  positionCalendar(calendar);
+}
+
+function openCalendar(calendar) {
+  const other = calendar === startCalendar ? endCalendar : startCalendar;
+  closeCalendar(other);
+  calendar.viewDate = monthStart(calendar.input.value || analyticsState.minAvailableDate);
+  renderCalendar(calendar); calendar.calendar.hidden = false; calendar.trigger.setAttribute("aria-expanded", "true");
+  positionCalendar(calendar);
+  queueMicrotask(() => (calendar.grid.querySelector(`[data-date="${calendar.input.value}"]`) || calendar.grid.querySelector("button:not([disabled])"))?.focus());
+}
+
+function changeCalendarMonth(calendar, delta) {
+  const next = new Date(calendar.viewDate); next.setUTCMonth(next.getUTCMonth() + delta); calendar.viewDate = next; renderCalendar(calendar);
+}
+
+function setupCalendar(calendar) {
+  calendar.calendar.hidden = true;
+  calendar.trigger.addEventListener("click", () => calendar.calendar.hidden ? openCalendar(calendar) : closeCalendar(calendar, true));
+  calendar.prev.addEventListener("click", () => changeCalendarMonth(calendar, -1));
+  calendar.next.addEventListener("click", () => changeCalendarMonth(calendar, 1));
+  calendar.month.addEventListener("change", () => { calendar.viewDate = new Date(Date.UTC(Number(calendar.year.value), Number(calendar.month.value), 1)); renderCalendar(calendar); });
+  calendar.year.addEventListener("change", () => {
+    const year = Number(calendar.year.value); const min = new Date(`${analyticsState.minAvailableDate}T00:00:00Z`); const max = new Date(`${analyticsState.maxAvailableDate}T00:00:00Z`);
+    const month = Math.max(year === min.getUTCFullYear() ? min.getUTCMonth() : 0, Math.min(year === max.getUTCFullYear() ? max.getUTCMonth() : 11, calendar.viewDate.getUTCMonth()));
+    calendar.viewDate = new Date(Date.UTC(year, month, 1)); renderCalendar(calendar);
+  });
+  calendar.calendar.addEventListener("keydown", (event) => { if (event.key === "Escape") { event.preventDefault(); closeCalendar(calendar, true); } });
+}
+
+setupCalendar(startCalendar);
+setupCalendar(endCalendar);
+document.addEventListener("pointerdown", (event) => {
+  for (const calendar of [startCalendar, endCalendar]) if (!calendar.calendar.hidden && !calendar.picker.contains(event.target)) closeCalendar(calendar);
+});
+window.addEventListener("resize", () => {
+  for (const calendar of [startCalendar, endCalendar]) positionCalendar(calendar);
+});
+window.visualViewport?.addEventListener("resize", () => {
+  for (const calendar of [startCalendar, endCalendar]) positionCalendar(calendar);
+});
+
+function showSalesPoint(point, x, y, svg) {
+  const lang = document.documentElement.lang;
+  adminSalesTrendTooltipEl.textContent = `${formatAnalyticsDate(point.date)} · ${translations[lang]["admin.analyticsColRevenue"]}: ${formatRupiah(point.total_revenue)} · ${translations[lang]["admin.analyticsOrders"]}: ${point.unique_orders} · ${translations[lang]["admin.analyticsQuantity"]}: ${point.total_quantity}`;
+  adminSalesTrendTooltipEl.classList.remove("hide");
+  const svgRect = svg.getBoundingClientRect();
+  const wrapperRect = adminSalesTrendChartEl.parentNode.getBoundingClientRect();
+  const scaleX = svgRect.width / 800 || 1;
+  const scaleY = svgRect.height / 300 || scaleX;
+  const tooltipWidth = adminSalesTrendTooltipEl.offsetWidth || 190;
+  const tooltipHeight = adminSalesTrendTooltipEl.offsetHeight || 64;
+  const pointLeft = (svgRect.left - wrapperRect.left) + x * scaleX;
+  const pointTop = (svgRect.top - wrapperRect.top) + y * scaleY;
+  const maxLeft = Math.max(8, wrapperRect.width - tooltipWidth - 8);
+  const maxTop = Math.max(8, wrapperRect.height - tooltipHeight - 8);
+  const preferredLeft = pointLeft + 12;
+  const preferredTop = pointTop - tooltipHeight - 12;
+  adminSalesTrendTooltipEl.style.left = `${Math.max(8, Math.min(maxLeft, preferredLeft))}px`;
+  adminSalesTrendTooltipEl.style.top = `${Math.max(8, Math.min(maxTop, preferredTop < 8 ? pointTop + 12 : preferredTop))}px`;
+}
+
+function renderSalesTrend(data) {
+  const summary = data.summary;
+  adminSalesTrendRangeEl.textContent = `${formatAnalyticsDate(data.start_date)} – ${formatAnalyticsDate(data.end_date)}`;
+  adminSalesTrendRevenueEl.textContent = formatRupiah(summary.total_revenue);
+  adminSalesTrendOrdersEl.textContent = summary.unique_orders.toLocaleString("id-ID");
+  adminSalesTrendQuantityEl.textContent = summary.total_quantity.toLocaleString("id-ID");
+  adminSalesTrendAOVEl.textContent = formatRupiah(summary.average_order_value);
+  adminSalesTrendHighEl.textContent = data.high_day ? `${formatRupiah(data.high_day.total_revenue)} — ${formatAnalyticsDate(data.high_day.date)}` : "—";
+  adminSalesTrendLowEl.textContent = data.low_day ? `${formatRupiah(data.low_day.total_revenue)} — ${formatAnalyticsDate(data.low_day.date)}` : "—";
+  adminSalesTrendChartEl.innerHTML = "";
+  adminSalesTrendTableBodyEl.innerHTML = "";
+  adminSalesTrendTooltipEl.classList.add("hide");
+  adminSalesTrendTooltipEl.textContent = "";
+  adminSalesTrendTooltipEl.style.left = "";
+  adminSalesTrendTooltipEl.style.top = "";
+  data.daily_sales.forEach((point) => {
+    const row = document.createElement("tr");
+    [formatAnalyticsDate(point.date), formatRupiah(point.total_revenue), String(point.unique_orders), String(point.total_quantity)].forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    });
+    adminSalesTrendTableBodyEl.appendChild(row);
+  });
+  if (data.daily_sales.length === 0) {
+    showAnalyticsSectionStatus(adminSalesTrendStatusEl, "admin.salesTrendEmpty", "empty");
+    return;
+  }
+  hideAnalyticsSectionStatus(adminSalesTrendStatusEl);
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 800 300");
+  svg.setAttribute("aria-label", translations[document.documentElement.lang]["admin.salesTrendTitle"]);
+  const left = 68, right = 780, top = 24, bottom = 250;
+  const maxRevenue = Math.max(...data.daily_sales.map((point) => point.total_revenue), 1);
+  for (let index = 0; index <= 4; index += 1) {
+    const y = top + ((bottom - top) * index / 4);
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", left); line.setAttribute("x2", right); line.setAttribute("y1", y); line.setAttribute("y2", y); line.setAttribute("class", "admin-sales-chart-grid");
+    svg.appendChild(line);
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    const tickRevenue = Math.round(maxRevenue * (1 - index / 4));
+    label.setAttribute("x", left - 8); label.setAttribute("y", y + 4); label.setAttribute("text-anchor", "end"); label.setAttribute("class", "admin-sales-chart-label");
+    label.textContent = tickRevenue >= 1000 ? `Rp${Math.round(tickRevenue / 1000)}rb` : `Rp${tickRevenue}`;
+    svg.appendChild(label);
+  }
+  const coords = data.daily_sales.map((point, index) => ({
+    point,
+    x: data.daily_sales.length === 1 ? (left + right) / 2 : left + ((right - left) * index / (data.daily_sales.length - 1)),
+    y: bottom - ((bottom - top) * point.total_revenue / maxRevenue),
+  }));
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", coords.length === 1
+    ? `M ${coords[0].x - 18} ${coords[0].y} L ${coords[0].x + 18} ${coords[0].y}`
+    : coords.map(({ x, y }, index) => `${index ? "L" : "M"} ${x} ${y}`).join(" "));
+  path.setAttribute("class", "admin-sales-chart-line");
+  svg.appendChild(path);
+  const activeMarker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  activeMarker.setAttribute("r", 5); activeMarker.setAttribute("class", "admin-sales-chart-active-marker is-hidden"); activeMarker.setAttribute("hidden", "");
+  svg.appendChild(activeMarker);
+  let activeIndex = -1;
+  const selectPoint = (index) => {
+    activeIndex = Math.max(0, Math.min(coords.length - 1, index));
+    const selected = coords[activeIndex];
+    activeMarker.setAttribute("cx", selected.x); activeMarker.setAttribute("cy", selected.y);
+    activeMarker.classList.remove("is-hidden"); activeMarker.removeAttribute("hidden");
+    showSalesPoint(selected.point, selected.x, selected.y, svg);
+  };
+  const overlay = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  overlay.setAttribute("x", left); overlay.setAttribute("y", top); overlay.setAttribute("width", right - left); overlay.setAttribute("height", bottom - top);
+  overlay.setAttribute("class", "admin-sales-chart-hit-area"); overlay.setAttribute("tabindex", "0");
+  overlay.setAttribute("aria-label", translations[document.documentElement.lang]["admin.chartExplore"]);
+  const selectNearest = (event) => {
+    const rect = svg.getBoundingClientRect();
+    const viewX = ((event.clientX - rect.left) / (rect.width || 1)) * 800;
+    const ratio = Math.max(0, Math.min(1, (viewX - left) / (right - left)));
+    selectPoint(coords.length === 1 ? 0 : Math.round(ratio * (coords.length - 1)));
+  };
+  overlay.addEventListener("pointermove", selectNearest);
+  overlay.addEventListener("click", selectNearest);
+  overlay.addEventListener("focus", () => selectPoint(activeIndex < 0 ? 0 : activeIndex));
+  overlay.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+      event.preventDefault(); selectPoint((activeIndex < 0 ? 0 : activeIndex) + (event.key === "ArrowRight" ? 1 : -1));
+    } else if (event.key === "Escape") {
+      adminSalesTrendTooltipEl.classList.add("hide"); activeMarker.classList.add("is-hidden"); activeMarker.setAttribute("hidden", ""); activeIndex = -1;
+    }
+  });
+  overlay.addEventListener("pointerleave", () => { adminSalesTrendTooltipEl.classList.add("hide"); activeMarker.classList.add("is-hidden"); activeMarker.setAttribute("hidden", ""); activeIndex = -1; });
+  overlay.addEventListener("blur", () => { adminSalesTrendTooltipEl.classList.add("hide"); activeMarker.classList.add("is-hidden"); activeMarker.setAttribute("hidden", ""); activeIndex = -1; });
+  svg.appendChild(overlay);
+  const labelStep = Math.max(1, Math.ceil(coords.length / 5));
+  coords.forEach(({ point, x }, index) => {
+    if (index % labelStep !== 0 && index !== coords.length - 1) return;
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", x); label.setAttribute("y", 278); label.setAttribute("text-anchor", "middle"); label.setAttribute("class", "admin-sales-chart-label");
+    label.textContent = point.date.slice(5).split("-").reverse().join("/");
+    svg.appendChild(label);
+  });
+  adminSalesTrendChartEl.appendChild(svg);
+  if (analyticsChartTransitionTimer !== null) clearTimeout(analyticsChartTransitionTimer);
+  adminSalesTrendChartEl.classList.add("is-entering");
+  analyticsChartTransitionTimer = setTimeout(() => {
+    adminSalesTrendChartEl.classList.remove("is-entering"); analyticsChartTransitionTimer = null;
+  }, 260);
+}
+
+function clearSalesTrendVisualization() {
+  adminSalesTrendRangeEl.textContent = "—";
+  adminSalesTrendRevenueEl.textContent = "—";
+  adminSalesTrendOrdersEl.textContent = "—";
+  adminSalesTrendQuantityEl.textContent = "—";
+  adminSalesTrendAOVEl.textContent = "—";
+  adminSalesTrendHighEl.textContent = "—";
+  adminSalesTrendLowEl.textContent = "—";
+  adminSalesTrendChartEl.innerHTML = "";
+  adminSalesTrendTableBodyEl.innerHTML = "";
+  adminSalesTrendTooltipEl.classList.add("hide");
+  adminSalesTrendTooltipEl.textContent = "";
+  adminSalesTrendTooltipEl.style.left = "";
+  adminSalesTrendTooltipEl.style.top = "";
+}
+
+function applyAnalyticsAvailability(data) {
+  analyticsState.minAvailableDate = data.available_period.min_available_date;
+  analyticsState.maxAvailableDate = data.available_period.max_available_date;
+  if (!analyticsState.appliedStartDate) {
+    analyticsState.appliedStartDate = data.start_date;
+    analyticsState.appliedEndDate = data.end_date;
+    adminSalesTrendStartEl.value = data.start_date;
+    adminSalesTrendEndEl.value = data.end_date;
+  }
+  startCalendar.trigger.disabled = false; endCalendar.trigger.disabled = false; adminSalesTrendApplyBtnEl.disabled = false;
+  renderAvailablePeriod();
+}
+
+async function loadSalesTrend(generation, startDate, endDate) {
+  const trend = analyticsState.trend;
+  const rangeKey = `${startDate || "all"}|${endDate || "all"}`;
+  const cached = trend.cache.get(rangeKey);
+  if (cached) { trend.requestId += 1; trend.data = cached; trend.rangeKey = rangeKey; trend.status = cached.daily_sales.length ? "success" : "empty"; applyAnalyticsAvailability(cached); renderSalesTrend(cached); return; }
+  const requestId = ++trend.requestId;
+  trend.status = "loading";
+  trend.data = null;
+  clearSalesTrendVisualization();
+  showAnalyticsSectionStatus(adminSalesTrendStatusEl, "admin.salesTrendLoading", "loading");
+  try {
+    const data = await fetchSalesTrend(startDate, endDate);
+    if (generation !== analyticsGeneration || !analyticsState || requestId !== analyticsState.trend.requestId) return;
+    trend.cache.set(rangeKey, data);
+    trend.cache.set(`${data.start_date}|${data.end_date}`, data);
+    trend.data = data; trend.rangeKey = `${data.start_date}|${data.end_date}`;
+    trend.status = data.daily_sales.length ? "success" : "empty";
+    applyAnalyticsAvailability(data);
+    renderSalesTrend(data);
+  } catch (error) {
+    if (generation !== analyticsGeneration || !analyticsState || requestId !== analyticsState.trend.requestId) return;
+    trend.status = "error";
+    console.error("Gagal memuat tren penjualan:", error);
+    showAnalyticsSectionStatus(adminSalesTrendStatusEl, "admin.salesTrendError", "error");
+  }
+}
+
+function analyticsKey(startDate, endDate) {
+  return `${startDate || "all"}|${endDate || "all"}`;
+}
+
+function renderAnalyticsSummary(data) {
+  adminAnalyticsRevenueEl.textContent = formatRupiah(data.total_revenue);
+  adminAnalyticsOrdersEl.textContent = data.unique_orders.toLocaleString("id-ID");
+  adminAnalyticsQuantityEl.textContent = data.total_quantity.toLocaleString("id-ID");
+  adminAnalyticsAOVEl.textContent = formatRupiah(data.average_order_value);
+  hideAnalyticsSectionStatus(adminAnalyticsStatusEl);
+}
+
+async function loadAnalyticsSummary(generation, startDate, endDate) {
+  const section = analyticsState.summary;
+  const rangeKey = analyticsKey(startDate, endDate);
+  if (section.cache.has(rangeKey)) {
+    section.requestId += 1;
+    section.data = section.cache.get(rangeKey); section.rangeKey = rangeKey; section.status = "success";
+    renderAnalyticsSummary(section.data); return;
+  }
+  const requestId = ++section.requestId;
+  section.status = "loading"; section.data = null; section.rangeKey = rangeKey;
+  adminAnalyticsRevenueEl.textContent = "—"; adminAnalyticsOrdersEl.textContent = "—";
+  adminAnalyticsQuantityEl.textContent = "—"; adminAnalyticsAOVEl.textContent = "—";
+  showAnalyticsSectionStatus(adminAnalyticsStatusEl, "admin.analyticsLoading", "loading");
+  try {
+    const data = await fetchAnalyticsSummary(startDate, endDate);
+    if (generation !== analyticsGeneration || !analyticsState || requestId !== analyticsState.summary.requestId) return;
+    section.cache.set(rangeKey, data); section.data = data; section.status = "success";
+    renderAnalyticsSummary(data);
+  } catch (error) {
+    if (generation !== analyticsGeneration || !analyticsState || requestId !== analyticsState.summary.requestId) return;
+    section.status = "error"; section.data = null;
+    console.error("Gagal memuat ringkasan analitik:", error);
+    showAnalyticsSectionStatus(adminAnalyticsStatusEl, "admin.analyticsError", "error");
+  }
+}
+
+function renderAnalyticsProducts(products) {
+  adminAnalyticsProductBodyEl.innerHTML = "";
+  products.forEach((product) => {
+    const row = document.createElement("tr");
+    const nameCell = document.createElement("td"); nameCell.textContent = product.product_name;
+    const qtyCell = document.createElement("td"); qtyCell.textContent = product.total_quantity.toLocaleString("id-ID");
+    const revenueCell = document.createElement("td"); revenueCell.textContent = formatRupiah(product.total_revenue);
+    row.append(nameCell, qtyCell, revenueCell); adminAnalyticsProductBodyEl.appendChild(row);
+  });
+  if (products.length === 0) showAnalyticsSectionStatus(adminAnalyticsProductsStatusEl, "admin.analyticsProductsEmpty", "empty");
+  else hideAnalyticsSectionStatus(adminAnalyticsProductsStatusEl);
+}
+
+async function loadAnalyticsProducts(generation, startDate, endDate) {
+  const section = analyticsState.products;
+  const rangeKey = analyticsKey(startDate, endDate);
+  if (section.cache.has(rangeKey)) {
+    section.requestId += 1;
+    const products = section.cache.get(rangeKey); section.data = products; section.rangeKey = rangeKey; section.status = products.length ? "success" : "empty";
+    renderAnalyticsProducts(products); return;
+  }
+  const requestId = ++section.requestId;
+  section.status = "loading"; section.data = null; section.rangeKey = rangeKey;
+  adminAnalyticsProductBodyEl.innerHTML = "";
+  showAnalyticsSectionStatus(adminAnalyticsProductsStatusEl, "admin.analyticsLoading", "loading");
+  try {
+    const products = await fetchAnalyticsProducts(startDate, endDate);
+    if (generation !== analyticsGeneration || !analyticsState || requestId !== analyticsState.products.requestId) return;
+    section.cache.set(rangeKey, products); section.data = products; section.status = products.length ? "success" : "empty";
+    renderAnalyticsProducts(products);
+  } catch (error) {
+    if (generation !== analyticsGeneration || !analyticsState || requestId !== analyticsState.products.requestId) return;
+    section.status = "error"; section.data = null;
+    console.error("Gagal memuat performa produk analitik:", error);
+    showAnalyticsSectionStatus(adminAnalyticsProductsStatusEl, "admin.analyticsError", "error");
+  }
+}
+
+// Menghitung lebar bar proporsional (0-100) berdasarkan revenue kategori
+// dibanding revenue kategori terbesar di dataset saat ini. Dijaga dari
+// pembagian oleh nol saat semua kategori bernilai 0 - hasilnya selalu integer
+// 0-100, tidak pernah NaN/Infinity/negatif/di atas 100. Persentase ini murni
+// skala visual bar, BUKAN metrik bisnis baru - nilai revenue asli tetap
+// ditampilkan sebagai teks di setiap item.
+function computeCategoryBarWidth(revenue, maxRevenue) {
+  if (!Number.isFinite(revenue) || !Number.isFinite(maxRevenue) || revenue <= 0 || maxRevenue <= 0) {
+    return 0;
+  }
+  const percent = Math.round((revenue / maxRevenue) * 100);
+  return Math.min(100, Math.max(0, percent));
+}
+
+function renderAnalyticsCategories(categories) {
+    adminAnalyticsCategoryChartEl.innerHTML = "";
+    if (categories.length > 0) {
+      const maxRevenue = Math.max(...categories.map((category) => category.total_revenue));
+      const list = document.createElement("ul");
+      list.className = "admin-analytics-category-list";
+      categories.forEach((category) => {
+        const percent = computeCategoryBarWidth(category.total_revenue, maxRevenue);
+
+        const item = document.createElement("li");
+        item.className = "admin-analytics-category-item";
+
+        const meta = document.createElement("div");
+        meta.className = "admin-analytics-category-meta";
+        const nameEl = document.createElement("span");
+        nameEl.textContent = category.category;
+        const valueEl = document.createElement("span");
+        valueEl.textContent = formatRupiah(category.total_revenue);
+        meta.append(nameEl, valueEl);
+
+        const track = document.createElement("div");
+        track.className = "admin-analytics-category-track";
+        track.setAttribute("aria-hidden", "true");
+        const fill = document.createElement("div");
+        fill.className = "admin-analytics-category-fill";
+        fill.style.width = `${percent}%`;
+        fill.dataset.barPercent = String(percent);
+        track.appendChild(fill);
+
+        item.append(meta, track);
+        list.appendChild(item);
+      });
+      adminAnalyticsCategoryChartEl.appendChild(list);
+    }
+    if (categories.length === 0) {
+      showAnalyticsSectionStatus(adminAnalyticsCategoriesStatusEl, "admin.analyticsCategoriesEmpty", "empty");
+    } else {
+      hideAnalyticsSectionStatus(adminAnalyticsCategoriesStatusEl);
+    }
+}
+
+async function loadAnalyticsCategories(generation, startDate, endDate) {
+  const section = analyticsState.categories;
+  const rangeKey = analyticsKey(startDate, endDate);
+  if (section.cache.has(rangeKey)) {
+    section.requestId += 1;
+    const categories = section.cache.get(rangeKey); section.data = categories; section.rangeKey = rangeKey; section.status = categories.length ? "success" : "empty";
+    renderAnalyticsCategories(categories); return;
+  }
+  const requestId = ++section.requestId;
+  section.status = "loading"; section.data = null; section.rangeKey = rangeKey;
+  adminAnalyticsCategoryChartEl.innerHTML = "";
+  showAnalyticsSectionStatus(adminAnalyticsCategoriesStatusEl, "admin.analyticsLoading", "loading");
+  try {
+    const categories = await fetchAnalyticsCategories(startDate, endDate);
+    if (generation !== analyticsGeneration || !analyticsState || requestId !== analyticsState.categories.requestId) return;
+    section.cache.set(rangeKey, categories); section.data = categories; section.status = categories.length ? "success" : "empty";
+    renderAnalyticsCategories(categories);
+  } catch (error) {
+    if (generation !== analyticsGeneration || !analyticsState || requestId !== analyticsState.categories.requestId) return;
+    section.status = "error"; section.data = null;
+    console.error("Gagal memuat kategori analitik:", error);
+    showAnalyticsSectionStatus(adminAnalyticsCategoriesStatusEl, "admin.analyticsError", "error");
+  }
+}
+
+// Dipanggil setiap kali nav "Analitik" diklik. Bagian yang sudah "success"
+// tidak di-fetch ulang; bagian yang masih "idle" (baru) atau "error" (gagal
+// sebelumnya) dicoba lagi. Tiga fetch berjalan independen lewat
+// Promise.allSettled supaya satu kegagalan tidak membatalkan yang lain.
+function ensureAnalyticsLoaded() {
+  if (!analyticsState) analyticsState = createAnalyticsState();
+  const generation = analyticsGeneration;
+  const tasks = [];
+  if (analyticsState.summary.status === "idle" || analyticsState.summary.status === "error") {
+    tasks.push(loadAnalyticsSummary(generation));
+  }
+  if (analyticsState.products.status === "idle" || analyticsState.products.status === "error") {
+    tasks.push(loadAnalyticsProducts(generation));
+  }
+  if (analyticsState.categories.status === "idle" || analyticsState.categories.status === "error") {
+    tasks.push(loadAnalyticsCategories(generation));
+  }
+  if (analyticsState.trend.status === "idle" || analyticsState.trend.status === "error") {
+    tasks.push(loadSalesTrend(generation));
+  }
+  if (tasks.length > 0) Promise.allSettled(tasks);
+}
+
+adminSalesTrendFormEl.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const startDate = adminSalesTrendStartEl.value;
+  const endDate = adminSalesTrendEndEl.value;
+  if (!analyticsState || !analyticsState.minAvailableDate || !isIsoCalendarDate(startDate) || !isIsoCalendarDate(endDate) || startDate > endDate ||
+      startDate < analyticsState.minAvailableDate || endDate > analyticsState.maxAvailableDate) {
+    showAnalyticsSectionStatus(adminSalesTrendStatusEl, "admin.salesTrendInvalid", "error");
+    (startDate > endDate ? adminSalesTrendStartEl : (!isIsoCalendarDate(startDate) ? adminSalesTrendStartEl : adminSalesTrendEndEl)).focus();
+    return;
+  }
+  analyticsState.appliedStartDate = startDate; analyticsState.appliedEndDate = endDate;
+  renderAvailablePeriod(); closeCalendar(startCalendar); closeCalendar(endCalendar);
+  const generation = analyticsGeneration;
+  Promise.allSettled([
+    loadAnalyticsSummary(generation, startDate, endDate),
+    loadSalesTrend(generation, startDate, endDate),
+    loadAnalyticsProducts(generation, startDate, endDate),
+    loadAnalyticsCategories(generation, startDate, endDate),
+  ]);
+});
+
+// ----------------------------------------------------------
 // 9b. RENDER TAMPILAN NAVBAR SESUAI STATUS LOGIN
 // ----------------------------------------------------------
 // Menentukan mana dari dua elemen sibling (#authLoginBtn vs #authAccount)
@@ -1939,6 +2853,17 @@ function renderAuthUI() {
   adminMenuActions.classList.toggle("hide", !isAdmin);
   adminDashboardEntry.hidden = !isAdmin;
   adminDashboard.hidden = !isAdmin;
+
+  // Analitik terikat ke identitas admin efektif: logout, role turun, atau
+  // ganti akun admin lain semuanya harus membuang data analitik lama supaya
+  // sesi admin berikutnya tidak pernah melihat sisa data admin sebelumnya.
+  const effectiveAdminUserId = isAdmin ? currentUser.id : null;
+  if (effectiveAdminUserId !== analyticsAdminUserId) {
+    analyticsGeneration += 1;
+    analyticsState = null;
+    resetAnalyticsDom();
+    analyticsAdminUserId = effectiveAdminUserId;
+  }
 
   // Kontrol Edit/Hapus dibuat langsung di dalam kartu saat role admin aktif.
   // Cabut segera ketika role efektif bukan admin; jangan menunggu loadMenu()
@@ -1979,6 +2904,9 @@ adminNavLinks.forEach((link) => {
   link.addEventListener("click", () => {
     if (link.dataset.adminDestination === "dashboard") {
       requestAnimationFrame(() => adminOverview.focus());
+    } else if (link.dataset.adminDestination === "analytics") {
+      requestAnimationFrame(() => adminAnalytics.focus());
+      ensureAnalyticsLoaded();
     }
   });
 });

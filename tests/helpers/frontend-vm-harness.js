@@ -36,6 +36,11 @@ class FakeElement {
     this.disabled = false;
     this.hidden = false;
     this.open = false;
+    this.selected = false;
+    this.offsetWidth = 190;
+    this.offsetHeight = 64;
+    this.scrollHeight = 64;
+    this.rect = null;
     this.isConnected = true;
     this._className = '';
     this._innerHTML = '';
@@ -92,7 +97,7 @@ class FakeElement {
   showModal() { this.open = true; }
   close() { this.open = false; }
   reset() { this.value = ''; }
-  getBoundingClientRect() { return { left: 0, right: 100, top: 0, bottom: 100 }; }
+  getBoundingClientRect() { return this.rect || { left: 0, right: 800, top: 0, bottom: 300, width: 800, height: 300 }; }
 }
 
 function dataName(attribute) {
@@ -147,6 +152,7 @@ class FakeDocument {
     this.byId = new Map();
   }
   createElement(tag) { return new FakeElement(tag, this); }
+  createElementNS(namespace, tag) { return new FakeElement(tag, this); }
   getElementById(id) {
     if (!this.byId.has(id)) {
       const element = new FakeElement(elementTag(id), this);
@@ -171,13 +177,19 @@ class FakeDocument {
     if (!this.listeners.has(type)) this.listeners.set(type, []);
     this.listeners.get(type).push(listener);
   }
+  async dispatch(type, values = {}) {
+    const event = { type, target: this, currentTarget: this, preventDefault() {}, ...values };
+    for (const listener of this.listeners.get(type) || []) await listener(event);
+    return event;
+  }
 }
 
 function elementTag(id) {
   if (/Dialog|Panel/.test(id)) return 'dialog';
   if (/Form$/.test(id)) return 'form';
   if (/Input$/.test(id)) return 'input';
-  if (/Btn$|Button/.test(id)) return 'button';
+  if (/Btn$|Button|Trigger$|Prev$|Next$/.test(id)) return 'button';
+  if (/Month$|Year$/.test(id)) return 'select';
   if (/List|Grid|Track|Dots/.test(id)) return 'ul';
   return 'div';
 }
@@ -261,11 +273,21 @@ async function createFrontendHarness(options = {}) {
   };
 
   const windowListeners = new Map();
+  const visualViewportListeners = new Map();
+  const visualViewport = options.visualViewport ? {
+    ...options.visualViewport,
+    addEventListener(type, listener) { if (!visualViewportListeners.has(type)) visualViewportListeners.set(type, []); visualViewportListeners.get(type).push(listener); },
+    async dispatch(type) { for (const listener of visualViewportListeners.get(type) || []) await listener({ type }); },
+  } : null;
   const window = {
     document,
+    innerWidth: options.viewportWidth || 1024,
+    innerHeight: options.viewportHeight || 768,
+    visualViewport,
     location: { hash: '' },
     matchMedia: () => ({ matches: true }),
     addEventListener(type, listener) { if (!windowListeners.has(type)) windowListeners.set(type, []); windowListeners.get(type).push(listener); },
+    async dispatch(type) { for (const listener of windowListeners.get(type) || []) await listener({ type }); },
     open(...args) { opened.push(args); return null; },
     scrollTo() {},
   };
@@ -291,6 +313,7 @@ async function createFrontendHarness(options = {}) {
     authority: cartAuthority, epoch: cartEpoch, userId: authenticatedCartUserId,
     unsynced: cartHasUnsyncedChanges, currentUser: currentUser ? {...currentUser} : null,
     items: serializeCartItems(cartItems), products: Array.from(productsById.values()),
+    analytics: analyticsState ? {min:analyticsState.minAvailableDate,max:analyticsState.maxAvailableDate,appliedStart:analyticsState.appliedStartDate,appliedEnd:analyticsState.appliedEndDate} : null,
     writes: Array.from(cartWriteStates, ([productId, value]) => ({productId, version:value.version, persistedVersion:value.persistedVersion, running:value.running, failed:value.failed, hasTimer:!!value.timer}))
   }),
   setProducts(products) { productsById = new Map(products.map(product => [product.id, product])); productsLoadState = products.length ? 'success' : 'empty'; updateCartSummary(); },
@@ -301,8 +324,18 @@ async function createFrontendHarness(options = {}) {
   drainAuthenticatedCartWritesForLogout, handleLogout, applyLanguage, loadMenu,
   setAuthMode, openProductDialog, handleDeleteProduct,
   readGuestCartSnapshot, readPendingCartMerge, writePendingCartMerge,
+  ensureAnalyticsLoaded, loadSalesTrend, fetchSalesTrend, validateSalesTrend, renderSalesTrend, renderCalendar, positionCalendar,
   elements: {cartCheckoutBtn, cartCountEl, cartTotalEl, cartStatus, cartPanel, cartPanelList, authForm, authEmailInput, authPasswordInput, authLoginBtn, authAccount, adminMenuActions, adminDashboardEntry, authStatus,
-    productDialog, productForm, productSlugInput, productNameInput, productDescriptionIdInput, productDescriptionEnInput, productPriceInput, productCategoryInput, productImageSrcInput, productImageAltInput, productImageWidthInput, productImageHeightInput, productImageSrcsetInput, productImageSizesInput, productSubmitBtn, menuStatus}
+    productDialog, productForm, productSlugInput, productNameInput, productDescriptionIdInput, productDescriptionEnInput, productPriceInput, productCategoryInput, productImageSrcInput, productImageAltInput, productImageWidthInput, productImageHeightInput, productImageSrcsetInput, productImageSizesInput, productSubmitBtn, menuStatus,
+    adminAnalyticsRevenue: adminAnalyticsRevenueEl, adminAnalyticsOrders: adminAnalyticsOrdersEl, adminAnalyticsQuantity: adminAnalyticsQuantityEl, adminAnalyticsAOV: adminAnalyticsAOVEl,
+    adminAnalyticsProductBody: adminAnalyticsProductBodyEl, adminAnalyticsCategoryChart: adminAnalyticsCategoryChartEl,
+    adminAnalyticsStatus: adminAnalyticsStatusEl, adminAnalyticsProductsStatus: adminAnalyticsProductsStatusEl, adminAnalyticsCategoriesStatus: adminAnalyticsCategoriesStatusEl,
+    adminSalesTrendForm: adminSalesTrendFormEl, adminSalesTrendStart: adminSalesTrendStartEl, adminSalesTrendEnd: adminSalesTrendEndEl,
+    adminSalesTrendStatus: adminSalesTrendStatusEl, adminSalesTrendRevenue: adminSalesTrendRevenueEl,
+    adminSalesTrendChart: adminSalesTrendChartEl, adminSalesTrendTooltip: adminSalesTrendTooltipEl, adminSalesTrendTableBody: adminSalesTrendTableBodyEl,
+    adminAnalyticsAvailablePeriod: adminAnalyticsAvailablePeriodEl, adminAnalyticsAppliedPeriod: adminAnalyticsAppliedPeriodEl,
+    startCalendarTrigger: startCalendar.trigger, startCalendarPopover: startCalendar.calendar, startCalendarMonth: startCalendar.month, startCalendarYear: startCalendar.year, startCalendarPrev: startCalendar.prev, startCalendarNext: startCalendar.next, startCalendarGrid: startCalendar.grid,
+    endCalendarTrigger: endCalendar.trigger, endCalendarPopover: endCalendar.calendar, endCalendarMonth: endCalendar.month, endCalendarYear: endCalendar.year, endCalendarPrev: endCalendar.prev, endCalendarNext: endCalendar.next, endCalendarGrid: endCalendar.grid}
 };`;
   vm.createContext(context);
   vm.runInContext(fs.readFileSync(SCRIPT_PATH, 'utf8') + probeSource, context, { filename: SCRIPT_PATH });

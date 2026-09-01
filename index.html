@@ -141,6 +141,7 @@
 
       <nav class="admin-navigation" aria-label="Navigasi admin" data-i18n-aria="admin.navigationLabel">
         <a href="#adminOverview" class="admin-nav-link" data-admin-destination="dashboard" data-i18n="admin.dashboardNav">Dashboard</a>
+        <a href="#adminAnalytics" class="admin-nav-link" data-admin-destination="analytics" data-i18n="admin.analyticsNav">Analitik</a>
         <a href="#menu" class="admin-nav-link" data-admin-destination="products" data-i18n="admin.productsNav">Produk</a>
         <a href="#beranda" class="admin-nav-link" data-admin-destination="website" data-i18n="admin.viewWebsiteNav">Lihat Website</a>
         <button type="button" id="adminLogoutBtn" class="admin-nav-link admin-logout-btn" data-i18n="auth.logoutBtn">Keluar</button>
@@ -160,6 +161,134 @@
           <strong id="adminLoggedInEmail"></strong>
         </article>
       </div>
+
+      <!-- ======================= ADMIN ANALYTICS (Phase 4G) =======================
+           Markup ini kerangka statis (Phase 4G-1); nilai KPI/baris tabel/bar
+           kategori diisi lewat fetch ke Node saat admin membuka "Analitik"
+           (Phase 4G-2 - lihat ensureAnalyticsLoaded() di script.js), dengan
+           bar proporsional kategori dari Phase 4G-3. Sebelum data dimuat atau
+           saat gagal, KPI tetap placeholder netral ("—"), tidak pernah data
+           seolah-olah nyata. -->
+      <section id="adminAnalytics" class="admin-analytics" aria-labelledby="adminAnalyticsTitle" tabindex="-1">
+        <div class="admin-analytics-intro">
+          <h3 id="adminAnalyticsTitle" data-i18n="admin.analyticsTitle">Analitik Penjualan</h3>
+          <p data-i18n="admin.analyticsDesc">Ringkasan performa penjualan yang didukung layanan analitik.</p>
+        </div>
+
+        <p class="menu-status hide" id="adminAnalyticsStatus" role="status" aria-atomic="true" tabindex="-1"></p>
+
+        <div class="admin-analytics-kpi">
+          <article class="admin-overview-card">
+            <p data-i18n="admin.analyticsRevenue">Total Pendapatan</p>
+            <strong id="adminAnalyticsRevenue">—</strong>
+          </article>
+          <article class="admin-overview-card">
+            <p data-i18n="admin.analyticsOrders">Pesanan Unik</p>
+            <strong id="adminAnalyticsOrders">—</strong>
+          </article>
+          <article class="admin-overview-card">
+            <p data-i18n="admin.analyticsQuantity">Jumlah Terjual</p>
+            <strong id="adminAnalyticsQuantity">—</strong>
+          </article>
+          <article class="admin-overview-card">
+            <p data-i18n="admin.analyticsAOV">Rata-rata Nilai Pesanan</p>
+            <strong id="adminAnalyticsAOV">—</strong>
+          </article>
+        </div>
+
+        <section class="admin-analytics-panel admin-sales-trend" aria-labelledby="adminSalesTrendTitle">
+          <div class="admin-sales-trend-header">
+            <div>
+              <h4 id="adminSalesTrendTitle" data-i18n="admin.salesTrendTitle">Tren Penjualan</h4>
+              <p id="adminSalesTrendRange">—</p>
+            </div>
+            <form id="adminSalesTrendForm" class="admin-sales-trend-form">
+              <div class="analytics-date-picker" id="adminSalesTrendStartPicker">
+                <span class="analytics-date-label" id="adminSalesTrendStartLabel" data-i18n="admin.salesTrendStart">Tanggal Mulai</span>
+                <button type="button" class="analytics-date-trigger" id="adminSalesTrendStartTrigger" aria-labelledby="adminSalesTrendStartLabel adminSalesTrendStartValue" aria-expanded="false" disabled><span id="adminSalesTrendStartValue">—</span></button>
+                <input type="hidden" id="adminSalesTrendStartInput">
+                <div class="analytics-calendar" id="adminSalesTrendStartCalendar" aria-labelledby="adminSalesTrendStartLabel" hidden>
+                  <div class="analytics-calendar-header">
+                    <button type="button" class="analytics-calendar-nav" id="adminSalesTrendStartPrev" data-i18n-aria="admin.calendarPrev" aria-label="Bulan sebelumnya">‹</button>
+                    <label class="visually-hidden" for="adminSalesTrendStartMonth" data-i18n="admin.calendarMonth">Bulan</label><select id="adminSalesTrendStartMonth" aria-label="Bulan" data-i18n-aria="admin.calendarMonth"></select>
+                    <label class="visually-hidden" for="adminSalesTrendStartYear" data-i18n="admin.calendarYear">Tahun</label><select id="adminSalesTrendStartYear" aria-label="Tahun" data-i18n-aria="admin.calendarYear"></select>
+                    <button type="button" class="analytics-calendar-nav" id="adminSalesTrendStartNext" data-i18n-aria="admin.calendarNext" aria-label="Bulan berikutnya">›</button>
+                  </div>
+                  <div class="analytics-calendar-weekdays" id="adminSalesTrendStartWeekdays" aria-hidden="true"></div>
+                  <div class="analytics-calendar-grid" id="adminSalesTrendStartGrid" role="grid"></div>
+                </div>
+              </div>
+              <div class="analytics-date-picker" id="adminSalesTrendEndPicker">
+                <span class="analytics-date-label" id="adminSalesTrendEndLabel" data-i18n="admin.salesTrendEnd">Tanggal Akhir</span>
+                <button type="button" class="analytics-date-trigger" id="adminSalesTrendEndTrigger" aria-labelledby="adminSalesTrendEndLabel adminSalesTrendEndValue" aria-expanded="false" disabled><span id="adminSalesTrendEndValue">—</span></button>
+                <input type="hidden" id="adminSalesTrendEndInput">
+                <div class="analytics-calendar" id="adminSalesTrendEndCalendar" aria-labelledby="adminSalesTrendEndLabel" hidden>
+                  <div class="analytics-calendar-header">
+                    <button type="button" class="analytics-calendar-nav" id="adminSalesTrendEndPrev" data-i18n-aria="admin.calendarPrev" aria-label="Bulan sebelumnya">‹</button>
+                    <label class="visually-hidden" for="adminSalesTrendEndMonth" data-i18n="admin.calendarMonth">Bulan</label><select id="adminSalesTrendEndMonth" aria-label="Bulan" data-i18n-aria="admin.calendarMonth"></select>
+                    <label class="visually-hidden" for="adminSalesTrendEndYear" data-i18n="admin.calendarYear">Tahun</label><select id="adminSalesTrendEndYear" aria-label="Tahun" data-i18n-aria="admin.calendarYear"></select>
+                    <button type="button" class="analytics-calendar-nav" id="adminSalesTrendEndNext" data-i18n-aria="admin.calendarNext" aria-label="Bulan berikutnya">›</button>
+                  </div>
+                  <div class="analytics-calendar-weekdays" id="adminSalesTrendEndWeekdays" aria-hidden="true"></div>
+                  <div class="analytics-calendar-grid" id="adminSalesTrendEndGrid" role="grid"></div>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary" id="adminSalesTrendApplyBtn" data-i18n="admin.salesTrendApply">Terapkan</button>
+            </form>
+          </div>
+          <p class="analytics-available-period" id="adminAnalyticsAvailablePeriod">—</p>
+          <p class="analytics-active-period"><span data-i18n="admin.activePeriod">Periode aktif</span>: <strong id="adminAnalyticsAppliedPeriod">—</strong></p>
+          <p class="menu-status hide" id="adminSalesTrendStatus" role="status" aria-atomic="true" tabindex="-1"></p>
+          <div class="admin-sales-trend-metrics">
+            <article class="admin-sales-trend-total">
+              <p data-i18n="admin.salesTrendTotal">Total Penjualan</p>
+              <strong id="adminSalesTrendRevenue">—</strong>
+            </article>
+            <article><p data-i18n="admin.analyticsOrders">Pesanan Unik</p><strong id="adminSalesTrendOrders">—</strong></article>
+            <article><p data-i18n="admin.analyticsQuantity">Jumlah Terjual</p><strong id="adminSalesTrendQuantity">—</strong></article>
+            <article><p data-i18n="admin.analyticsAOV">Rata-rata Nilai Pesanan</p><strong id="adminSalesTrendAOV">—</strong></article>
+          </div>
+          <div class="admin-sales-trend-extremes">
+            <p><span data-i18n="admin.salesTrendHigh">Hari Penjualan Tertinggi</span><strong id="adminSalesTrendHigh">—</strong></p>
+            <p><span data-i18n="admin.salesTrendLow">Hari Penjualan Terendah</span><strong id="adminSalesTrendLow">—</strong></p>
+          </div>
+          <div class="admin-sales-chart-wrap">
+            <div id="adminSalesTrendChart" class="admin-sales-chart" role="group" aria-labelledby="adminSalesTrendTitle adminSalesTrendRange"></div>
+            <div id="adminSalesTrendTooltip" class="admin-sales-tooltip hide" role="status"></div>
+          </div>
+          <table class="visually-hidden" id="adminSalesTrendTable">
+            <caption data-i18n="admin.salesTrendTableCaption">Data penjualan harian untuk rentang terpilih</caption>
+            <thead><tr><th scope="col" data-i18n="admin.salesTrendDate">Tanggal</th><th scope="col" data-i18n="admin.salesTrendTotal">Total Penjualan</th><th scope="col" data-i18n="admin.analyticsOrders">Pesanan Unik</th><th scope="col" data-i18n="admin.analyticsQuantity">Jumlah Terjual</th></tr></thead>
+            <tbody id="adminSalesTrendTableBody"></tbody>
+          </table>
+        </section>
+
+        <div class="admin-analytics-panels">
+          <div class="admin-analytics-panel admin-analytics-table-panel">
+            <h4 id="adminAnalyticsProductPerfHeading" data-i18n="admin.analyticsProductPerfTitle">Performa Produk</h4>
+            <p class="menu-status hide" id="adminAnalyticsProductsStatus" role="status" aria-atomic="true" tabindex="-1"></p>
+            <div class="admin-analytics-table-wrap" tabindex="0" role="region" aria-labelledby="adminAnalyticsProductPerfHeading">
+              <table class="admin-analytics-table">
+                <caption class="visually-hidden" data-i18n="admin.analyticsTableCaption">Tabel performa produk berdasarkan jumlah terjual dan pendapatan</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" data-i18n="admin.analyticsColProduct">Produk</th>
+                    <th scope="col" data-i18n="admin.analyticsColQuantity">Jumlah Terjual</th>
+                    <th scope="col" data-i18n="admin.analyticsColRevenue">Pendapatan</th>
+                  </tr>
+                </thead>
+                <tbody id="adminAnalyticsProductBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="admin-analytics-panel admin-analytics-category-panel">
+            <h4 data-i18n="admin.analyticsCategoryTitle">Pendapatan per Kategori</h4>
+            <p class="menu-status hide" id="adminAnalyticsCategoriesStatus" role="status" aria-atomic="true" tabindex="-1"></p>
+            <div id="adminAnalyticsCategoryChart" class="admin-analytics-category-chart"></div>
+          </div>
+        </div>
+      </section>
     </div>
   </section>
 

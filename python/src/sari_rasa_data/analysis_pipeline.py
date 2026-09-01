@@ -20,6 +20,8 @@ import pandas as pd
 from sari_rasa_data.dataframe import load_transactions_dataframe
 from sari_rasa_data.numpy_analysis import column_to_numpy, summarize_numeric_column
 from sari_rasa_data.pandas_analysis import (
+    filter_by_date_range,
+    pandas_daily_sales,
     pandas_daily_revenue,
     pandas_quantity_by_product,
     pandas_revenue_by_category,
@@ -27,6 +29,69 @@ from sari_rasa_data.pandas_analysis import (
     product_quantity_ranking,
     series_to_sorted_int_dict,
 )
+
+
+class InvalidAnalyticsRange(ValueError):
+    """The requested analytics period is malformed or outside available data."""
+
+
+def resolve_analytics_range(
+    dataframe: pd.DataFrame,
+    start_date: str | None = None,
+    end_date: str | None = None,
+) -> dict[str, object]:
+    """Resolve optional dates against dataset bounds and filter inclusively."""
+    available = order_date_range(dataframe)
+    resolved_start = start_date or available["start_date"]
+    resolved_end = end_date or available["end_date"]
+    try:
+        filtered = filter_by_date_range(dataframe, resolved_start, resolved_end)
+    except (TypeError, ValueError) as error:
+        raise InvalidAnalyticsRange from error
+    if (
+        resolved_start < available["start_date"]
+        or resolved_end > available["end_date"]
+    ):
+        raise InvalidAnalyticsRange
+    return {
+        "dataframe": filtered,
+        "start_date": resolved_start,
+        "end_date": resolved_end,
+        "min_available_date": available["start_date"],
+        "max_available_date": available["end_date"],
+    }
+
+
+def sales_trend_summary(
+    dataframe: pd.DataFrame, start_date: str, end_date: str
+) -> dict[str, object]:
+    """Return empty-safe selected-range totals and ascending daily sales."""
+    filtered = filter_by_date_range(dataframe, start_date, end_date)
+    daily_sales = pandas_daily_sales(filtered)
+    revenue = pandas_total_revenue(filtered)
+    orders = unique_order_count(filtered)
+    quantity = int(filtered["quantity"].sum())
+    high = max(daily_sales, key=lambda point: point["total_revenue"], default=None)
+    low = min(daily_sales, key=lambda point: point["total_revenue"], default=None)
+
+    def day_value(point: dict[str, str | int] | None) -> dict[str, str | int] | None:
+        if point is None:
+            return None
+        return {"date": point["date"], "total_revenue": point["total_revenue"]}
+
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "summary": {
+            "total_revenue": revenue,
+            "unique_orders": orders,
+            "total_quantity": quantity,
+            "average_order_value": revenue / orders if orders else 0.0,
+        },
+        "daily_sales": daily_sales,
+        "high_day": day_value(high),
+        "low_day": day_value(low),
+    }
 
 
 def load_analysis_dataframe(path: Path | str) -> pd.DataFrame:

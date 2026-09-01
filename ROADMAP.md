@@ -380,6 +380,50 @@ Avoid premature infrastructure. Phase 4 must not introduce the following unless 
 - Machine Learning libraries
 - LLM or AI libraries
 
+## Phase 4G — Analytics Dashboard UI
+
+Status: ✅ **VERIFIED COMPLETE**
+
+Phase 4G visualizes the verified Phase 4 analytics contracts inside the existing Admin Dashboard. The approved 4G-6 extension added date-range sales trends through the same Browser → Node/Express → FastAPI → Pandas boundary. The user-reviewed 4G-6R revision makes that selected period a coherent dashboard-wide filter for Summary, Sales Trend, Product Performance, and Revenue by Category while preserving independent endpoint failure states. The frontend continues to talk only to Node/Express; direct frontend-to-FastAPI calls remain explicitly out of scope.
+
+Approved subphases:
+
+```text
+4G-1 Analytics Dashboard Foundation        ✅ VERIFIED COMPLETE
+4G-2 Analytics API Integration             ✅ VERIFIED COMPLETE
+4G-3 Product & Category Visualization      ✅ VERIFIED COMPLETE
+4G-4 Responsive & Accessibility            ✅ VERIFIED COMPLETE
+4G-5 Regression & Existing Dashboard Acceptance ✅ VERIFIED COMPLETE
+4G-6 Sales Trend & Date Range Analytics     ✅ VERIFIED COMPLETE
+4G-6R Sales Analytics UX & Global Date Filter Revision ✅ VERIFIED COMPLETE
+4G-7 Final Dashboard Acceptance             ✅ MANUAL ACCEPTANCE PASSED
+```
+
+The detailed descriptions below preserve the provisional status recorded at each implementation checkpoint. Those provisional statuses are now resolved by the successful 4G-7 user-performed browser acceptance and final engineering verification.
+
+4G-1 adds the static structural foundation only: a new `#adminAnalytics` section inside the existing Admin Dashboard with a dedicated "Analitik" navigation entry, four KPI placeholder cards (neutral `—` values, no fetched or fabricated data), a semantic product-performance `<table>` with an empty `<tbody>`, and an empty category container reserved for a future CSS proportional-bar visualization. No API integration, no chart library, and no backend change were introduced. 4G-1 is 🟡 **PROVISIONALLY COMPLETE**: implementation and automated verification passed, but user-performed manual/browser acceptance has not yet occurred.
+
+4G-2 wires the 4G-1 foundation to the three existing, already-verified Node routes (`GET /api/analytics/summary`, `/api/analytics/products`, `/api/analytics/categories`) — the frontend still calls only Node, never FastAPI directly. It adds a small independent per-section analytics state (`summary`/`products`/`categories`, each with its own `idle`/`loading`/`success`/`empty`/`error` status), lazy-loaded once per admin session on first "Analitik" nav open via `Promise.allSettled` so one section's failure never blanks out another section's success, defensive response validation before rendering (no `NaN`/`undefined` ever shown), a generation/epoch guard in `renderAuthUI()` so a slow response arriving after logout/role-loss/admin-switch is discarded rather than rendered, caching so a succeeded section is not refetched on renavigate while a failed one retries, and reuse of the existing `formatRupiah()`/`.menu-status` conventions. Category data renders as a plain semantic `<ul>/<li>` text list only — no proportional bars, no chart library; that visualization work remains 4G-3. No backend file was modified. The frontend suite grew from 28 to 35 tests (7 new deterministic tests in `tests/frontend/admin-analytics.test.js` covering routing-to-Node-only, partial-failure isolation, empty/malformed-response handling, no-refetch/retry caching, and stale-response discard after logout), and the 31-test backend suite passes unchanged. 4G-2 is 🟡 **PROVISIONALLY COMPLETE**: implementation and automated verification passed, but user-performed manual/browser acceptance has not yet occurred.
+
+4G-3 replaces the temporary category text list with accessible proportional HTML/CSS bars, and polishes product-table readability — both purely presentational over data already loaded by 4G-2, with no new API calls, no chart library, no SVG/canvas, and no backend change. A new pure function `computeCategoryBarWidth(revenue, maxRevenue)` derives a deterministic 0-100 integer bar width from each category's revenue relative to the largest category revenue in the current dataset, guarded against divide-by-zero (all-zero data renders 0%-width bars, never `NaN`/`Infinity`) and clamped to `[0,100]`; the absolute Rupiah revenue remains the displayed business value, with the bar as a purely visual, `aria-hidden` proportion indicator alongside real visible category-name and revenue text. The product table gained numeric alignment/wrapping polish (`text-align:right`, `font-variant-numeric:tabular-nums`, wrapping long names) with no sorting/filtering/pagination and no change to API ordering. All new/changed CSS reuses existing design tokens (`--color-accent`, `--color-bg-soft`, `--color-border`, `--radius`) — no new hardcoded colors. The frontend suite grew from 35 to 38 tests (3 new deterministic tests covering bar-width correctness, all-zero-revenue safety, and product-table order/formatting), and the 31-test backend suite passes unchanged. 4G-3 is 🟡 **PROVISIONALLY COMPLETE**: implementation and automated verification passed, but user-performed manual/browser acceptance has not yet occurred.
+
+4G-4 is a focused responsive/accessibility audit-and-fix pass over the analytics work already built in 4G-1 through 4G-3 — no new analytics features, no new API calls, no new backend/Python change. A read-only accessibility audit of the actual cumulative implementation confirmed heading hierarchy, focus-stealing frequency, renavigate announcement behavior, decorative category-bar markup, KPI card structure, reduced motion, and responsive grid overflow were all already correct, and found three genuine, actionable gaps that were fixed: (1) the scrollable product-table wrapper (`.admin-analytics-table-wrap`) had no keyboard focusability or accessible name distinguishing it from the table it wraps — fixed with `tabindex="0"`, `role="region"`, and `aria-labelledby` pointing at the existing "Performa Produk" heading; (2) `#adminAnalytics` and the table wrapper, both newly/already keyboard-focusable, were missing from the shared `:focus-visible` outline selector list used by every other focusable element on the page — added; (3) the three analytics status regions hardcoded a static `aria-live="polite"` in HTML while JS toggled `role` between `"status"` and `"alert"`, so an explicit (but stale) `aria-live` attribute could override the assertive announcement implied by `role="alert"` — fixed by removing the static attribute and having `showAnalyticsSectionStatus`/`hideAnalyticsSectionStatus` set `aria-live` dynamically in lock-step with `role`. No table-to-cards conversion, no new animation, no new color tokens. The frontend suite grew from 38 to 41 tests (3 new deterministic tests covering the table-wrap accessible-name contract and aria-live/role consistency across error, empty, and success states), and the 31-test backend suite passes unchanged. 4G-4 is 🟡 **PROVISIONALLY COMPLETE**: implementation, the accessibility audit, and automated verification passed, but user-performed manual/browser acceptance (including actual screen-reader and viewport testing) has not yet occurred — that belongs to 4G-5.
+
+4G-5's manual acceptance remains valid evidence for the existing dashboard. The user then approved an additive chart extension before Phase 4G finalization, so Phase 4G remains open.
+
+4G-6 adds `GET /analytics/sales-trend` and the Node gateway route `GET /api/analytics/sales-trend`, with optional inclusive `start_date`/`end_date` query parameters, strict date and response validation, zero/null empty-range results, and redacted service failures. The existing dashboard gains an independently loaded Sales Trend panel with selected-range totals, high/low sales days, native responsive SVG revenue line, keyboard/touch date details, and a visually hidden daily-data table. Successful selected ranges are cached for the current admin identity, overlapping/stale responses are guarded, and failures do not affect Summary, Products, or the preserved Revenue by Category proportional bars. Automated suites and read-only final review passed; browser/manual chart acceptance remains required, so 4G-6 is 🟡 **PROVISIONALLY COMPLETE** and 4G-7 is next.
+
+4G-6R implements the user's manual-review revisions without rewriting the dashboard: the SVG line is marker-free until interaction, a single active marker and clamped tooltip follow the nearest pointer/keyboard-selected date, and a short reduced-motion-aware reveal smooths successful range changes. A dependency-free accessible calendar provides direct month/year selection, day-grid keyboard interaction, Escape/outside close behavior, and mobile containment. Its minimum and maximum dates are derived at request time from the actual transaction dataset through `available_period` metadata in the Sales Trend response; no canonical dates are embedded in frontend production code. Summary, Products, Categories, and Sales Trend all accept the same optional inclusive range and are requested together after Apply. Draft calendar changes do not mutate analytics, caches are range-keyed, each section clears stale data and fails independently, and request/identity guards prevent older ranges from overwriting newer ones. Automated verification passes with 228 Python, 32 backend, and 57 frontend tests plus independent read-only review; 4G-6R is 🟡 **PROVISIONALLY COMPLETE** pending 4G-7 manual acceptance.
+
+4G-7 manual acceptance ✅ **PASSED**. User-performed browser verification covered the Sales Trend marker/tooltip and repeated Apply behavior; desktop, mobile, and short-height calendar placement between the sticky navbar and cart bar; dataset boundary selection; one inclusive applied range across all four analytics sections; keyboard access; bilingual UI; responsive containment; and FastAPI failure/recovery without fabricated data. Final automated verification passed with 228 Python, 32 backend, and 57 frontend tests, plus syntax/import/compile and diff checks. The final focused engineering review found no blocking regression, so Phase 4G is ✅ **VERIFIED COMPLETE**.
+
+Approved minimal technology direction for Phase 4G (unchanged from Phase 4):
+
+- existing vanilla HTML/CSS/JavaScript only
+- no React/Vue or frontend build tool
+- native SVG for the approved 4G-6 sales trend; no chart dependency
+- no direct frontend-to-FastAPI calls
+
 ## Phase 5 — Machine Learning
 
 Status: ⏭️ **NEXT / NOT STARTED**
@@ -551,6 +595,15 @@ Phase 4 Python & Data                 ✅ VERIFIED COMPLETE
     4D-4 Error Handling & Final Verification ✅ VERIFIED COMPLETE
   4E Node.js ↔ Python Integration  ✅ VERIFIED COMPLETE
   4F Integration & Quality Gate       ✅ VERIFIED COMPLETE
+Phase 4G Analytics Dashboard UI       ✅ VERIFIED COMPLETE
+  4G-1 Analytics Dashboard Foundation ✅ VERIFIED COMPLETE
+  4G-2 Analytics API Integration      ✅ VERIFIED COMPLETE
+  4G-3 Product & Category Visualization ✅ VERIFIED COMPLETE
+  4G-4 Responsive & Accessibility     ✅ VERIFIED COMPLETE
+  4G-5 Existing Dashboard Acceptance  ✅ VERIFIED COMPLETE
+  4G-6 Sales Trend & Date Range Analytics ✅ VERIFIED COMPLETE
+  4G-6R Sales Analytics UX & Global Date Filter Revision ✅ VERIFIED COMPLETE
+  4G-7 Final Dashboard Acceptance     ✅ MANUAL ACCEPTANCE PASSED
 Phase 5 Machine Learning              ⏭️ NEXT / NOT STARTED
 Phase 6 Deep Learning Fundamentals    ⏳ PLANNED
 Phase 7 AI Engineering                ⏳ PLANNED
@@ -558,4 +611,4 @@ Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
 Final Engineering                     ⏳ PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation** and **Phase 4 — Python & Data** are ✅ **VERIFIED COMPLETE**. Subphases 4A through 4F are verified complete after automated verification, focused review, and required user-performed manual acceptance. Phase 5 — Machine Learning is next and has not started.
+The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), and the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension are ✅ **VERIFIED COMPLETE**. Phase 4G passed final automated/static verification, focused engineering review, and user-performed 4G-7 browser acceptance. **Phase 5 — Machine Learning is next and has not started.**

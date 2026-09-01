@@ -67,6 +67,42 @@ def test_health_does_not_access_datasets_or_database(monkeypatch):
     assert response.json() == {"status": "ok"}
 
 
+def test_sales_trend_endpoint_supports_full_partial_empty_and_invalid_ranges():
+    with TestClient(app) as client:
+        full = client.get("/analytics/sales-trend")
+        partial = client.get("/analytics/sales-trend?start_date=2026-07-03&end_date=2026-07-05")
+        outside = client.get("/analytics/sales-trend?start_date=2026-08-01&end_date=2026-08-02")
+        malformed = client.get("/analytics/sales-trend?start_date=bad&end_date=2026-07-02")
+        reversed_range = client.get("/analytics/sales-trend?start_date=2026-07-03&end_date=2026-07-02")
+    assert full.status_code == 200 and full.json()["start_date"] == "2026-07-01" and full.json()["end_date"] == "2026-07-15"
+    assert [point["date"] for point in partial.json()["daily_sales"]] == ["2026-07-03", "2026-07-04", "2026-07-05"]
+    assert full.json()["available_period"] == {"min_available_date": "2026-07-01", "max_available_date": "2026-07-15"}
+    for response in (outside, malformed, reversed_range):
+        assert response.status_code == 400
+        assert response.json() == {"detail": "invalid sales trend date range"}
+
+
+@pytest.mark.parametrize("endpoint", ["summary", "products", "categories"])
+def test_existing_analytics_endpoints_accept_optional_inclusive_range(endpoint):
+    with TestClient(app) as client:
+        response = client.get(f"/analytics/{endpoint}?start_date=2026-07-04&end_date=2026-07-04")
+        invalid = client.get(f"/analytics/{endpoint}?start_date=2026-06-30&end_date=2026-07-04")
+    assert response.status_code == 200
+    assert invalid.status_code == 400
+    assert invalid.json() == {"detail": "invalid analytics date range"}
+
+
+def test_sales_trend_endpoint_redacts_internal_failures(monkeypatch):
+    def fail(*args, **kwargs):
+        raise OSError("/private/python/data/transactions.csv")
+    monkeypatch.setattr(service, "build_sales_trend_analytics", fail)
+    with TestClient(app) as client:
+        response = client.get("/analytics/sales-trend")
+    assert response.status_code == 500
+    assert response.json() == {"detail": "sales trend analytics unavailable"}
+    assert "/private" not in response.text
+
+
 def test_analytics_summary_returns_canonical_json_contract():
     with TestClient(app) as client:
         response = client.get("/analytics/summary")
