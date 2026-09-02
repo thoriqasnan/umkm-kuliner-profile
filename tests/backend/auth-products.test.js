@@ -26,7 +26,9 @@ test('authentication, sessions, and product API contracts', async (t) => {
       assert.equal((await register(anonymous, { email: 'not-an-email', password: 'short' })).status, 400);
     });
 
-    await t.test('login sets a signed secure cookie and auth state uses current database role', async () => {
+    await t.test('development login sets an HTTP-usable signed cookie and auth state uses current database role', async () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
       assert.equal((await login(user, { ...USERS.userA, password: 'WrongPass123!' })).status, 401);
       const response = await login(user, USERS.userA);
       assert.equal(response.status, 200);
@@ -34,7 +36,7 @@ test('authentication, sessions, and product API contracts', async (t) => {
       assert.match(setCookie, /^session=[^;]+/);
       assert.match(setCookie, /HttpOnly/i);
       assert.match(setCookie, /SameSite=Lax/i);
-      assert.match(setCookie, /Secure/i);
+      assert.doesNotMatch(setCookie, /(?:^|;\s*)Secure(?:;|$)/i);
       assert.equal((await anonymous.request('/api/auth/me')).status, 401);
       anonymous.setSessionCookie('session=invalid.signature');
       assert.equal((await anonymous.request('/api/auth/me')).status, 401);
@@ -43,6 +45,24 @@ test('authentication, sessions, and product API contracts', async (t) => {
       const me = await user.request('/api/auth/me');
       assert.equal((await me.json()).user.role, 'admin');
       harness.db.prepare("UPDATE users SET role = 'user' WHERE email = ?").run(USERS.userA.email);
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
+    });
+
+    await t.test('production login cookie remains Secure, HttpOnly, and SameSite=Lax', async () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        const response = await login(user, USERS.userA);
+        assert.equal(response.status, 200);
+        const setCookie = response.headers.get('set-cookie');
+        assert.match(setCookie, /(?:^|;\s*)Secure(?:;|$)/i);
+        assert.match(setCookie, /HttpOnly/i);
+        assert.match(setCookie, /SameSite=Lax/i);
+      } finally {
+        if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = previousNodeEnv;
+      }
     });
 
     await t.test('logout increments token_version and rejects a copied pre-logout cookie', async () => {

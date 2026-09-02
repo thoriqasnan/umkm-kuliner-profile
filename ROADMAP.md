@@ -424,13 +424,113 @@ Approved minimal technology direction for Phase 4G (unchanged from Phase 4):
 - native SVG for the approved 4G-6 sales trend; no chart dependency
 - no direct frontend-to-FastAPI calls
 
+### Phase 4G-R2 — 750K Analytics Alignment & Performance
+
+Status: ✅ **VERIFIED COMPLETE**
+
+This approved refinement aligns the existing Phase 4 dashboard analytics with the generated V2 source `transactions_ml_v2.csv` (750,000 transaction rows, 2024-10-09 through 2026-09-01) without sending raw rows to Node or the browser. FastAPI now uses trusted server-side dataset configuration and a stat-invalidated in-process cache. Each revision is vector-validated once, compacted into daily, daily-product, and daily-category aggregates, and the 750K raw DataFrame is released. Arbitrary supported date filters operate over these aggregates while existing FastAPI, Node, and frontend contracts remain unchanged.
+
+The prior repeated-load benchmark was roughly seven seconds per calculation and 35.5 seconds for five sequential operations. Final local measurements are approximately 2.17–2.21 seconds cold, milliseconds warm, 2.20 seconds for all four sections from a cold cache, and 2.32 seconds through Node for a cold 693-point Sales Trend—within the unchanged three-second timeout. Automated regression, dataset identity checks, focused review, and user-performed browser acceptance pass. The acceptance confirmed the dashboard, V2 period, all four analytics sections, filtering, navigation, responsiveness, and overall 750K integration. It also identified the product-domain mismatch addressed separately by 5F-R2. Phase 5G remains unstarted.
+
 ## Phase 5 — Machine Learning
 
-Status: ⏭️ **NEXT / NOT STARTED**
+Status: 🔄 **IN PROGRESS**
 
 Goal: learn practical ML using meaningful UMKM data. Expected concepts include problem formulation, dataset preparation, train/validation/test concepts, feature engineering, baseline models, training, metrics, overfitting/underfitting, inference, model persistence, and application integration.
 
-A possible use case is demand/sales prediction or another data-supported UMKM problem. Do not commit to a model before inspecting the Phase 4 dataset, and avoid AI/ML gimmicks.
+The first approved ML problem is **next-day total quantity sold forecasting**. This aggregate daily-demand target is directly useful for inventory planning, easier to explain and evaluate than a product-level panel forecast, and less dependent on the current fixed product prices than daily revenue. Product-level forecasting and revenue forecasting remain possible later extensions, not part of the first implementation.
+
+### 5A — ML Problem Definition & Dataset Readiness
+
+Status: ✅ **VERIFIED COMPLETE**
+
+The 10,000-line synthetic dataset is structurally clean and sufficient to exercise the future ML pipeline, but it requires generator improvement before meaningful model training. Its current nine-month generator deliberately contains weekend, month, and product-popularity effects, but samples transaction dates independently and has no sustained trend, autoregressive demand process, event/promotion signal, or price variation. Training on it unchanged would overstate the learning value of lag-based forecasting.
+
+The approved supervised-learning shape is one continuous row per calendar date, including zero-sales dates, with next-day total quantity as the target. Known calendar features may include day of week, day of month, month, and weekend status. Lag and rolling features must be derived only from prior observations (for example, lag 1, lag 7, and shifted 7/28-day rolling statistics) to prevent target leakage. Same-day completed-sales fields are not valid prediction-time inputs.
+
+Evaluation must preserve time order. For the current 273-day dataset, the reference split is 191 training days (2025-09-01 through 2026-03-10), 41 validation days (2026-03-11 through 2026-04-20), and 41 untouched test days (2026-04-21 through 2026-05-31), with rolling-feature warm-up handled explicitly. Model selection may use expanding-window validation inside the pre-test period. The future model must be compared with previous-day, previous-week, and trailing-seven-day-mean baselines. MAE is the primary metric and RMSE a secondary metric; percentage error is not primary because zero-demand dates must remain valid.
+
+No ML dependency is installed in 5A. Scikit-learn is the preferred classical-ML dependency for later phases; deep-learning and AI-agent libraries remain out of scope.
+
+### 5B — ML Dataset & Feature Engineering
+
+Status: ✅ **VERIFIED COMPLETE**
+
+Phase 5B adds a separate, ignored `python/data/transactions_ml.csv` generated deterministically from a fixed seed over 2024-01-01 through 2025-12-31. The chronological generator includes product/category demand differences, weekly and monthly structure, gradual growth, autoregressive continuity, known promotion windows, modest product-mix evolution, and random noise. It preserves both the canonical analytics CSV and the Phase 4 large integration dataset.
+
+The verified forecasting pipeline validates transaction rows through the existing Phase 4 boundary, aggregates total quantity onto a continuous daily calendar, fills missing transaction dates with zero, and reconciles daily quantity to raw quantity. Each supervised row predicts the next calendar day's total quantity using target-day calendar fields, lag 1/7/14, and explicitly shifted 7/28-day rolling statistics. Rows without the full 28-day history and the final row without a known target are dropped without imputation. A deterministic chronological 70/15/15 utility returns non-overlapping train, validation, and untouched test frames without shuffling.
+
+Automated verification and focused independent review confirmed determinism, temporal signals, schema validity, daily continuity, zero-day handling, target alignment, rolling-window leakage safety, warm-up policy, and split isolation. No model is trained, selected, scored, persisted, or exposed through an API in this subphase.
+
+### 5C — Baseline Forecast
+
+Status: ✅ **VERIFIED COMPLETE**
+
+Phase 5C implements three deterministic next-day quantity baselines: previous day, previous week, and the mean of the seven actual calendar days immediately before the forecast date. Previous-day and previous-week forecasts reuse the verified `lag_1_quantity` and `lag_7_quantity` alignment. The trailing-seven baseline is calculated from the continuous daily series because Phase 5B's deliberately conservative `rolling_mean_7` feature excludes the origin day and therefore has different semantics.
+
+Evaluation is restricted to the 105-row chronological validation period (2025-06-04 through 2025-09-16). The measured validation results are:
+
+| Baseline | MAE | RMSE |
+|---|---:|---:|
+| Previous week | 9.3333 | 11.7344 |
+| Previous day | 12.2095 | 16.1576 |
+| Trailing seven-day mean | 12.4299 | 15.0607 |
+
+**Previous week is the baseline to beat in Phase 5D**, selected by the approved primary metric, MAE. The final 106-row test partition was not evaluated or used for ranking. Reusable metrics validate shapes and reject empty, mismatched, non-numeric, NaN, Infinity, and overflowing residual inputs. Automated verification and focused independent review confirmed forecast alignment, rolling-window history, validation-only selection, metric correctness, deterministic ranking, and final-test isolation. No scikit-learn model is trained in this subphase.
+
+### 5D — Model Training & Evaluation
+
+Status: ✅ **VERIFIED COMPLETE**
+
+Phase 5D adds a reproducible scikit-learn workflow over the approved ten-feature next-day quantity frame. Five scaled Ridge pipelines (`alpha` 0.01, 0.1, 1, 10, 100) and three conservative HistGradientBoosting configurations are fitted on TRAIN and ranked only on VALIDATION MAE, with RMSE as the secondary tie-breaker. Ridge preprocessing is encapsulated in a `Pipeline` and learns only from the training partition.
+
+The selected validation candidate is `HistGradientBoostingRegressor(learning_rate=0.05, max_iter=100, max_leaf_nodes=7, l2_regularization=1.0, early_stopping=False, random_state=20260901)`. It achieved validation MAE `6.9601` and RMSE `8.9508`, improving MAE by `2.3732` units (`25.43%`) over the recomputed previous-week validation baseline MAE `9.3333`. The strongest Ridge configuration (`alpha=100`) achieved validation MAE `7.7654` and RMSE `9.6447`.
+
+Only after model/configuration selection, validation permutation analysis, automated verification, and focused review were complete, the selected specification was rebuilt and refitted on combined TRAIN+VALIDATION data. Its issued selection token then permitted one final TEST evaluation in that process. On the untouched 106-row TEST period, the model achieved MAE `8.1000` and RMSE `11.4012`; the previous-week baseline achieved MAE `14.1792` and RMSE `18.2346`. The model improved TEST MAE by `6.0793` units (`42.87%`). No tuning or feature change followed TEST access.
+
+Permutation importance on VALIDATION identifies day of week and lag-1 quantity as the strongest predictive associations; these are descriptive, not causal or unbiased test-set importance claims. Final TEST diagnostics show larger errors on weekends and deterministic promotion windows, but the model still improves over the baseline in both segments. No model artifact, prediction endpoint, Node route, or UI integration is created in 5D; serving and artifact policy remain Phase 5E work.
+
+### 5E — Prediction Service
+
+Status: ✅ **VERIFIED COMPLETE**
+
+Phase 5E adds a reproducible joblib export for the frozen Phase 5D winner, a versioned metadata contract and fail-closed trusted loader, shared training/serving feature construction, and `GET /analytics/forecast/next-day`. The serving artifact refits the unchanged model on all approved supervised history only after the unbiased Phase 5D evaluation. The generated ML dataset and artifact remain Git-ignored; the endpoint returns a controlled 503 when trusted resources are unavailable or incompatible. No Node or frontend prediction integration is included.
+
+### 5F — Node.js ↔ ML Integration
+
+Status: ✅ **VERIFIED COMPLETE**
+
+Phase 5F extends the existing trusted Node-to-Python client with a strict next-day forecast contract and exposes `GET /api/analytics/forecast/next-day`. Node calls only FastAPI's fixed forecast path using the operator-controlled `PYTHON_SERVICE_URL`, a three-second abort timeout, and no retries. It rejects all query parameters, exact-contract violations, malformed JSON, unsupported model metadata, and non-finite predictions. Timeouts become controlled HTTP 504 responses; network, upstream non-2xx, and invalid-response failures become controlled HTTP 502 responses without leaking Python details. Node performs no feature engineering or inference, and no frontend behavior is added.
+
+### 5F-R — Large-Scale ML V2 Dataset, Retraining & Serving Verification
+
+Status: ✅ **VERIFIED COMPLETE**
+
+This approved refinement preserves the verified V1 experiment and adds a separate deterministic V2 iteration. V2 generates exactly 750,000 transaction rows—not 750,000 supervised examples—across 693 calendar days from 2024-10-09 through 2026-09-01. Daily aggregation and the unchanged ten-feature schema produce 664 supervised next-day observations: TRAIN 479, VALIDATION 92, and a recent TEST holdout of 93 rows.
+
+Validation-only selection over the same predefined five Ridge and three HistGradientBoosting candidates froze `HistGradientBoostingRegressor(learning_rate=0.05, max_iter=150, max_leaf_nodes=15, l2_regularization=2.0, early_stopping=False, random_state=20260901)`. Its validation MAE/RMSE were `149.6509`/`188.4625`, versus previous-week `194.9239`/`246.2086`. After independent pre-test review, one final TEST evaluation produced model MAE/RMSE `135.5097`/`177.6172`, versus previous-week `178.3333`/`228.5035`; no post-test tuning occurred.
+
+The separate ignored `next_day_quantity_v2.joblib` retains artifact schema `1.0` for external API compatibility while recording experiment version `2.0`, exact V2 dataset SHA-256, row counts, boundaries, and frozen parameters. FastAPI and Node both serve the V2 result without contract changes. A 750K analytics benchmark found the current repeated full CSV validation path takes roughly seven seconds per calculation, so shared-load/caching optimization is recommended before using this raw dataset for Phase 5G analytics; the V2 forecast path itself remained within Node's three-second timeout.
+
+### 5F-R2 — 11-Product Domain Alignment & Full Pipeline Reverification
+
+Status: ✅ **VERIFIED COMPLETE**
+
+This approved refinement aligns the active V2 history with the authoritative 11-product application/database seed while preserving exactly 750,000 transaction rows, 693 continuous dates from 2024-10-09 through 2026-09-01, deterministic seed `20260902`, the approved feature semantics, chronological split boundaries, candidate set, and leakage protections. The regenerated CSV is the shared source for Phase 4 analytics and Phase 5 ML V2, with SHA-256 `9d87ac53771e5c4cd3eed39127fe50cb8bdbe749a885c2472cdacfb8e1cd8d3e`.
+
+The regenerated dataset preserves the approved aggregate daily demand series and forecasting-target behavior, while product identities, product-level revenue distribution, categories, and dataset SHA-256 changed. The complete ML pipeline was rerun and reverified against that regenerated source; its validation, selection, TEST, artifact, and serving evidence comes from the rerun rather than being inferred from the preserved aggregate series. Formal integrity checks, analytics reconciliation/cache/performance verification, artifact rebuilding, FastAPI/Node forecast smoke tests, full automated regression, independent review, and user-performed browser acceptance all pass. Manual acceptance confirmed the documented local service startup, admin login, available period, all four analytics sections, shared date filtering, exactly 11 real products in Product Performance, repeated navigation stability, and overall 750K/11-product alignment. The artifact records the new dataset hash plus the 11-product catalog identity. Phase 5G remains unstarted.
+
+### 5G — ML Dashboard UI
+
+Status: ⏭️ **NEXT / NOT STARTED**
+
+Add an understandable forecast presentation with its horizon, units, limitations, loading/error states, and accessible responsive behavior.
+
+### 5H — Final Integration & Quality Gate
+
+Status: ⏳ **NOT STARTED**
+
+Complete end-to-end verification, documentation, focused review, and required manual acceptance before Phase 5 can be marked verified complete.
 
 ## Phase 6 — Deep Learning
 
@@ -604,11 +704,22 @@ Phase 4G Analytics Dashboard UI       ✅ VERIFIED COMPLETE
   4G-6 Sales Trend & Date Range Analytics ✅ VERIFIED COMPLETE
   4G-6R Sales Analytics UX & Global Date Filter Revision ✅ VERIFIED COMPLETE
   4G-7 Final Dashboard Acceptance     ✅ MANUAL ACCEPTANCE PASSED
-Phase 5 Machine Learning              ⏭️ NEXT / NOT STARTED
+  4G-R2 750K Analytics Alignment & Performance ✅ VERIFIED COMPLETE
+Phase 5 Machine Learning              🔄 IN PROGRESS
+  5A ML Problem Definition & Dataset Readiness ✅ VERIFIED COMPLETE
+  5B ML Dataset & Feature Engineering ✅ VERIFIED COMPLETE
+  5C Baseline Forecast                ✅ VERIFIED COMPLETE
+  5D Model Training & Evaluation      ✅ VERIFIED COMPLETE
+  5E Prediction Service               ✅ VERIFIED COMPLETE
+  5F Node.js ↔ ML Integration         ✅ VERIFIED COMPLETE
+  5F-R Large-Scale ML V2 Dataset, Retraining & Serving Verification ✅ VERIFIED COMPLETE
+  5F-R2 11-Product Domain Alignment & Full Pipeline Reverification ✅ VERIFIED COMPLETE
+  5G ML Dashboard UI                  ⏭️ NEXT / NOT STARTED
+  5H Final Integration & Quality Gate ⏳ NOT STARTED
 Phase 6 Deep Learning Fundamentals    ⏳ PLANNED
 Phase 7 AI Engineering                ⏳ PLANNED
 Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
 Final Engineering                     ⏳ PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), and the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension are ✅ **VERIFIED COMPLETE**. Phase 4G passed final automated/static verification, focused engineering review, and user-performed 4G-7 browser acceptance. **Phase 5 — Machine Learning is next and has not started.**
+The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), and the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension, including 4G-R2, are ✅ **VERIFIED COMPLETE** after automated/static verification, focused review, and user-performed browser acceptance. **Phase 5 — Machine Learning is in progress: 5A through 5F, 5F-R, and 5F-R2 are verified complete; 5G ML Dashboard UI is next but has not started.**

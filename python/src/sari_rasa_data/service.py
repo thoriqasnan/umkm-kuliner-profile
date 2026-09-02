@@ -1,6 +1,7 @@
 """Minimal HTTP service boundary for Sari Rasa data capabilities."""
 
 import csv
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -19,12 +20,18 @@ from sari_rasa_data.pandas_analysis import (
     pandas_total_revenue,
     product_quantity_ranking,
 )
+from sari_rasa_data.model_artifact import ArtifactError, DEFAULT_ML_DATASET_PATH, DEFAULT_MODEL_ARTIFACT_PATH
+from sari_rasa_data.prediction import predict_next_day
+from sari_rasa_data.analytics_store import ANALYTICS_DATASET_CACHE, V2_ANALYTICS_PATH, analytics_from_snapshot
 
 
 app = FastAPI()
 CANONICAL_DATASET_PATH = (
     Path(__file__).resolve().parents[2] / "data" / "transactions.csv"
 )
+ANALYTICS_DATASET_PATH = Path(os.environ.get("SARI_RASA_ANALYTICS_DATASET_PATH", V2_ANALYTICS_PATH))
+ML_FORECAST_DATASET_PATH = Path(os.environ.get("SARI_RASA_ML_DATASET_PATH", DEFAULT_ML_DATASET_PATH))
+ML_MODEL_ARTIFACT_PATH = Path(os.environ.get("SARI_RASA_MODEL_ARTIFACT_PATH", DEFAULT_MODEL_ARTIFACT_PATH))
 
 
 @app.get("/health")
@@ -33,29 +40,38 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/analytics/forecast/next-day")
+def next_day_forecast() -> dict[str, object]:
+    """Return a next-day demand forecast from trusted operator resources."""
+    try:
+        result = predict_next_day(ML_FORECAST_DATASET_PATH, ML_MODEL_ARTIFACT_PATH)
+    except (ArtifactError, OSError, csv.Error, KeyError, TypeError, ValueError):
+        raise HTTPException(status_code=503, detail="next-day forecast unavailable") from None
+    return {
+        "forecast_date": result.forecast_date,
+        "predicted_quantity": result.predicted_quantity,
+        "model": {
+            "family": result.model_family,
+            "artifact_version": result.artifact_version,
+            "forecast_horizon_days": result.forecast_horizon_days,
+        },
+    }
+
+
 def build_analytics_summary(
     path: Path | str, start_date: str | None = None, end_date: str | None = None
 ) -> dict[str, int | float]:
     """Compose the compact API summary from the verified analysis functions."""
-    dataframe = load_analysis_dataframe(path)
-    filtered = resolve_analytics_range(dataframe, start_date, end_date)["dataframe"]
-    orders = unique_order_count(filtered)
-    revenue = pandas_total_revenue(filtered)
-    return {
-        "total_revenue": revenue,
-        "unique_orders": orders,
-        "total_quantity": int(filtered["quantity"].sum()),
-        "average_order_value": revenue / orders if orders else 0.0,
-    }
+    return analytics_from_snapshot(ANALYTICS_DATASET_CACHE.get(path), "summary", start_date, end_date)
 
 
 @app.get("/analytics/summary")
 def analytics_summary(
     start_date: str | None = None, end_date: str | None = None
 ) -> dict[str, int | float]:
-    """Return canonical transaction totals for the Python data service."""
+    """Return configured transaction totals for the Python data service."""
     try:
-        return build_analytics_summary(CANONICAL_DATASET_PATH, start_date, end_date)
+        return build_analytics_summary(ANALYTICS_DATASET_PATH, start_date, end_date)
     except InvalidAnalyticsRange:
         raise HTTPException(status_code=400, detail="invalid analytics date range") from None
     except (OSError, csv.Error, KeyError, TypeError, ValueError):
@@ -68,28 +84,16 @@ def build_products_analytics(
     path: Path | str, start_date: str | None = None, end_date: str | None = None
 ) -> dict[str, list[dict[str, str | int]]]:
     """Compose product quantity and revenue using verified analytics functions."""
-    dataframe = resolve_analytics_range(
-        load_analysis_dataframe(path), start_date, end_date
-    )["dataframe"]
-    revenues = pandas_revenue_by_product(dataframe)
-    products = [
-        {
-            "product_name": str(product["product_name"]),
-            "total_quantity": int(product["quantity"]),
-            "total_revenue": revenues[str(product["product_name"])],
-        }
-        for product in product_quantity_ranking(dataframe)
-    ]
-    return {"products": products}
+    return analytics_from_snapshot(ANALYTICS_DATASET_CACHE.get(path), "products", start_date, end_date)
 
 
 @app.get("/analytics/products")
 def products_analytics(
     start_date: str | None = None, end_date: str | None = None
 ) -> dict[str, list[dict[str, str | int]]]:
-    """Return canonical product analytics in deterministic quantity order."""
+    """Return configured product analytics in deterministic quantity order."""
     try:
-        return build_products_analytics(CANONICAL_DATASET_PATH, start_date, end_date)
+        return build_products_analytics(ANALYTICS_DATASET_PATH, start_date, end_date)
     except InvalidAnalyticsRange:
         raise HTTPException(status_code=400, detail="invalid analytics date range") from None
     except (OSError, csv.Error, KeyError, TypeError, ValueError):
@@ -102,23 +106,16 @@ def build_categories_analytics(
     path: Path | str, start_date: str | None = None, end_date: str | None = None
 ) -> dict[str, list[dict[str, str | int]]]:
     """Compose alphabetically ordered category revenue analytics."""
-    dataframe = resolve_analytics_range(
-        load_analysis_dataframe(path), start_date, end_date
-    )["dataframe"]
-    categories = [
-        {"category": category, "total_revenue": total_revenue}
-        for category, total_revenue in pandas_revenue_by_category(dataframe).items()
-    ]
-    return {"categories": categories}
+    return analytics_from_snapshot(ANALYTICS_DATASET_CACHE.get(path), "categories", start_date, end_date)
 
 
 @app.get("/analytics/categories")
 def categories_analytics(
     start_date: str | None = None, end_date: str | None = None
 ) -> dict[str, list[dict[str, str | int]]]:
-    """Return canonical category revenue in deterministic name order."""
+    """Return configured category revenue in deterministic name order."""
     try:
-        return build_categories_analytics(CANONICAL_DATASET_PATH, start_date, end_date)
+        return build_categories_analytics(ANALYTICS_DATASET_PATH, start_date, end_date)
     except InvalidAnalyticsRange:
         raise HTTPException(status_code=400, detail="invalid analytics date range") from None
     except (OSError, csv.Error, KeyError, TypeError, ValueError):
@@ -131,16 +128,7 @@ def build_sales_trend_analytics(
     path: Path | str, start_date: str | None = None, end_date: str | None = None
 ) -> dict[str, object]:
     """Compose date-range sales analytics from the canonical DataFrame."""
-    dataframe = load_analysis_dataframe(path)
-    resolved = resolve_analytics_range(dataframe, start_date, end_date)
-    result = sales_trend_summary(
-        resolved["dataframe"], resolved["start_date"], resolved["end_date"]
-    )
-    result["available_period"] = {
-        "min_available_date": resolved["min_available_date"],
-        "max_available_date": resolved["max_available_date"],
-    }
-    return result
+    return analytics_from_snapshot(ANALYTICS_DATASET_CACHE.get(path), "sales_trend", start_date, end_date)
 
 
 @app.get("/analytics/sales-trend")
@@ -150,7 +138,7 @@ def sales_trend_analytics(
     """Return inclusive date-range sales analytics."""
     try:
         return build_sales_trend_analytics(
-            CANONICAL_DATASET_PATH, start_date=start_date, end_date=end_date
+            ANALYTICS_DATASET_PATH, start_date=start_date, end_date=end_date
         )
     except InvalidAnalyticsRange:
         raise HTTPException(

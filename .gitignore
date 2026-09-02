@@ -29,3 +29,11 @@ data/*.db
 # sengaja TIDAK ikut di-commit. Dataset kecil 30-row canonical di
 # python/data/transactions.csv TETAP tracked dan tidak diabaikan di sini.
 python/data/transactions_large.csv
+
+# Generated Phase 5 ML-development dataset. It is reproducible from the
+# checked-in generator and must remain separate from the canonical fixture.
+python/data/transactions_ml.csv
+python/data/transactions_ml_v2.csv
+
+# Trusted generated Phase 5E sklearn/joblib model artifacts.
+python/models/

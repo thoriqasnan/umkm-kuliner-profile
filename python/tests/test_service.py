@@ -12,6 +12,15 @@ from sari_rasa_data import service
 from sari_rasa_data.service import app
 
 
+@pytest.fixture(autouse=True)
+def use_canonical_analytics_fixture(monkeypatch):
+    """Keep ordinary service tests fast while production defaults to V2."""
+    monkeypatch.setattr(service, "ANALYTICS_DATASET_PATH", service.CANONICAL_DATASET_PATH)
+    service.ANALYTICS_DATASET_CACHE.clear()
+    yield
+    service.ANALYTICS_DATASET_CACHE.clear()
+
+
 def test_service_exposes_fastapi_application():
     assert isinstance(app, FastAPI)
 
@@ -67,6 +76,35 @@ def test_health_does_not_access_datasets_or_database(monkeypatch):
     assert response.json() == {"status": "ok"}
 
 
+def test_next_day_forecast_success_contract(monkeypatch):
+    from sari_rasa_data.prediction import PredictionResult
+    monkeypatch.setattr(service, "predict_next_day", lambda data, model: PredictionResult(
+        "2026-01-01", 91.25, "hist_gradient_boosting", "1.0", 1
+    ))
+    with TestClient(app) as client:
+        response = client.get("/analytics/forecast/next-day")
+    assert response.status_code == 200
+    assert response.json() == {
+        "forecast_date": "2026-01-01",
+        "predicted_quantity": 91.25,
+        "model": {"family": "hist_gradient_boosting", "artifact_version": "1.0", "forecast_horizon_days": 1},
+    }
+
+
+def test_next_day_forecast_missing_or_corrupt_artifact_is_controlled(monkeypatch):
+    from sari_rasa_data.model_artifact import ArtifactError
+    def fail(data, model):
+        raise ArtifactError("/private/model.joblib pickle detail")
+    monkeypatch.setattr(service, "predict_next_day", fail)
+    with TestClient(app) as client:
+        response = client.get("/analytics/forecast/next-day")
+        rejected_input = client.get("/analytics/forecast/next-day?model_path=/tmp/evil.joblib")
+    assert response.status_code == 503
+    assert response.json() == {"detail": "next-day forecast unavailable"}
+    assert "/private" not in response.text
+    assert rejected_input.status_code == 503
+
+
 def test_sales_trend_endpoint_supports_full_partial_empty_and_invalid_ranges():
     with TestClient(app) as client:
         full = client.get("/analytics/sales-trend")
@@ -120,7 +158,7 @@ def test_analytics_summary_returns_canonical_json_contract():
         assert not isinstance(value, bool)
 
 
-def test_analytics_summary_uses_canonical_path_independent_of_cwd(
+def test_analytics_summary_uses_configured_path_independent_of_cwd(
     monkeypatch, tmp_path
 ):
     expected_path = (

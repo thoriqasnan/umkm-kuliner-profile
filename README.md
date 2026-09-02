@@ -2,7 +2,7 @@
 
 Sari Rasa is a full-stack learning and portfolio application for a local Indonesian culinary business. Customers can browse a bilingual menu, maintain a guest or account-backed cart, and hand an order off to WhatsApp. Authenticated administrators can manage the product catalog.
 
-The currently implemented system uses a vanilla browser frontend, an Express API, and SQLite persistence. A separate local Python workspace (`python/`) contains the verified Phase 4A foundation, complete Phase 4B pipeline, verified Phase 4C Pandas/NumPy analysis, and a FastAPI analytics service. Node/Express remains the application-facing backend and exposes server-side analytics gateway routes that call FastAPI over HTTP/JSON. The Admin Analytics Dashboard includes summary KPIs, product performance, proportional Revenue by Category bars, and a native-SVG Sales Trend. One dataset-bounded calendar period filters all four sections consistently; its available dates are derived from transaction data rather than frontend constants. The browser does not call FastAPI directly. All synthetic data is fictional; it does not represent any real customer or company. Machine learning, deep learning, and AI integration remain future roadmap work.
+The currently implemented system uses a vanilla browser frontend, an Express API, and SQLite persistence. A separate local Python workspace contains the analytics pipeline and deterministic next-day quantity forecasting. The Phase 4 dashboard derives compact cached aggregates from the same 750,000-row V2 history used by ML; its 11 products exactly match the application catalog, and raw rows never leave Python. That source spans 693 days and produces only 664 supervised forecasting observations—not 750,000 ML training examples. The V2 model is served through FastAPI and the strictly validated Node gateway; forecast visualization remains Phase 5G work. All synthetic data is fictional.
 
 ## Implemented features
 
@@ -50,7 +50,8 @@ The currently implemented system uses a vanilla browser frontend, an Express API
 |---|---|
 | Frontend | Semantic HTML, CSS, vanilla browser JavaScript, browser `localStorage` and `<dialog>` APIs |
 | Backend | Node.js 22+, Express 5, CommonJS |
-| Python data service | FastAPI and Uvicorn (independent health, summary, product, and category endpoints) |
+| Python data service | FastAPI and Uvicorn (health, analytics, and next-day forecast endpoints) |
+| ML development | Pandas/NumPy feature preparation and scikit-learn classical regression evaluation |
 | Database | SQLite through `better-sqlite3` |
 | Authentication and security | bcrypt password hashing, HMAC-signed cookies, HttpOnly/SameSite/Secure cookie controls, CORS, role middleware, in-memory rate limiting |
 | Testing | Node's built-in `node:test` and `node:vm`; pytest and FastAPI `TestClient` for Python |
@@ -115,17 +116,18 @@ Use `localhost` consistently for both origins. Do not mix `localhost` and `127.0
 
 This is only the shortest supported local path. See the [Local Development Runbook](docs/RUNBOOK.md) for detailed setup, operations, and troubleshooting.
 
-The analytics gateway additionally requires FastAPI to start before Node. Follow the runbook's Python-service and Node-to-Python integration sequence; the browser still has no analytics UI.
+The analytics gateway requires FastAPI to start before Node. Follow the runbook's Python-service and Node-to-Python integration sequence; the existing admin dashboard consumes the four analytics routes through Node.
 
 ## Environment variables
 
 | Variable | Required | Current behavior |
 |---|---|---|
 | `SESSION_SECRET` | Yes | HMAC key for signed session cookies. Startup rejects missing, blank, or shorter-than-16-character values. Use a much longer random value and never commit it. |
-| `NODE_ENV` | Required for local HTTP authentication | `development` is the only value that disables the cookie's `Secure` flag. Every other value fails closed to `Secure=true`, which requires HTTPS for browser authentication. |
+| `NODE_ENV` | Yes for explicit runtime mode | `production` enables the cookie's `Secure` flag for HTTPS deployments; `development` keeps the signed HttpOnly cookie usable over local HTTP. |
 | `DATABASE_PATH` | No for normal runtime | Defaults to `data/umkm.db`. Under `NODE_ENV=test`, an explicit isolated path is mandatory and aliases to the development database are rejected. |
 | `PORT` | No | Defaults to `3000`; accepted values are integers from 1 through 65535. |
 | `PYTHON_SERVICE_URL` | No | FastAPI base URL used only by Node analytics routes; defaults to `http://127.0.0.1:8000`. |
+| `SARI_RASA_ANALYTICS_DATASET_PATH` | No | Trusted FastAPI analytics CSV path; defaults to generated `python/data/transactions_ml_v2.csv`. Never derive it from a browser request. |
 
 The backend port is configurable, but the current frontend API base URL is fixed to `http://localhost:3000`. Changing `PORT` alone therefore breaks frontend API communication unless the frontend implementation is changed too.
 
@@ -150,10 +152,10 @@ Current verified baseline:
 
 | Suite | Tests | Result |
 |---|---:|---|
-| Backend and database | 32 | 32 passed |
+| Backend and database | 35 | 35 passed |
 | Frontend VM and contracts | 57 | 57 passed |
-| Combined Node suites | 89 | 89 passed |
-| Python data/service | 228 | 228 passed |
+| Combined Node suites | 92 | 92 passed |
+| Python data/service | 293 | 293 passed |
 
 The backend suite uses Node's built-in test runner, temporary SQLite databases, and ephemeral HTTP ports. It covers authentication, authorization, products, carts, merge idempotency, constraints, cascades, schema evolution, and development-database protection.
 
@@ -229,8 +231,16 @@ These controls are appropriate to the current learning project; they are not a c
 - Phase 4F — Integration & Quality Gate: verified complete
 - Phase 4 overall: verified complete
 - Phase 4G — Analytics Dashboard UI: verified complete (final user browser acceptance passed)
-- Phase 5 — Machine Learning: next / not started
-- Machine learning, deep learning, and AI phases: future work
+- Phase 5A — ML Problem Definition & Dataset Readiness: verified complete
+- Phase 5B — ML Dataset & Feature Engineering: verified complete
+- Phase 5C — Baseline Forecast: verified complete (previous-week validation MAE 9.3333 established the benchmark; final test remained untouched throughout 5C)
+- Phase 5D — Model Training & Evaluation: verified complete (selected HistGradientBoosting validation MAE 6.9601; single final-test MAE 8.1000 versus previous-week 14.1792)
+- Phase 5E — Prediction Service: verified complete (versioned trusted artifact and `GET /analytics/forecast/next-day`)
+- Phase 5F — Node.js ↔ ML Integration: verified complete (`GET /api/analytics/forecast/next-day` with strict upstream validation and bounded failures)
+- Phase 5F-R — Large-Scale ML V2 Dataset, Retraining & Serving Verification: verified complete (750K transaction rows → 664 daily observations; separate V2 evaluation/artifact)
+- Phase 4G-R2 — 750K Analytics Alignment & Performance: verified complete (shared validated aggregate cache; browser acceptance passed)
+- Phase 5F-R2 — 11-Product Domain Alignment & Full Pipeline Reverification: verified complete (750K shared analytics/ML history matches the 11 seeded products; automated review and browser acceptance passed)
+- Forecast dashboard visualization, deep learning, and AI phases: future work
 
 See the [Project Roadmap](ROADMAP.md) for the approved phase sequence and current source of truth.
 

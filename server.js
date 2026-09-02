@@ -8,7 +8,7 @@ const cors = require('cors');
 const { db } = require('./db/database');
 const { hashPassword, verifyPassword, SALT_ROUNDS } = require('./lib/password');
 const { normalizeEmail, findUserByEmail } = require('./lib/user');
-const { sign, COOKIE_NAME, MAX_AGE_MS } = require('./lib/session');
+const { sign, getSessionCookieOptions, COOKIE_NAME } = require('./lib/session');
 const { requireAuth } = require('./middleware/auth');
 const { requireAdmin } = require('./middleware/authorize');
 const { loginRateLimiter, registerRateLimiter } = require('./middleware/rateLimit');
@@ -17,6 +17,7 @@ const {
   getProductsAnalytics,
   getCategoriesAnalytics,
   getSalesTrendAnalytics,
+  getNextDayForecast,
 } = require('./lib/pythonAnalyticsClient');
 
 const app = express();
@@ -1059,44 +1060,15 @@ app.post('/api/auth/login', loginRateLimiter, async (req, res) => {
     //   mengarah ke API kita) kecuali navigasi top-level biasa (klik link) -
     //   pertahanan dasar terhadap CSRF, sambil tetap cukup longgar untuk
     //   pemakaian normal (fetch dari frontend kita sendiri tetap terkirim).
-    // - secure: process.env.NODE_ENV !== 'development' -> ikut environment,
-    //   TIDAK hardcode lagi. Phase 3C-4: SEBELUMNYA ekspresi di sini adalah
-    //   `process.env.NODE_ENV === 'production'` - itu FAIL OPEN (gagal ke
-    //   arah yang TIDAK aman): kalau NODE_ENV lupa di-set sama sekali, atau
-    //   salah ketik ("productoin", dst), ekspresi itu diam-diam bernilai
-    //   `false` - cookie session jadi TIDAK secure padahal niatnya deploy
-    //   production, TANPA ada satu pun peringatan/error. Ini kebalikan dari
-    //   filosofi SESSION_SECRET di lib/session.js yang fail LOUD (menolak
-    //   nyala sama sekali kalau ada yang salah/kurang) - satu file bikin
-    //   server menolak nyala kalau secret kurang panjang, tapi file lain
-    //   (ini) diam-diam melemahkan cookie-nya kalau env var kurang diset.
-    //   Ekspresi baru ini FAIL CLOSED (gagal ke arah yang AMAN): secure
-    //   defaultnya `true`, KECUALI NODE_ENV eksplisit persis 'development' -
-    //   jadi harus SENGAJA di-set ke 'development' supaya cookie berhenti
-    //   secure, bukan sebaliknya (harus sengaja set 'production' supaya
-    //   cookie MULAI secure). NODE_ENV yang unset/salah ketik sekarang jatuh
-    //   ke default AMAN (secure:true), bukan default TIDAK aman.
-    //
-    //   Konsekuensi langsung: kalau menjalankan server ini di localhost lewat
-    //   HTTP biasa (bukan HTTPS) untuk development, NODE_ENV=development WAJIB
-    //   di-set eksplisit (selain SESSION_SECRET) - browser TIDAK PERNAH
-    //   mengirim cookie yang secure:true lewat koneksi non-HTTPS sama sekali,
-    //   jadi tanpa NODE_ENV=development, login akan terlihat "berhasil" (dapat
-    //   response 200) tapi cookie-nya tidak akan pernah benar-benar
-    //   tersimpan/terkirim balik oleh browser di http://localhost, dan
-    //   requireAuth akan selalu menganggap belum login.
+    // - secure mengikuti opsi terpusat di lib/session.js: true hanya pada
+    //   NODE_ENV=production (HTTPS), false untuk development lokal lewat HTTP.
     // - maxAge: MAX_AGE_MS (lib/session.js) -> cookie kadaluarsa otomatis 24
     //   jam (dalam milidetik) sejak di-set - setelah itu browser sendiri yang
     //   membuang cookie-nya. Dipakai dari konstanta yang sama dengan yang
     //   ditegakkan verify() di lib/session.js (bukan angka literal terpisah
     //   yang ditulis ulang di sini) supaya "browser buang cookie" dan "server
     //   menolak token" selalu sepakat soal durasi 24 jam yang sama persis.
-    res.cookie(COOKIE_NAME, signedValue, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV !== 'development',
-      maxAge: MAX_AGE_MS,
-    });
+    res.cookie(COOKIE_NAME, signedValue, getSessionCookieOptions({ includeMaxAge: true }));
 
     res.status(200).json({
       status: 'success',
@@ -1178,17 +1150,9 @@ app.post('/api/auth/logout', requireAuth, (req, res) => {
   // /api/auth/login). `maxAge` SENGAJA tidak disertakan di sini - tidak
   // relevan untuk penghapusan (clearCookie sendiri yang mengatur waktu
   // kadaluarsa ke masa lalu).
-  // secure: process.env.NODE_ENV !== 'development' - Phase 3C-4, SAMA PERSIS
-  // ekspresi & alasannya dengan res.cookie() di POST /api/auth/login (lihat
-  // komentar panjang di sana). Opsi penghapusan cookie WAJIB cocok dengan
-  // opsi saat cookie itu di-set supaya browser mau benar-benar menghapusnya -
-  // kalau ekspresi secure di sini beda dari yang dipakai saat set, browser
-  // bisa jadi menganggap ini "cookie yang berbeda" dan tidak menghapus apa-apa.
-  res.clearCookie(COOKIE_NAME, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV !== 'development',
-  });
+  // Helper yang sama dengan login menjaga atribut penghapusan tetap cocok
+  // dengan atribut cookie yang dibuat pada environment tersebut.
+  res.clearCookie(COOKIE_NAME, getSessionCookieOptions());
   res.status(200).json({ status: 'success', message: 'Logout berhasil' });
 });
 
@@ -1482,6 +1446,24 @@ app.get(
   analyticsRoute(getCategoriesAnalytics, '/api/analytics/categories')
 );
 app.get('/api/analytics/sales-trend', analyticsRoute(getSalesTrendAnalytics, '/api/analytics/sales-trend'));
+
+app.get('/api/analytics/forecast/next-day', async (req, res) => {
+  if (Object.keys(req.query).length !== 0) {
+    return res.status(400).json({ status: 'error', message: 'Parameter forecast tidak valid' });
+  }
+  try {
+    res.json(await getNextDayForecast());
+  } catch (error) {
+    const timedOut = error?.code === 'PYTHON_SERVICE_TIMEOUT';
+    console.error(`[GET /api/analytics/forecast/next-day] Layanan prediksi upstream ${timedOut ? 'timeout' : 'gagal'}`);
+    res.status(timedOut ? 504 : 502).json({
+      status: 'error',
+      message: timedOut
+        ? 'Layanan prediksi tidak merespons tepat waktu'
+        : 'Layanan prediksi tidak tersedia',
+    });
+  }
+});
 
 // --- 404 handler ---
 // Jalan kalau tidak ada route di atas yang cocok dengan request-nya (baik

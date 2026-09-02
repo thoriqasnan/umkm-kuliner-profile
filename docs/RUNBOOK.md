@@ -46,10 +46,11 @@ The application does not include `dotenv` and does not automatically load `.env`
 | Variable | Operational requirement |
 |---|---|
 | `SESSION_SECRET` | Required. Startup rejects missing, blank, or shorter-than-16-character values. Use a much longer random local value and never commit it. |
-| `NODE_ENV` | Set exactly to `development` for authentication over local HTTP. Any other or missing value keeps the session cookie `Secure`. |
+| `NODE_ENV` | Set to `development` for explicit local mode. `production` enables the session cookie's `Secure` flag; local development keeps the signed HttpOnly cookie usable over HTTP. |
 | `DATABASE_PATH` | Normally omit it. Runtime then uses `data/umkm.db`. Tests require an explicit isolated path internally. |
 | `PORT` | Optional. Defaults to `3000`; valid values are integer strings from 1 through 65535. |
-| `PYTHON_SERVICE_URL` | Optional. Trusted operator-controlled FastAPI base URL used by Node analytics routes; defaults to `http://127.0.0.1:8000`. Use HTTP/HTTPS without credentials, query, or fragment; never derive it from browser/request input. |
+| `PYTHON_SERVICE_URL` | Optional. Trusted operator-controlled FastAPI base URL used by Node analytics and forecast routes; defaults to `http://127.0.0.1:8000`. Use HTTP/HTTPS without credentials, query, or fragment; never derive it from browser/request input. |
+| `SARI_RASA_ANALYTICS_DATASET_PATH` | Optional trusted FastAPI analytics CSV path. Development defaults to generated `python/data/transactions_ml_v2.csv`; tests pass the canonical fixture explicitly. Never derive this path from HTTP input. |
 
 Generate a random 32-byte value with the already-required Node runtime and export it into the current shell without printing it:
 
@@ -192,14 +193,17 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
 
    `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests, complete Phase 4B pipeline tests, Phase 4C DataFrame/filtering/grouping/NumPy-statistics tests, the Phase 4C-4 synthetic-generator/integrated-analysis tests, and FastAPI service contract/error tests. Service tests use FastAPI's in-process `TestClient`; Uvicorn does not need to be started manually. The Phase 4C-4 tests generate their own temporary large dataset (they do not depend on `python/data/transactions_large.csv` existing on disk).
 
-   Current verified Python data/service result: `228 passed`.
+   Current verified Python data/service result: `293 passed`.
 
 ### Start and check the Python service
 
-From the repository root, start the local-only service on `http://127.0.0.1:8000`:
+Start the local-only service on `http://127.0.0.1:8000` using the repository's
+`src` layout explicitly:
 
 ```sh
-PYTHONPATH=python/src .venv/bin/python -m uvicorn sari_rasa_data.service:app --reload --host 127.0.0.1 --port 8000
+cd ~/umkm-kuliner-profile/python
+source ../.venv/bin/activate
+uvicorn sari_rasa_data.service:app --reload --app-dir src
 ```
 
 In another terminal, check the service health endpoint:
@@ -216,19 +220,19 @@ Expect HTTP `200`, a JSON content type, and this response body:
 
 The URL can also be opened at `http://127.0.0.1:8000/health` in a browser. Return to the Uvicorn terminal and press `Ctrl-C` to stop the service safely. The health route proves only that the Python HTTP service is running: it does not read either transaction dataset, access SQLite, perform analytics, or depend on Node/Express.
 
-Check the compact analytics summary derived from the canonical dataset at `python/data/transactions.csv`:
+Check the compact analytics summary derived from the active 11-product V2 dataset:
 
 ```sh
 curl --fail-with-body -i http://127.0.0.1:8000/analytics/summary
 ```
 
-Expect HTTP `200`, a JSON content type, and this response body:
+Expect HTTP `200`, a JSON content type, and these current totals:
 
 ```json
-{"total_revenue":745000,"unique_orders":20,"total_quantity":53,"average_order_value":37250.0}
+{"total_revenue":22652354000,"unique_orders":421130,"total_quantity":1657168,"average_order_value":53789.456937287774}
 ```
 
-The summary uses numeric JSON values and counts distinct `order_id` values for `unique_orders`; average order value is total revenue divided by those 20 orders. Its default dataset path is resolved from the installed source module rather than the shell's current directory. It does not use the generated `transactions_large.csv`, access SQLite, or depend on Node/Express.
+The summary uses numeric JSON values and counts distinct `order_id` values for `unique_orders`; average order value is total revenue divided by those orders. The trusted default path is `python/data/transactions_ml_v2.csv`. Ordinary automated tests explicitly substitute the unchanged canonical `transactions.csv` fixture for speed and deterministic small-fixture contracts.
 
 Check product analytics:
 
@@ -245,9 +249,9 @@ curl --fail-with-body -i http://127.0.0.1:8000/analytics/categories
 curl --fail-with-body -i 'http://127.0.0.1:8000/analytics/sales-trend?start_date=2026-07-01&end_date=2026-07-15'
 ```
 
-The `categories` array contains `category` and numeric `total_revenue`, ordered alphabetically by category. Both endpoints derive their values from `python/data/transactions.csv`, use the same source-relative path as the summary endpoint, and do not use `transactions_large.csv`, SQLite, Node/Express, or the browser.
+The `categories` array contains `category` and numeric `total_revenue`, ordered alphabetically by category. Runtime analytics use the trusted configured dataset (V2 by default); deterministic unit tests continue to pass the canonical fixture explicitly. Neither dataset is selected by browser input.
 
-If canonical dataset loading, validation, or analytics fails, the analytics routes return HTTP `500` with a stable generic JSON detail: `analytics summary unavailable`, `product analytics unavailable`, or `category analytics unavailable`, matching the requested endpoint. Responses do not expose exception text, filesystem paths, Pandas details, or other internals. Do not modify the canonical dataset to test this behavior; the automated service tests safely inject controlled failures.
+If configured dataset loading, validation, or analytics fails, the analytics routes return HTTP `500` with a stable generic endpoint detail. Responses do not expose exception text, filesystem paths, Pandas details, or other internals. Do not modify either real dataset to test this behavior; automated tests use controlled temporary fixtures.
 
 ### Verify Node-to-Python analytics integration
 
@@ -277,6 +281,51 @@ curl --fail-with-body -i 'http://localhost:3000/api/analytics/categories?start_d
 Node calls the matching FastAPI routes and returns the validated JSON unchanged. The gateway has a three-second timeout and no retries. A timeout returns HTTP `504`; an unavailable service, non-2xx upstream response, invalid JSON, or invalid response contract returns HTTP `502`. Both use the existing Node `{status:"error", message:"..."}` shape without exposing upstream bodies, paths, or network errors.
 
 For a safe failure check, stop only FastAPI with `Ctrl-C`, call `http://localhost:3000/api/analytics/summary` again, and confirm the controlled HTTP `502` response. Then call `http://localhost:3000/api/health` to confirm Node remains running. This workflow requires no frontend changes.
+
+### Phase 4G-R2 — V2 analytics source and cache verification
+
+Before starting FastAPI, verify the generated V2 source:
+
+```sh
+wc -l python/data/transactions_ml_v2.csv
+shasum -a 256 python/data/transactions_ml_v2.csv
+```
+
+Expected: 750,001 lines and SHA-256 `9d87ac53771e5c4cd3eed39127fe50cb8bdbe749a885c2472cdacfb8e1cd8d3e`. The default configuration uses this 11-product source. An explicit equivalent is:
+
+```sh
+SARI_RASA_ANALYTICS_DATASET_PATH=python/data/transactions_ml_v2.csv \
+PYTHONPATH=python/src .venv/bin/uvicorn sari_rasa_data.service:app --host 127.0.0.1 --port 8000
+```
+
+The first request vector-validates and compacts the file. Unchanged requests reuse daily, daily-product, and daily-category aggregates. The cache reloads when resolved path, device, inode, size, or nanosecond mtime changes; restarting FastAPI starts empty. Stop requests while regenerating the CSV. An invalid revision returns controlled errors and is never installed as a valid snapshot.
+
+Verify the range and compact trend through Node:
+
+```sh
+curl --fail-with-body http://localhost:3000/api/analytics/sales-trend | \
+  .venv/bin/python -c "import json,sys; d=json.load(sys.stdin); print(d['available_period'], len(d['daily_sales']))"
+```
+
+Expected: `2024-10-09` through `2026-09-01`, with 693 daily points—not raw transactions.
+
+Cold/warm benchmark:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -c "
+import time
+from sari_rasa_data.analytics_store import ANALYTICS_DATASET_CACHE, V2_ANALYTICS_PATH as p
+from sari_rasa_data.service import build_analytics_summary, build_products_analytics, build_categories_analytics, build_sales_trend_analytics
+calls=[('summary',build_analytics_summary),('products',build_products_analytics),('categories',build_categories_analytics),('trend',build_sales_trend_analytics)]
+for name,fn in calls:
+    ANALYTICS_DATASET_CACHE.clear(); t=time.perf_counter(); fn(p); print('cold',name,time.perf_counter()-t)
+ANALYTICS_DATASET_CACHE.clear(); build_analytics_summary(p)
+for name,fn in calls:
+    t=time.perf_counter(); fn(p); print('warm',name,time.perf_counter()-t)
+"
+```
+
+Final recorded cold timings: 2.208 s summary, 2.189 s products, 2.195 s categories, 2.166 s trend. Warm timings: 0.0005 s, 0.0036 s, 0.0008 s, 0.0016 s. Four-section cold/warm sequences took 2.198 s/0.0066 s; cold/warm FastAPI took 2.215 s/0.0025 s; cold/warm Node took 2.320 s/0.0045 s. Node's three-second timeout remains unchanged. If identity checks fail, regenerate V2; never silently fall back or expose a filesystem path to clients.
 
 6. Leave the virtual environment when finished:
 
@@ -329,6 +378,230 @@ print(json.dumps(analyze_transactions('python/data/transactions_large.csv'), ind
 ```
 
 To experiment safely, change only the `seed` (or `row_count`) argument and write to a **different** filename, for example `python/data/transactions_experiment.csv`, then point `analyze_transactions(...)` at that path instead. This regenerates a new, still-deterministic dataset without touching `transactions_large.csv` or the canonical `transactions.csv`.
+
+### Phase 5B — generate and inspect the ML-development dataset
+
+The forecasting-development dataset is separate from both existing transaction files. Generate its deterministic two-year default version from the repository root:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -c "
+from sari_rasa_data.ml_synthetic_data import write_ml_transactions_csv
+count = write_ml_transactions_csv('python/data/transactions_ml.csv')
+print(f'wrote {count} rows')
+"
+```
+
+`python/data/transactions_ml.csv` is ignored by Git and can be regenerated. The writer refuses the canonical `python/data/transactions.csv` path. Do not substitute this generated ML file for the canonical FastAPI analytics dataset.
+
+Build the continuous daily series, leakage-safe supervised frame, and chronological 70/15/15 partitions without training a model:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -c "
+from sari_rasa_data.forecasting import (
+    load_daily_quantity_series,
+    build_next_day_quantity_features,
+    chronological_split,
+)
+daily = load_daily_quantity_series('python/data/transactions_ml.csv')
+supervised = build_next_day_quantity_features(daily)
+splits = chronological_split(supervised)
+print('daily rows:', len(daily))
+print('supervised rows:', len(supervised))
+for name, frame in splits.items():
+    print(name, len(frame), frame['forecast_date'].min(), frame['forecast_date'].max())
+"
+```
+
+This command only prepares DataFrames. It does not fit, evaluate, or persist a model. Missing transaction dates are filled with zero daily quantity; feature warm-up rows and the final row without a known next-day target are dropped explicitly.
+
+### Phase 5C — reproduce validation-only baseline evaluation
+
+Generate `transactions_ml.csv` as above, then evaluate the three approved baselines only on the chronological validation frame:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -c "
+import json
+from sari_rasa_data.baseline_forecasting import evaluate_validation_baselines
+from sari_rasa_data.forecasting import (
+    load_daily_quantity_series,
+    build_next_day_quantity_features,
+    chronological_split,
+)
+daily = load_daily_quantity_series('python/data/transactions_ml.csv')
+supervised = build_next_day_quantity_features(daily)
+validation = chronological_split(supervised)['validation']
+print(json.dumps(evaluate_validation_baselines(validation, daily), indent=2))
+"
+```
+
+For the fixed seed, previous week is the validation baseline to beat (MAE `9.3333`, RMSE `11.7344`). The command selects only `['validation']`; do not substitute `['test']`. Phase 5C intentionally leaves the final 106-row test period untouched and does not train a model.
+
+### Phase 5D — reproduce model selection and final evaluation
+
+Install the updated Python requirements before running Phase 5D commands:
+
+```sh
+.venv/bin/python -m pip install -r python/requirements.txt
+```
+
+The following workflow first selects candidates using TRAIN/VALIDATION only, freezes the winner, and then refits that fixed specification on TRAIN+VALIDATION for one final TEST evaluation:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -c "
+from sari_rasa_data.forecasting import (
+    load_daily_quantity_series,
+    build_next_day_quantity_features,
+    chronological_split,
+)
+from sari_rasa_data.model_training import (
+    select_model_on_validation,
+    evaluate_frozen_selection_once,
+)
+daily = load_daily_quantity_series('python/data/transactions_ml.csv')
+supervised = build_next_day_quantity_features(daily)
+splits = chronological_split(supervised)
+selection = select_model_on_validation(splits['train'], splits['validation'])
+print('selected:', selection.selected_spec)
+for candidate in selection.candidates:
+    print(candidate)
+final = evaluate_frozen_selection_once(
+    selection, splits['train'], splits['validation'], splits['test']
+)
+print('test model MAE/RMSE:', final.model_mae, final.model_rmse)
+print('test baseline MAE/RMSE:', final.baseline_mae, final.baseline_rmse)
+"
+```
+
+For the fixed dataset/seed, the selected model is HistGradientBoosting with `learning_rate=0.05`, `max_iter=100`, `max_leaf_nodes=7`, and `l2_regularization=1.0`. Validation MAE/RMSE are `6.9601`/`8.9508`. The one final TEST evaluation produces model MAE/RMSE `8.1000`/`11.4012`, versus previous-week `14.1792`/`18.2346`. Treat TEST output as final diagnostics: do not rerun it to choose features or parameters. Phase 5D creates no model artifact; restarting the command rebuilds everything deterministically for learning/reproduction, not further selection.
+
+### Phase 5E — export and serve the next-day model
+
+Generate `transactions_ml.csv` with the Phase 5B command above if it is absent, then explicitly export the frozen serving model:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.model_artifact
+```
+
+This refits the unchanged Phase 5D winner on all approved supervised rows after final evaluation and writes `python/models/next_day_quantity_v1.joblib`. Both generated data and artifact are Git-ignored. Phase 5D test metrics remain the unbiased evaluation record. Never load downloaded, uploaded, or client-selected joblib files: joblib/pickle deserialization can execute code.
+
+Start FastAPI with the normal command, then test the Python-only endpoint:
+
+```sh
+PYTHONPATH=python/src .venv/bin/uvicorn sari_rasa_data.service:app --host 127.0.0.1 --port 8000
+curl --fail-with-body -i http://127.0.0.1:8000/analytics/forecast/next-day
+```
+
+The response contains `forecast_date`, an unrounded/unclamped finite `predicted_quantity`, and the model family, artifact version, and one-day horizon. If the artifact or internal ML source is missing, corrupt, or incompatible, the endpoint returns `503 {"detail":"next-day forecast unavailable"}` without internal paths or deserialization details. It never trains automatically.
+
+The safe defaults may be overridden only by trusted operator environment configuration before process start:
+
+```sh
+SARI_RASA_ML_DATASET_PATH=python/data/transactions_ml.csv \
+SARI_RASA_MODEL_ARTIFACT_PATH=python/models/next_day_quantity_v1.joblib \
+PYTHONPATH=python/src .venv/bin/uvicorn sari_rasa_data.service:app --host 127.0.0.1 --port 8000
+```
+
+To regenerate safely, stop FastAPI, regenerate the source dataset if intended, rerun the export command to the fixed generated path, validate it with the endpoint, then restart dependent local processes if any. Do not regenerate because of TEST results, alter feature order, or substitute another estimator. Phase 5F adds the Node gateway; frontend forecast visualization does not exist yet.
+
+### Phase 5F — verify the Node forecast gateway
+
+With the generated dataset/artifact present, keep FastAPI running and start Node using the normal development command and trusted `PYTHON_SERVICE_URL`. Then request the Node endpoint:
+
+```sh
+curl --fail-with-body -i http://localhost:3000/api/analytics/forecast/next-day
+```
+
+Node sends exactly `GET /analytics/forecast/next-day` to FastAPI, waits at most three seconds, performs no retry, validates the exact response contract, and preserves the numeric prediction unchanged. The route accepts no query parameters. Attempts to provide `python_url`, `artifact_path`, `dataset_path`, `model`, or another path return HTTP 400 without contacting Python.
+
+If FastAPI times out, Node returns HTTP 504 with `Layanan prediksi tidak merespons tepat waktu`. Network failures, Python 503/other non-2xx responses, malformed JSON, and invalid success contracts return HTTP 502 with `Layanan prediksi tidak tersedia`. Upstream response bodies and internal paths are never proxied. The read-only route matches existing Node analytics-route authorization behavior; no forecast dashboard UI exists yet.
+
+### Phase 5F-R — reproduce the V2 large-scale experiment
+
+V1 commands and metrics above remain historical evidence. V2 uses a separate dataset and artifact. Generate exactly 750,000 transaction rows over all 693 dates:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.ml_v2_data
+wc -l python/data/transactions_ml_v2.csv
+shasum -a 256 python/data/transactions_ml_v2.csv
+```
+
+Expected: 750,001 CSV lines and SHA-256 `9d87ac53771e5c4cd3eed39127fe50cb8bdbe749a885c2472cdacfb8e1cd8d3e`. This scale is transaction rows across exactly the 11 seeded application products, not supervised samples. Daily aggregation produces 693 daily values and 664 supervised rows after warm-up/target boundaries.
+
+Audit integrity, temporal coverage, and signals before TEST evaluation:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -c "
+import pandas as pd
+from sari_rasa_data.ml_v2_data import V2_DEFAULT_PATH, EVENT_WINDOWS
+d = pd.read_csv(V2_DEFAULT_PATH)
+d['date'] = pd.to_datetime(d.order_date)
+daily = d.groupby('date').agg(rows=('order_id','size'), orders=('order_id','nunique'), quantity=('quantity','sum'))
+print('rows/dates/orders:', len(d), len(daily), d.order_id.nunique())
+print('null/duplicates:', d.isna().sum().sum(), d.duplicated().sum())
+print('daily quantity:', daily.quantity.describe())
+print('weekday means:', daily.groupby(daily.index.dayofweek).quantity.mean())
+print('lag 1/7/14:', *(daily.quantity.autocorr(n) for n in (1,7,14)))
+"
+```
+
+Reproduce TRAIN/VALIDATION baseline selection and candidates without reading TEST metrics:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -c "
+from sari_rasa_data.forecasting import build_next_day_quantity_features
+from sari_rasa_data.ml_v2_data import V2_DEFAULT_PATH
+from sari_rasa_data.ml_v2_experiment import load_v2_daily_quantity_series, v2_temporal_split
+from sari_rasa_data.baseline_forecasting import evaluate_validation_baselines
+from sari_rasa_data.model_training import select_model_on_validation
+daily = load_v2_daily_quantity_series(V2_DEFAULT_PATH)
+splits = v2_temporal_split(build_next_day_quantity_features(daily))
+print(evaluate_validation_baselines(splits['validation'], daily))
+selection = select_model_on_validation(splits['train'], splits['validation'])
+print(*selection.candidates, sep='\n')
+print('frozen:', selection.selected_spec)
+"
+```
+
+Only after the documented pre-test review, the controlled final evaluation is:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -c "
+from sari_rasa_data.forecasting import build_next_day_quantity_features
+from sari_rasa_data.ml_v2_data import V2_DEFAULT_PATH
+from sari_rasa_data.ml_v2_experiment import V2_SELECTED_MODEL_SPEC, load_v2_daily_quantity_series, v2_temporal_split
+from sari_rasa_data.model_training import select_model_on_validation, evaluate_frozen_selection_once
+splits = v2_temporal_split(build_next_day_quantity_features(load_v2_daily_quantity_series(V2_DEFAULT_PATH)))
+s = select_model_on_validation(splits['train'], splits['validation'])
+assert s.selected_spec == V2_SELECTED_MODEL_SPEC
+print(evaluate_frozen_selection_once(s, splits['train'], splits['validation'], splits['test']))
+"
+```
+
+Do not use that command to retune. The frozen TEST record is model MAE/RMSE `135.5097`/`177.6172`, previous-week `178.3333`/`228.5035`.
+
+Export the V2 serving artifact, then start and check both service layers using the earlier startup commands:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.model_artifact
+curl --fail-with-body http://127.0.0.1:8000/analytics/forecast/next-day
+curl --fail-with-body http://localhost:3000/api/analytics/forecast/next-day
+```
+
+The V2 artifact is `python/models/next_day_quantity_v2.joblib`; schema `1.0` keeps the public API compatible while metadata records experiment `2.0`.
+
+Historical pre-4G-R2 benchmark (retained only as optimization evidence):
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -c "
+import time
+from sari_rasa_data.ml_v2_data import V2_DEFAULT_PATH as p
+from sari_rasa_data.service import build_analytics_summary, build_products_analytics, build_categories_analytics, build_sales_trend_analytics
+for name, fn in [('summary',lambda:build_analytics_summary(p)),('products',lambda:build_products_analytics(p)),('categories',lambda:build_categories_analytics(p)),('sales_trend',lambda:build_sales_trend_analytics(p)),('filtered',lambda:build_analytics_summary(p,'2026-08-01','2026-08-31'))]:
+    started=time.perf_counter(); fn(); print(name, time.perf_counter()-started)
+"
+```
+
+Before the shared aggregate cache existed, timings were 7.293 s summary, 6.928 s products, 7.106 s categories, 7.176 s sales trend, and 7.009 s filtered summary; five sequential calls took 35.512 s. This is historical evidence, not current runtime performance. The active cached dashboard measurements are documented in Phase 4G-R2 above, and the Node timeout remains three seconds.
 
 ## Normal user workflow
 
@@ -390,7 +663,7 @@ Begin with read-only checks. Preserve the development database and avoid changin
 | Symptom | Likely cause | Safe checks | Resolution |
 |---|---|---|---|
 | Frontend loads, but products do not appear | Backend is stopped, not on port 3000, or the API request failed | Open `http://localhost:3000/api/health`; inspect the browser Network/Console output; confirm `script.js` still targets port 3000 | Start the backend with the documented environment on port 3000, then reload the frontend |
-| Login returns success, but the UI appears logged out | Local HTTP backend was not started with exact `NODE_ENV=development`; the Secure cookie is not sent over HTTP | Check the environment in the backend terminal; inspect the login response and `/api/auth/me` request without exposing cookie values | Stop and restart the backend with `NODE_ENV=development` and a valid secret, then log in again |
+| Login returns success, but the UI appears logged out | A stale pre-fix Secure localhost cookie or mismatched local origin may still be present | Confirm `NODE_ENV=development`, use `localhost` consistently, and inspect the login response plus `/api/auth/me` without exposing cookie values | Restart the backend with the documented development command, clear the stale localhost session cookie if needed, then log in again |
 | Authentication behaves inconsistently | `localhost` and `127.0.0.1` were mixed, backend state changed, or browser cookie state is stale | Confirm both documented URLs use `localhost`; verify health; inspect only the Sari Rasa site's cookie presence and request status | Return to the exact documented origins and retry login; remove only the local Sari Rasa session cookie if a stale cookie remains |
 | Browser reports a CORS error | Frontend origin is not exactly `http://localhost:5500` | Read the address bar and the failed request's Origin header | Serve the repository root from the documented localhost port; arbitrary frontend ports are not supported by current CORS configuration |
 | Backend cannot listen on port 3000 | Another process already owns the port | On systems with `lsof`, run `lsof -nP -iTCP:3000 -sTCP:LISTEN`; otherwise use the operating system's read-only port/process viewer | Identify the owning application and stop it through its normal shutdown procedure; do not change only backend `PORT`, because the frontend remains fixed to 3000 |

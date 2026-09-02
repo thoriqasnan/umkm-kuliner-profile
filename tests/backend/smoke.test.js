@@ -104,7 +104,7 @@ test('isolated backend smoke: health, register, login, and auth restoration', as
     });
     assert.equal(login.status, 200);
     assert.match(login.headers.get('set-cookie'), /HttpOnly/i);
-    assert.match(login.headers.get('set-cookie'), /Secure/i);
+    assert.doesNotMatch(login.headers.get('set-cookie'), /(?:^|;\s*)Secure(?:;|$)/i);
     assert.match(login.headers.get('set-cookie'), /SameSite=Lax/i);
     assert.match(client.getSessionCookie(), /^session=/);
 

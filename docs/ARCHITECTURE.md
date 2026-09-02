@@ -526,11 +526,150 @@ JSON-compatible integrated summary
 
 `sari_rasa_data.analysis_pipeline` composes the existing Phase 4B/4C-1/4C-2/4C-3 functions — it does not reimplement loading, filtering, grouping, or statistics. It adds only the metrics those modules did not already provide: unique-order counting, order-level average order value (`total_revenue / unique_order_count`, not divided by transaction-line count), an ISO date range, monthly revenue, a weekday/weekend comparison, and payment-method transaction-line counts (documented as line counts, not order counts, since `payment_method` is recorded per transaction line). `analyze_transactions(path)` returns one dictionary of only plain `dict`/`list`/`str`/`int`/`float` values suitable for `json.dumps`.
 
+### Phase 5B — forecasting dataset and feature boundary
+
+Phase 5B adds a third, generated-only dataset with a distinct responsibility:
+
+| Dataset | Path | Default horizon | Purpose |
+|---|---|---|---|
+| ML development dataset | `python/data/transactions_ml.csv` | 2024-01-01 through 2025-12-31 | deterministic next-day quantity feature development; ignored by Git and regenerated from source |
+
+`sari_rasa_data.ml_synthetic_data` generates transactions chronologically from moderate product/category popularity, day-of-week and month effects, gradual growth, autoregressive continuity, deterministic promotion windows, modest product-mix evolution, and seeded noise. It uses the shared transaction schema but never replaces the canonical analytics fixture or the Phase 4 large integration dataset. The CSV contains no future target or engineered feature columns.
+
+`sari_rasa_data.forecasting` provides the preparation boundary:
+
+```text
+Generated transaction rows
+    ↓ shared Phase 4 validation/transformation
+Continuous daily quantity series (missing dates = 0)
+    ↓ next-day alignment
+Calendar + lag + shifted rolling features
+    ↓ deterministic chronological slicing
+Train / validation / untouched test DataFrames
+```
+
+Each supervised row uses `date` as its information cutoff and `forecast_date` as the next-day target date. `lag_1_quantity` is the known cutoff-day quantity; lag 7 and lag 14 are aligned relative to the target day. Rolling 7/28-day statistics apply an explicit one-day shift before rolling, so they exclude both the next-day target and the cutoff-day value. The cutoff value is available only through lag 1. Initial rows without 28 prior days and the final row without a next-day target are dropped rather than imputed. Splitting preserves chronological order and creates no overlapping forecast dates. Phase 5B performs no model fitting, scoring, persistence, serving, Node integration, or UI work.
+
+### Phase 5C — validation baseline boundary
+
+`sari_rasa_data.baseline_forecasting` establishes model-independent benchmarks without adding scikit-learn. Previous-day and previous-week predictions map directly to `lag_1_quantity` and `lag_7_quantity`. The approved trailing-seven-day baseline is calculated against the continuous daily series from forecast date minus seven through forecast date minus one, so it includes the known origin-day quantity and never includes the forecast-date actual. It intentionally does not reuse the Phase 5B `rolling_mean_7` model feature, whose shifted window ends one day earlier.
+
+```text
+Continuous daily series + supervised frame
+    ↓ chronological split
+Validation frame only (105 rows)
+    ├── previous-day prediction
+    ├── previous-week prediction
+    └── trailing-seven-day mean prediction
+            ↓
+       MAE / RMSE ranking
+            ↓
+Previous-week baseline selected for Phase 5D comparison
+
+Final test frame (106 rows) ── untouched in Phase 5C
+```
+
+The evaluation function accepts an explicitly supplied validation frame and has no test-frame parameter or test-evaluation path. MAE is the primary selection metric and RMSE is secondary. Metric helpers reject invalid shapes, empty input, length mismatch, non-finite values, and arithmetic overflow. This phase selects no trained model and creates no artifact, service endpoint, Node route, or browser feature.
+
+### Phase 5D — classical model selection and final evaluation boundary
+
+`sari_rasa_data.model_training` consumes the existing supervised frame through a strict feature allowlist. `date`, `forecast_date`, and `target_next_day_quantity` never enter `X`; the target is separated as `y`. Ridge candidates wrap `StandardScaler` and `Ridge` in one scikit-learn `Pipeline`, so scaling is fitted on the same permitted partition as the estimator. HistGradientBoosting candidates use fixed configurations, disabled early stopping, and a fixed random state.
+
+```text
+TRAIN (491)
+    ↓ fit 5 Ridge + 3 HistGradientBoosting candidates
+VALIDATION (105)
+    ↓ MAE-primary selection + descriptive permutation importance
+Frozen winning specification
+    ↓ refit preprocessing/model on TRAIN + VALIDATION only
+TEST (106)
+    ↓ one issued-selection evaluation
+Final model and previous-week baseline metrics + diagnostics
+```
+
+Selection accepts no TEST argument. Shared partition validation rejects missing, duplicate, unsorted, reversed, or overlapping forecast dates. The previous-week validation benchmark is recomputed from the supplied validation target and lag-7 values rather than trusted as a stale constant. A selected configuration carries an opaque process-local token; final evaluation validates its provenance, ranked winner, and estimator family, then consumes the token immediately before its first TEST feature/target access. The same issued selection cannot evaluate TEST twice in that process. This technical gate complements the procedural rule that TEST results are not used for retuning across process restarts.
+
+The final policy is **refit after selection**: rebuild the frozen winning specification, fit all preprocessing and the estimator on combined TRAIN+VALIDATION, then predict TEST once. The returned prediction frame supports one diagnostic pass without another model call. No result is fed back into candidate choice. Validation permutation importance is a lightweight description of predictive associations on the same validation data used for selection; it is not a causal claim or independent generalization estimate.
+
+Phase 5D's evaluation record remains unchanged and unbiased. Phase 5E subsequently refits the exact frozen specification on all available supervised history for deployment usefulness.
+
+### Phase 5E — trusted artifact and prediction service boundary
+
+```text
+Generated ML transactions (2024-01-01…2025-12-31)
+    ↓ shared daily aggregation and Phase 5B feature engineering
+All available supervised rows (forecast dates 2024-01-30…2025-12-31)
+    ↓ frozen Phase 5D HistGradientBoosting specification; no retuning
+python/models/next_day_quantity_v1.joblib (generated, Git-ignored)
+    ↓ fixed operator-controlled path + strict metadata/type validation
+GET /analytics/forecast/next-day
+```
+
+The schema `1.0` artifact is a joblib dictionary containing `metadata` and the fitted `model`. Metadata records the exact ordered features, target, one-day horizon, model family and hyperparameters, training dates/policy, generator identity and seed, model random state, and Python/scikit-learn versions. Loading fails closed on missing, corrupt, structurally invalid, wrong-version, wrong-family, wrong-feature, wrong-target/horizon/policy, or wrong-estimator artifacts.
+
+Joblib uses executable pickle deserialization. The model path is therefore trusted operator configuration only (`SARI_RASA_MODEL_ARTIFACT_PATH`, with a repository-local default), never an API parameter or upload. The separate ML source is likewise operator configuration (`SARI_RASA_ML_DATASET_PATH`) and defaults to the generated ML-development CSV. Existing analytics continue using only the small canonical CSV.
+
+Inference takes transaction history, creates a continuous daily series (missing calendar days become zero), and calls the shared Phase 5B feature builder. It requires at least 29 continuous days and rejects invalid, duplicate, unsorted, non-finite, negative, or fractional daily quantities. The response preserves the finite floating-point regression output without rounding or clamping. Missing/incompatible artifacts and invalid internal source data produce a redacted HTTP 503. The service never trains during import, startup, or a request.
+
+### Phase 5F — Node forecast gateway boundary
+
+```text
+Browser / API consumer
+    ↓ GET /api/analytics/forecast/next-day
+Node/Express gateway
+    ↓ trusted PYTHON_SERVICE_URL; GET; 3000 ms; no retries
+FastAPI GET /analytics/forecast/next-day
+    ↓
+Trusted local joblib artifact + ML history
+```
+
+`lib/pythonAnalyticsClient.js` owns the shared Node-to-Python URL validation, built-in `fetch`, `AbortController`, timeout cleanup, and failure classification. Its forecast client accepts only the exact schema: a real ISO calendar date, finite numeric prediction, model family `hist_gradient_boosting`, artifact schema `1.0`, and integer one-day horizon. Extra fields, coercible strings, malformed JSON, non-2xx responses, and unsupported model metadata are rejected rather than proxied.
+
+The Express route accepts no query parameters and cannot receive an upstream URL, artifact path, dataset path, model family, or version override. It matches the existing read-only analytics API authorization behavior; those Node analytics routes are not guarded by admin middleware, while the current dashboard remains admin-only in the browser. Timeouts map to a redacted 504; network, upstream non-2xx, JSON, and contract failures map to a redacted 502. Python bodies, exception messages, filesystem paths, and service topology are never returned. The browser still never calls FastAPI directly, and Phase 5F adds no frontend rendering.
+
+### Phase 5F-R — V2 experiment and serving refinement
+
+V1 remains historical verified evidence with its original two-year dataset, selected parameters, metrics, and `next_day_quantity_v1.joblib`. V2 is separate:
+
+```text
+11-product application/database seed catalog
+    ↓ deterministic V2 generation (seed 20260902)
+transactions_ml_v2.csv: 750,000 transaction rows / 693 days / 11 products
+    ↓ chunked validation + daily quantity aggregation
+664 next-day supervised observations; unchanged ten features
+    ↓ TRAIN 479 → VALIDATION 92; TEST 93 isolated
+8 predefined classical candidates → frozen V2 winner
+    ↓ one TEST evaluation, then serving refit on all 664 rows
+next_day_quantity_v2.joblib
+    ↓ FastAPI /analytics/forecast/next-day
+Node /api/analytics/forecast/next-day
+```
+
+The V2 generator streams rows rather than building a 750K-dictionary collection. It includes synthetic weekday/month/growth/event/spike, correlated-noise, order-size, quantity, payment, and evolving product-popularity assumptions; these are simulation choices, not claims about measured Indonesian consumer behavior. No event flag enters the model. Artifact schema remains `1.0`, while metadata identifies experiment `2.0`, dataset SHA-256, 750K transaction rows, 664 daily supervised rows, dates, seed, and frozen parameters. The trusted joblib boundary and external response remain unchanged.
+
+### Phase 4G-R2 — shared V2 analytics snapshot
+
+```text
+trusted SARI_RASA_ANALYTICS_DATASET_PATH
+    ↓ default: transactions_ml_v2.csv; exact identity verification
+vectorized validation + one transient 750K DataFrame
+    ↓ compact and release raw frame
+daily (693) + daily-product (7,623) + daily-category (2,079)
+    ↓ arbitrary inclusive date masks and compact aggregates
+FastAPI → Node/Express → existing Phase 4 dashboard
+```
+
+The in-process cache key combines resolved trusted path with device, inode, size, and nanosecond mtime. Unchanged requests reuse one immutable aggregate snapshot. File replacement, regeneration, modification, or operator path change triggers a locked reload; a failed reload never installs an invalid snapshot. The configured V2 default additionally verifies 750,000 rows, exact date boundaries, and SHA-256. Dataset paths never come from HTTP input.
+
+Only aggregate JSON leaves FastAPI. Full Sales Trend is 693 daily points (~62 KB), not 750K rows. The transient raw frame is released after producing 693 daily, 7,623 daily-product, and 2,079 daily-category rows. Current 11-product measurements remain about 2.3 seconds cold, milliseconds warm, and 2.305 seconds through Node for a cold trend, so Node retains its three-second timeout. Existing frontend SVG/calendar/race-handling code is unchanged; 5F-R2 manual browser acceptance passed with exactly the 11 application products visible in Product Performance and stable repeated navigation.
+
+The pre-4G-R2 analytics pipeline fully reloaded and validated the CSV for each calculation, taking about seven seconds per V2 request. Phase 4G-R2 replaces that repeated-load path with the shared compact snapshot above. Runtime dashboard analytics now default to V2; the canonical small fixture remains available explicitly for deterministic tests. Raw V2 rows are never returned to Node or the browser.
+
 ## Current boundaries and future scope
 
 Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, the project documentation/runbook, the Phase 4A Python foundation workspace, the complete Phase 4B pure-Python pipeline, and the complete Phase 4C Pandas/NumPy analysis (4C-1 through 4C-4). Phase 4D-1 through 4D-4 and Phase 4D as a whole are verified complete after hardening, automated verification, documentation, independent review, and final user manual acceptance. The Python service remains a separately started process and is now integrated behind Node's Phase 4E analytics routes.
 
-Phase 4E Node-to-Python integration, Phase 4F, and Phase 4 are verified complete. The approved post-quality-gate Phase 4G extension is also verified complete: the Admin Analytics Dashboard presents KPI Summary, native-SVG Sales Trend, Product Performance, and proportional Revenue by Category using one dataset-bounded inclusive applied period through Browser → Node/Express → FastAPI → Pandas → canonical CSV. Phase 5 Machine Learning is next and has not started, while later deep-learning, AI, integration, and final engineering phases remain future work.
+Phase 4E Node-to-Python integration, Phase 4F, and Phase 4 are verified complete. The approved post-quality-gate Phase 4G extension, including 4G-R2 browser acceptance, is also verified complete. Phase 5A through Phase 5F, 5F-R, and 5F-R2 are verified complete; 5F-R2 aligns the shared V2 source and artifact to the 11-product catalog, with automated verification, independent review, and browser acceptance passed. Forecast dashboard UI remains unimplemented; Phase 5G is next.
 
 See the [Project Roadmap](../ROADMAP.md) for the approved sequence and current status.
 
