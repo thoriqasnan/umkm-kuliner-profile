@@ -560,13 +560,17 @@ PyTorch environment compatibility is verified on the project environment (Python
 
 ### 6B — Deep Learning Dataset & Preprocessing
 
-Status: ⏭️ **NEXT / NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
 
 Adapt the existing Phase 5 supervised dataset and frozen temporal split for PyTorch. Reuse the approved feature/target construction, fit feature scaling on TRAIN only, transform VALIDATION and TEST without refitting, prepare deterministic tensors/batches, and preserve the existing leakage protections and exact feature order.
 
+Phase 6B adds `sari_rasa_data.dl_experiment`, a preprocessing-only adapter over the verified Phase 5 V2 loader, next-day feature builder, authoritative ten-feature/target contract, and frozen date-based split. It validates the unchanged 664 supervised observations (479 TRAIN, 92 VALIDATION, 93 TEST), fits `StandardScaler` on TRAIN features only, transforms VALIDATION with that same fitted state, and returns deterministic finite `torch.float32` TRAIN/VALIDATION tensors with scalar-regression targets shaped `(n, 1)`. The normal public development-data API exposes no TEST features, targets, or tensors; TEST is inspected only to verify its frozen count and date-boundary metadata for later Phase 6E.
+
+Focused verification passes with 10 tests proving feature/target reuse, split counts and chronology, tensor shapes/dtypes/finiteness, exact TRAIN-derived scaler statistics, VALIDATION transformation with the TRAIN scaler, source-frame non-mutation, deterministic repeated preprocessing, and TEST-tensor isolation. Two independent read-only reviews found no blocker; one supported hardening changed the arbitrary-frame preparation seam to internal-only so verified provenance comes through the loader that hashes the dataset it actually reads. The complete Python suite passes with 317 tests, together with compile/import, PyTorch CPU, dependency-consistency, and diff checks. The user completed the conceptual review of chronological development partitions, TRAIN-only preprocessing, future-data leakage, `torch.float32` tensor preparation, unscaled targets, and deliberate TEST isolation. No dataset was regenerated, no model was trained or evaluated, and no artifact or production behavior changed, so Phase 6B is ✅ **VERIFIED COMPLETE**.
+
 ### 6C — Baseline Neural Network
 
-Status: ⏳ **PLANNED / NOT STARTED**
+Status: ⏭️ **NEXT / NOT STARTED**
 
 Implement one small feed-forward MLP using the existing ten inputs and next-day total quantity target. Keep the architecture intentionally small and educational, with no recurrent, attention-based, or unnecessarily complex model.
 
@@ -793,8 +797,8 @@ Phase 5 Machine Learning              ✅ VERIFIED COMPLETE
   5H Final Integration & Quality Gate ✅ VERIFIED COMPLETE
 Phase 6 Deep Learning Fundamentals    🔄 IN PROGRESS
   6A Neural Network Foundations       ✅ VERIFIED COMPLETE
-  6B Deep Learning Dataset & Preprocessing ⏭️ NEXT / NOT STARTED
-  6C Baseline Neural Network          ⏳ PLANNED / NOT STARTED
+  6B Deep Learning Dataset & Preprocessing ✅ VERIFIED COMPLETE
+  6C Baseline Neural Network          ⏭️ NEXT / NOT STARTED
   6D Training & Validation            ⏳ PLANNED / NOT STARTED
   6E Final Evaluation & ML-vs-DL Comparison ⏳ PLANNED / NOT STARTED
   6F Deep Learning Model Artifact & Inference ⏳ PLANNED / NOT STARTED
@@ -806,4 +810,4 @@ Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
 Final Engineering                     ⏳ PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension including 4G-R2, and **Phase 5 — Machine Learning** including 5H are ✅ **VERIFIED COMPLETE**. **Phase 6 — Deep Learning Fundamentals is in progress; 6A — Neural Network Foundations is verified complete, and 6B — Deep Learning Dataset & Preprocessing is next and not started.**
+The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension including 4G-R2, and **Phase 5 — Machine Learning** including 5H are ✅ **VERIFIED COMPLETE**. **Phase 6 — Deep Learning Fundamentals is in progress; 6A — Neural Network Foundations and 6B — Deep Learning Dataset & Preprocessing are verified complete, and 6C — Baseline Neural Network is next and not started.**
