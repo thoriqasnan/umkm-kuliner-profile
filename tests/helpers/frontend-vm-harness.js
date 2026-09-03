@@ -188,7 +188,7 @@ function elementTag(id) {
   if (/Dialog|Panel/.test(id)) return 'dialog';
   if (/Form$/.test(id)) return 'form';
   if (/Input$/.test(id)) return 'input';
-  if (/Btn$|Button|Trigger$|Prev$|Next$/.test(id)) return 'button';
+  if (/Btn$|Button|Trigger$|Prev$|Next$|Retry$/.test(id)) return 'button';
   if (/Month$|Year$/.test(id)) return 'select';
   if (/List|Grid|Track|Dots/.test(id)) return 'ul';
   return 'div';
@@ -313,7 +313,7 @@ async function createFrontendHarness(options = {}) {
     authority: cartAuthority, epoch: cartEpoch, userId: authenticatedCartUserId,
     unsynced: cartHasUnsyncedChanges, currentUser: currentUser ? {...currentUser} : null,
     items: serializeCartItems(cartItems), products: Array.from(productsById.values()),
-    analytics: analyticsState ? {min:analyticsState.minAvailableDate,max:analyticsState.maxAvailableDate,appliedStart:analyticsState.appliedStartDate,appliedEnd:analyticsState.appliedEndDate} : null,
+    analytics: analyticsState ? {min:analyticsState.minAvailableDate,max:analyticsState.maxAvailableDate,appliedStart:analyticsState.appliedStartDate,appliedEnd:analyticsState.appliedEndDate,forecastStatus:analyticsState.forecast.status} : null,
     writes: Array.from(cartWriteStates, ([productId, value]) => ({productId, version:value.version, persistedVersion:value.persistedVersion, running:value.running, failed:value.failed, hasTimer:!!value.timer}))
   }),
   setProducts(products) { productsById = new Map(products.map(product => [product.id, product])); productsLoadState = products.length ? 'success' : 'empty'; updateCartSummary(); },
@@ -324,7 +324,7 @@ async function createFrontendHarness(options = {}) {
   drainAuthenticatedCartWritesForLogout, handleLogout, applyLanguage, loadMenu,
   setAuthMode, openProductDialog, handleDeleteProduct,
   readGuestCartSnapshot, readPendingCartMerge, writePendingCartMerge,
-  ensureAnalyticsLoaded, loadSalesTrend, fetchSalesTrend, validateSalesTrend, renderSalesTrend, renderCalendar, positionCalendar,
+  ensureAnalyticsLoaded, loadSalesTrend, fetchSalesTrend, validateSalesTrend, renderSalesTrend, loadForecast, fetchForecast, renderForecast, formatForecastComparison, renderCalendar, positionCalendar,
   elements: {cartCheckoutBtn, cartCountEl, cartTotalEl, cartStatus, cartPanel, cartPanelList, authForm, authEmailInput, authPasswordInput, authLoginBtn, authAccount, adminMenuActions, adminDashboardEntry, authStatus,
     productDialog, productForm, productSlugInput, productNameInput, productDescriptionIdInput, productDescriptionEnInput, productPriceInput, productCategoryInput, productImageSrcInput, productImageAltInput, productImageWidthInput, productImageHeightInput, productImageSrcsetInput, productImageSizesInput, productSubmitBtn, menuStatus,
     adminAnalyticsRevenue: adminAnalyticsRevenueEl, adminAnalyticsOrders: adminAnalyticsOrdersEl, adminAnalyticsQuantity: adminAnalyticsQuantityEl, adminAnalyticsAOV: adminAnalyticsAOVEl,
@@ -334,6 +334,9 @@ async function createFrontendHarness(options = {}) {
     adminSalesTrendStatus: adminSalesTrendStatusEl, adminSalesTrendRevenue: adminSalesTrendRevenueEl,
     adminSalesTrendChart: adminSalesTrendChartEl, adminSalesTrendTooltip: adminSalesTrendTooltipEl, adminSalesTrendTableBody: adminSalesTrendTableBodyEl,
     adminAnalyticsAvailablePeriod: adminAnalyticsAvailablePeriodEl, adminAnalyticsAppliedPeriod: adminAnalyticsAppliedPeriodEl,
+    adminForecastStatus: adminForecastStatusEl, adminForecastContent: adminForecastContentEl, adminForecastError: adminForecastErrorEl, adminForecastRetry: adminForecastRetryEl,
+    adminForecastQuantity: adminForecastQuantityEl, adminForecastDate: adminForecastDateEl, adminForecast7Average: adminForecast7AverageEl, adminForecast28Average: adminForecast28AverageEl,
+    adminForecast7Comparison: adminForecast7ComparisonEl, adminForecast28Comparison: adminForecast28ComparisonEl, adminForecastDataThrough: adminForecastDataThroughEl, adminForecastDateContext: adminForecastDateContextEl,
     startCalendarTrigger: startCalendar.trigger, startCalendarPopover: startCalendar.calendar, startCalendarMonth: startCalendar.month, startCalendarYear: startCalendar.year, startCalendarPrev: startCalendar.prev, startCalendarNext: startCalendar.next, startCalendarGrid: startCalendar.grid,
     endCalendarTrigger: endCalendar.trigger, endCalendarPopover: endCalendar.calendar, endCalendarMonth: endCalendar.month, endCalendarYear: endCalendar.year, endCalendarPrev: endCalendar.prev, endCalendarNext: endCalendar.next, endCalendarGrid: endCalendar.grid}
 };`;

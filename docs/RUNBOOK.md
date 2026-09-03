@@ -141,9 +141,9 @@ Current verified baseline:
 
 | Command | Expected tests | Current result |
 |---|---:|---|
-| `npm run test:backend` | 32 | 32 passed |
-| `npm run test:frontend` | 57 | 57 passed |
-| `npm test` | 89 total | 89 passed |
+| `npm run test:backend` | 35 | 35 passed |
+| `npm run test:frontend` | 63 | 63 passed |
+| `npm test` | 98 total | 98 passed |
 
 Use these packaged commands without manually setting `NODE_ENV`, `SESSION_SECRET`, or `DATABASE_PATH`. The backend harness creates an isolated temporary SQLite database per test file, chooses an ephemeral HTTP port, restores environment variables, closes its server and database, and removes temporary resources.
 
@@ -193,7 +193,7 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
 
    `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests, complete Phase 4B pipeline tests, Phase 4C DataFrame/filtering/grouping/NumPy-statistics tests, the Phase 4C-4 synthetic-generator/integrated-analysis tests, and FastAPI service contract/error tests. Service tests use FastAPI's in-process `TestClient`; Uvicorn does not need to be started manually. The Phase 4C-4 tests generate their own temporary large dataset (they do not depend on `python/data/transactions_large.csv` existing on disk).
 
-   Current verified Python data/service result: `293 passed`.
+   Current verified Python data/service result: `298 passed`.
 
 ### Start and check the Python service
 
@@ -491,7 +491,7 @@ PYTHONPATH=python/src .venv/bin/uvicorn sari_rasa_data.service:app --host 127.0.
 curl --fail-with-body -i http://127.0.0.1:8000/analytics/forecast/next-day
 ```
 
-The response contains `forecast_date`, an unrounded/unclamped finite `predicted_quantity`, and the model family, artifact version, and one-day horizon. If the artifact or internal ML source is missing, corrupt, or incompatible, the endpoint returns `503 {"detail":"next-day forecast unavailable"}` without internal paths or deserialization details. It never trains automatically.
+The response contains `forecast_date`, an unrounded finite non-negative `predicted_quantity`, a `historical_context` object, and the model family, artifact version, and one-day horizon. Historical context contains `data_through`, trailing 7/28-calendar-day actual-demand averages, and comparison percentages (or `null` when the corresponding average is zero). Both windows end on `data_through`, include zero-transaction dates as zero, and are independent of browser date filters. If the artifact or internal ML source is missing, corrupt, incompatible, or lacks sufficient history, the endpoint returns `503 {"detail":"next-day forecast unavailable"}` without internal paths or deserialization details. It never trains automatically.
 
 The safe defaults may be overridden only by trusted operator environment configuration before process start:
 
@@ -501,7 +501,7 @@ SARI_RASA_MODEL_ARTIFACT_PATH=python/models/next_day_quantity_v1.joblib \
 PYTHONPATH=python/src .venv/bin/uvicorn sari_rasa_data.service:app --host 127.0.0.1 --port 8000
 ```
 
-To regenerate safely, stop FastAPI, regenerate the source dataset if intended, rerun the export command to the fixed generated path, validate it with the endpoint, then restart dependent local processes if any. Do not regenerate because of TEST results, alter feature order, or substitute another estimator. Phase 5F adds the Node gateway; frontend forecast visualization does not exist yet.
+To regenerate safely, stop FastAPI, regenerate the source dataset if intended, rerun the export command to the fixed generated path, validate it with the endpoint, then restart dependent local processes if any. Do not regenerate because of TEST results, alter feature order, or substitute another estimator.
 
 ### Phase 5F — verify the Node forecast gateway
 
@@ -513,7 +513,13 @@ curl --fail-with-body -i http://localhost:3000/api/analytics/forecast/next-day
 
 Node sends exactly `GET /analytics/forecast/next-day` to FastAPI, waits at most three seconds, performs no retry, validates the exact response contract, and preserves the numeric prediction unchanged. The route accepts no query parameters. Attempts to provide `python_url`, `artifact_path`, `dataset_path`, `model`, or another path return HTTP 400 without contacting Python.
 
-If FastAPI times out, Node returns HTTP 504 with `Layanan prediksi tidak merespons tepat waktu`. Network failures, Python 503/other non-2xx responses, malformed JSON, and invalid success contracts return HTTP 502 with `Layanan prediksi tidak tersedia`. Upstream response bodies and internal paths are never proxied. The read-only route matches existing Node analytics-route authorization behavior; no forecast dashboard UI exists yet.
+If FastAPI times out, Node returns HTTP 504 with `Layanan prediksi tidak merespons tepat waktu`. Network failures, Python 503/other non-2xx responses, malformed JSON, and invalid success contracts return HTTP 502 with `Layanan prediksi tidak tersedia`. Upstream response bodies and internal paths are never proxied. The read-only route matches existing Node analytics-route authorization behavior.
+
+### Phase 5G — verify the dashboard forecast
+
+Start FastAPI, Node, and the frontend using the existing commands, sign in as an administrator, and open **Analitik**. The forecast panel appears after Sales Trend. Its request is independent from Summary, Trend, Products, and Categories: applying another Analytics date range must not reload or change a successful forecast. A failed panel exposes **Coba Lagi / Try Again**, which retries only `GET /api/analytics/forecast/next-day`.
+
+Manual acceptance passed for Indonesian and English, desktop and mobile widths, keyboard access to retry and **Tentang prediksi ini / About this forecast**, visible focus, loading/error announcements, and horizontal containment. It also confirmed the displayed cutoff is one calendar day before the forecast date, the 7/28-day comparison formatting, global date-filter independence, navigation/cache behavior, targeted retry, and logout/login lifecycle. This Phase 5G implementation did not regenerate the 750K dataset, change the model artifact, or retrain the model.
 
 ### Phase 5F-R — reproduce the V2 large-scale experiment
 

@@ -1204,6 +1204,90 @@ h2 {
   margin-bottom: 16px;
 }
 
+.admin-forecast {
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.admin-forecast-heading,
+.admin-forecast-grid,
+.admin-forecast-history,
+.admin-forecast-provenance dl {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-forecast-heading {
+  grid-template-columns: 1fr auto;
+  align-items: start;
+}
+
+.admin-forecast-label,
+.admin-forecast-history h5,
+.admin-forecast-history article > p,
+.admin-forecast-provenance h5 {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.admin-forecast-badge {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-dark);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.admin-forecast-grid {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  margin-top: 20px;
+}
+
+.admin-forecast-hero {
+  padding: 24px;
+  border-radius: var(--radius);
+  background: var(--color-bg-soft);
+}
+
+.admin-forecast-hero strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--color-text);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1;
+}
+
+.admin-forecast-hero p,
+.admin-forecast-provenance p,
+.admin-forecast-disclaimer,
+.admin-forecast-about p {
+  color: var(--color-text-muted);
+}
+
+.admin-forecast-hero time { display: block; margin-top: 16px; font-weight: 700; }
+.admin-forecast-history { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.admin-forecast-history h5 { grid-column: 1 / -1; }
+.admin-forecast-history article { padding: 18px; border: 1px solid var(--color-border); border-radius: var(--radius); }
+.admin-forecast-history article strong,
+.admin-forecast-history article span { display: block; margin-top: 8px; }
+.admin-forecast-history article span { color: var(--color-text-muted); font-size: 0.88rem; }
+.admin-forecast-provenance { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--color-border); }
+.admin-forecast-provenance dl { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 12px 0; }
+.admin-forecast-provenance dt { color: var(--color-text-muted); font-size: 0.8rem; }
+.admin-forecast-provenance dd { margin: 4px 0 0; font-weight: 700; }
+.admin-forecast-disclaimer { margin-top: 16px; padding: 12px 16px; border-left: 3px solid var(--color-border); font-size: 0.88rem; }
+.admin-forecast-about { margin-top: 14px; }
+.admin-forecast-about summary { cursor: pointer; font-weight: 700; }
+.admin-forecast-about p { margin-top: 10px; font-size: 0.88rem; }
+.admin-forecast-error { padding: 20px 0 4px; }
+.admin-forecast-error .btn { margin-top: 12px; }
+.admin-forecast-status.loading::after { content: ""; display: block; width: 40%; height: 12px; margin-top: 12px; border-radius: 6px; background: var(--color-border); animation: forecast-pulse 1.4s ease-in-out infinite; }
+@keyframes forecast-pulse { 50% { opacity: 0.4; } }
+
 .admin-sales-trend-header,
 .admin-sales-trend-form,
 .admin-sales-trend-extremes {
@@ -1572,6 +1656,16 @@ h2 {
   outline-offset: 2px;
 }
 
+.admin-forecast-about summary:focus-visible,
+#adminForecastRetry:focus-visible {
+  outline: 2px solid var(--color-accent-dark);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-forecast-status.loading::after { animation: none; }
+}
+
 /* ==========================================================
    13. RESPONSIVE (MOBILE)
    ========================================================== */
@@ -1740,6 +1834,14 @@ h2 {
   .admin-analytics-panels {
     grid-template-columns: 1fr;
   }
+
+  .admin-forecast-grid,
+  .admin-forecast-history,
+  .admin-forecast-provenance dl {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-forecast-history h5 { grid-column: auto; }
 
   .admin-sales-trend-form,
   .admin-sales-trend-form label,

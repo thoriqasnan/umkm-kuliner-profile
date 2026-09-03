@@ -263,6 +263,43 @@
           </table>
         </section>
 
+        <section class="admin-analytics-panel admin-forecast" aria-labelledby="adminForecastTitle">
+          <div class="admin-forecast-heading">
+            <div><p class="admin-forecast-label" data-i18n="admin.forecastLabel">FORECAST BESOK</p><h4 id="adminForecastTitle" data-i18n="admin.forecastTitle">Prediksi Permintaan Besok</h4></div>
+            <span class="admin-forecast-badge">ML FORECAST</span>
+          </div>
+          <p class="menu-status admin-forecast-status loading" id="adminForecastStatus" role="status" aria-live="polite" aria-atomic="true" tabindex="-1" data-i18n="admin.forecastLoading">Memuat prediksi permintaan...</p>
+          <div id="adminForecastContent" class="admin-forecast-content" hidden>
+            <div class="admin-forecast-grid">
+              <div class="admin-forecast-hero">
+                <strong id="adminForecastQuantity">—</strong>
+                <p data-i18n="admin.forecastEstimate">Estimasi total item yang akan terjual besok</p>
+                <time id="adminForecastDate">—</time>
+              </div>
+              <div class="admin-forecast-history" aria-labelledby="adminForecastHistoryTitle">
+                <h5 id="adminForecastHistoryTitle" data-i18n="admin.forecastHistory">KONTEKS HISTORIS</h5>
+                <article><p data-i18n="admin.forecast7Days">7 HARI TERAKHIR</p><strong id="adminForecast7Average">—</strong><span id="adminForecast7Comparison">—</span></article>
+                <article><p data-i18n="admin.forecast28Days">28 HARI TERAKHIR</p><strong id="adminForecast28Average">—</strong><span id="adminForecast28Comparison">—</span></article>
+              </div>
+            </div>
+            <div class="admin-forecast-provenance">
+              <h5 data-i18n="admin.forecastContext">KONTEKS FORECAST</h5>
+              <dl>
+                <div><dt data-i18n="admin.forecastDataThrough">Data historis</dt><dd id="adminForecastDataThrough">—</dd></div>
+                <div><dt data-i18n="admin.forecastDateLabel">Tanggal prediksi</dt><dd id="adminForecastDateContext">—</dd></div>
+                <div><dt data-i18n="admin.forecastHorizon">Horizon</dt><dd data-i18n="admin.forecastOneDay">1 hari</dd></div>
+              </dl>
+              <p data-i18n="admin.forecastFilterNote">Forecast selalu menggunakan histori terbaru yang tersedia dan tidak berubah mengikuti filter tanggal analytics.</p>
+            </div>
+            <p class="admin-forecast-disclaimer" data-i18n="admin.forecastDisclaimer">Prediksi dibuat berdasarkan pola historis transaksi. Hasil aktual dapat berbeda, terutama saat promosi, event, atau lonjakan permintaan yang tidak biasa.</p>
+            <details class="admin-forecast-about"><summary data-i18n="admin.forecastAbout">Tentang prediksi ini</summary><p data-i18n="admin.forecastAboutBody">Model HistGradientBoosting memperkirakan total permintaan satu hari berikutnya dari pola kalender dan permintaan historis, termasuk fitur berbasis histori 7 dan 28 hari. Ini adalah estimasi; promosi, event, dan lonjakan tidak biasa mungkin lebih sulit diprediksi.</p></details>
+          </div>
+          <div id="adminForecastError" class="admin-forecast-error" hidden>
+            <p role="alert"><strong data-i18n="admin.forecastErrorTitle">Prediksi tidak dapat dimuat.</strong> <span data-i18n="admin.forecastErrorBody">Layanan prediksi sementara tidak tersedia.</span></p>
+            <button type="button" class="btn btn-primary" id="adminForecastRetry" data-i18n="admin.forecastRetry">Coba Lagi</button>
+          </div>
+        </section>
+
         <div class="admin-analytics-panels">
           <div class="admin-analytics-panel admin-analytics-table-panel">
             <h4 id="adminAnalyticsProductPerfHeading" data-i18n="admin.analyticsProductPerfTitle">Performa Produk</h4>

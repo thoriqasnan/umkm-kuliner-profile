@@ -2,7 +2,7 @@
 
 Sari Rasa is a full-stack learning and portfolio application for a local Indonesian culinary business. Customers can browse a bilingual menu, maintain a guest or account-backed cart, and hand an order off to WhatsApp. Authenticated administrators can manage the product catalog.
 
-The currently implemented system uses a vanilla browser frontend, an Express API, and SQLite persistence. A separate local Python workspace contains the analytics pipeline and deterministic next-day quantity forecasting. The Phase 4 dashboard derives compact cached aggregates from the same 750,000-row V2 history used by ML; its 11 products exactly match the application catalog, and raw rows never leave Python. That source spans 693 days and produces only 664 supervised forecasting observations—not 750,000 ML training examples. The V2 model is served through FastAPI and the strictly validated Node gateway; forecast visualization remains Phase 5G work. All synthetic data is fictional.
+The currently implemented system uses a vanilla browser frontend, an Express API, and SQLite persistence. A separate local Python workspace contains the analytics pipeline and deterministic next-day quantity forecasting. The dashboard derives compact cached aggregates from the same 750,000-row V2 history used by ML; its 11 products exactly match the application catalog, and raw rows never leave Python. That source spans 693 days and produces only 664 supervised forecasting observations—not 750,000 ML training examples. The Admin Analytics dashboard now presents the V2 next-day total-demand forecast with independent 7/28-day historical context through the strictly validated FastAPI → Node gateway. All synthetic data is fictional.
 
 ## Implemented features
 
@@ -34,6 +34,13 @@ The currently implemented system uses a vanilla browser frontend, an Express API
 - Admin-only product creation, full update, and deletion
 - Bilingual descriptions and product image metadata
 - Backend validation and database persistence across refreshes
+
+### Analytics and demand forecast
+
+- Admin sales KPIs, trend, product performance, and category revenue with a shared historical date filter
+- Next-day total-demand forecast that always uses the latest trusted history and is independent of that filter
+- Inclusive trailing 7- and 28-calendar-day actual-demand averages, neutral comparisons, cutoff/horizon provenance, and transparent limitations
+- Independent loading/error/retry behavior, effective-admin lifecycle caching, stale-response protection, responsive layout, accessibility, and Indonesian/English presentation
 
 ### Engineering quality
 
@@ -153,9 +160,9 @@ Current verified baseline:
 | Suite | Tests | Result |
 |---|---:|---|
 | Backend and database | 35 | 35 passed |
-| Frontend VM and contracts | 57 | 57 passed |
+| Frontend VM and contracts | 63 | 63 passed |
 | Combined Node suites | 92 | 92 passed |
-| Python data/service | 293 | 293 passed |
+| Python data/service | 298 | 298 passed |
 
 The backend suite uses Node's built-in test runner, temporary SQLite databases, and ephemeral HTTP ports. It covers authentication, authorization, products, carts, merge idempotency, constraints, cascades, schema evolution, and development-database protection.
 
@@ -237,6 +244,8 @@ These controls are appropriate to the current learning project; they are not a c
 - Phase 5D — Model Training & Evaluation: verified complete (selected HistGradientBoosting validation MAE 6.9601; single final-test MAE 8.1000 versus previous-week 14.1792)
 - Phase 5E — Prediction Service: verified complete (versioned trusted artifact and `GET /analytics/forecast/next-day`)
 - Phase 5F — Node.js ↔ ML Integration: verified complete (`GET /api/analytics/forecast/next-day` with strict upstream validation and bounded failures)
+- Phase 5G — ML Dashboard UI: verified complete (automated verification, independent review, CSV verification, and manual browser acceptance passed)
+- Phase 5H — Final Integration & Quality Gate: next / not started
 - Phase 5F-R — Large-Scale ML V2 Dataset, Retraining & Serving Verification: verified complete (750K transaction rows → 664 daily observations; separate V2 evaluation/artifact)
 - Phase 4G-R2 — 750K Analytics Alignment & Performance: verified complete (shared validated aggregate cache; browser acceptance passed)
 - Phase 5F-R2 — 11-Product Domain Alignment & Full Pipeline Reverification: verified complete (750K shared analytics/ML history matches the 11 seeded products; automated review and browser acceptance passed)

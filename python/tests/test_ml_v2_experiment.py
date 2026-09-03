@@ -40,3 +40,14 @@ def test_v2_loader_rejects_cross_chunk_duplicate_identity_and_incomplete_catalog
     frame.to_csv(path, index=False)
     with pytest.raises(ValueError, match="complete application product catalog"):
         load_v2_daily_quantity_series(path, chunksize=17)
+
+
+def test_v2_loader_zero_fills_a_missing_transaction_calendar_day(tmp_path):
+    path = tmp_path / "v2-gap.csv"
+    write_v2_transactions_csv(path, row_count=1000, seed=12, start_date=pd.Timestamp("2026-01-01").date(), end_date=pd.Timestamp("2026-01-03").date())
+    frame = pd.read_csv(path, dtype={"product_id": str})
+    frame = frame.loc[frame["order_date"] != "2026-01-02"]
+    frame.to_csv(path, index=False)
+    daily = load_v2_daily_quantity_series(path, chunksize=113)
+    assert daily["date"].dt.date.astype(str).tolist() == ["2026-01-01", "2026-01-02", "2026-01-03"]
+    assert daily["quantity"].tolist()[1] == 0

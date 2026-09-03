@@ -29,6 +29,12 @@ test('actual HTML provides required singleton/class controls and loads productio
   assert.match(html, /<script\s+src=["']script\.js["']><\/script>/);
 });
 
+test('forecast uses an announced loading state, real retry button, and native disclosure', () => {
+  assert.match(html, /id="adminForecastStatus"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(html, /<button[^>]*id="adminForecastRetry"[^>]*>/);
+  assert.match(html, /<details[^>]*class="admin-forecast-about"[^>]*>\s*<summary[^>]*data-i18n="admin\.forecastAbout"/);
+});
+
 test('frontend API paths have corresponding backend routes and stable HTTP methods', () => {
   const server = fs.readFileSync(path.join(projectRoot, 'server.js'), 'utf8');
   const contracts = [

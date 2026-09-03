@@ -1396,6 +1396,32 @@ const translations = {
     "admin.salesTrendError": "Tren penjualan tidak dapat dimuat. Silakan coba lagi.",
     "admin.salesTrendEmpty": "Tidak ada penjualan pada periode terpilih.",
     "admin.salesTrendInvalid": "Pilih rentang tanggal yang valid.",
+    "admin.forecastTitle": "Prediksi Permintaan Besok",
+    "admin.forecastLabel": "FORECAST BESOK",
+    "admin.forecastLoading": "Memuat prediksi permintaan...",
+    "admin.forecastEstimate": "Estimasi total item yang akan terjual besok",
+    "admin.forecastQuantity": "≈ {value} unit",
+    "admin.forecastHistory": "KONTEKS HISTORIS",
+    "admin.forecast7Days": "7 HARI TERAKHIR",
+    "admin.forecast28Days": "28 HARI TERAKHIR",
+    "admin.forecastAverage": "Rata-rata {value} unit",
+    "admin.forecastAbove": "↑ {value}% di atas rata-rata",
+    "admin.forecastBelow": "↓ {value}% di bawah rata-rata",
+    "admin.forecastClose": "Mendekati rata-rata",
+    "admin.forecastUnavailable": "Perbandingan tidak tersedia",
+    "admin.forecastContext": "KONTEKS FORECAST",
+    "admin.forecastDataThrough": "Data historis",
+    "admin.forecastThroughPrefix": "s.d. {date}",
+    "admin.forecastDateLabel": "Tanggal prediksi",
+    "admin.forecastHorizon": "Horizon",
+    "admin.forecastOneDay": "1 hari",
+    "admin.forecastFilterNote": "Forecast selalu menggunakan histori terbaru yang tersedia dan tidak berubah mengikuti filter tanggal analytics.",
+    "admin.forecastDisclaimer": "Prediksi dibuat berdasarkan pola historis transaksi. Hasil aktual dapat berbeda, terutama saat promosi, event, atau lonjakan permintaan yang tidak biasa.",
+    "admin.forecastAbout": "Tentang prediksi ini",
+    "admin.forecastAboutBody": "Model HistGradientBoosting memperkirakan total permintaan satu hari berikutnya dari pola kalender dan permintaan historis, termasuk fitur berbasis histori 7 dan 28 hari. Ini adalah estimasi; promosi, event, dan lonjakan tidak biasa mungkin lebih sulit diprediksi.",
+    "admin.forecastErrorTitle": "Prediksi tidak dapat dimuat.",
+    "admin.forecastErrorBody": "Layanan prediksi sementara tidak tersedia.",
+    "admin.forecastRetry": "Coba Lagi",
     "admin.activePeriod": "Periode aktif",
     "admin.availablePeriod": "Data tersedia",
     "admin.calendarPrev": "Bulan sebelumnya",
@@ -1595,6 +1621,32 @@ const translations = {
     "admin.salesTrendError": "Unable to load sales trend. Please try again.",
     "admin.salesTrendEmpty": "No sales in selected period.",
     "admin.salesTrendInvalid": "Choose a valid date range.",
+    "admin.forecastTitle": "Next-Day Demand Forecast",
+    "admin.forecastLabel": "TOMORROW'S FORECAST",
+    "admin.forecastLoading": "Loading demand forecast...",
+    "admin.forecastEstimate": "Estimated total items expected to sell tomorrow",
+    "admin.forecastQuantity": "≈ {value} units",
+    "admin.forecastHistory": "HISTORICAL CONTEXT",
+    "admin.forecast7Days": "LAST 7 DAYS",
+    "admin.forecast28Days": "LAST 28 DAYS",
+    "admin.forecastAverage": "Average {value} units",
+    "admin.forecastAbove": "↑ {value}% above average",
+    "admin.forecastBelow": "↓ {value}% below average",
+    "admin.forecastClose": "Close to average",
+    "admin.forecastUnavailable": "Comparison unavailable",
+    "admin.forecastContext": "FORECAST CONTEXT",
+    "admin.forecastDataThrough": "Historical data",
+    "admin.forecastThroughPrefix": "through {date}",
+    "admin.forecastDateLabel": "Forecast date",
+    "admin.forecastHorizon": "Horizon",
+    "admin.forecastOneDay": "1 day",
+    "admin.forecastFilterNote": "The forecast always uses the latest available history and does not change with the Analytics date filter.",
+    "admin.forecastDisclaimer": "The forecast is based on historical transaction patterns. Actual results may differ, especially during promotions, events, or unusual demand spikes.",
+    "admin.forecastAbout": "About this forecast",
+    "admin.forecastAboutBody": "The HistGradientBoosting model estimates next-day total demand from calendar patterns and historical demand, including features based on 7-day and 28-day history. It is an estimate; promotions, events, and unusual spikes may be harder to predict.",
+    "admin.forecastErrorTitle": "The forecast could not be loaded.",
+    "admin.forecastErrorBody": "The forecast service is temporarily unavailable.",
+    "admin.forecastRetry": "Try Again",
     "admin.activePeriod": "Active period",
     "admin.availablePeriod": "Data available",
     "admin.calendarPrev": "Previous month",
@@ -1716,6 +1768,7 @@ langButtons.forEach((btn) => {
       if (!startCalendar.calendar.hidden) renderCalendar(startCalendar);
       if (!endCalendar.calendar.hidden) renderCalendar(endCalendar);
     }
+    if (analyticsState && analyticsState.forecast && analyticsState.forecast.data) renderForecast(analyticsState.forecast.data);
   });
 });
 
@@ -2033,6 +2086,18 @@ const adminSalesTrendTableBodyEl = document.getElementById("adminSalesTrendTable
 const adminAnalyticsAvailablePeriodEl = document.getElementById("adminAnalyticsAvailablePeriod");
 const adminAnalyticsAppliedPeriodEl = document.getElementById("adminAnalyticsAppliedPeriod");
 const adminSalesTrendApplyBtnEl = document.getElementById("adminSalesTrendApplyBtn");
+const adminForecastStatusEl = document.getElementById("adminForecastStatus");
+const adminForecastContentEl = document.getElementById("adminForecastContent");
+const adminForecastErrorEl = document.getElementById("adminForecastError");
+const adminForecastRetryEl = document.getElementById("adminForecastRetry");
+const adminForecastQuantityEl = document.getElementById("adminForecastQuantity");
+const adminForecastDateEl = document.getElementById("adminForecastDate");
+const adminForecast7AverageEl = document.getElementById("adminForecast7Average");
+const adminForecast28AverageEl = document.getElementById("adminForecast28Average");
+const adminForecast7ComparisonEl = document.getElementById("adminForecast7Comparison");
+const adminForecast28ComparisonEl = document.getElementById("adminForecast28Comparison");
+const adminForecastDataThroughEl = document.getElementById("adminForecastDataThrough");
+const adminForecastDateContextEl = document.getElementById("adminForecastDateContext");
 
 function calendarElements(prefix) {
   return {
@@ -2068,6 +2133,7 @@ function createAnalyticsState() {
     products: { status: "idle", data: null, cache: new Map(), requestId: 0, rangeKey: null },
     categories: { status: "idle", data: null, cache: new Map(), requestId: 0, rangeKey: null },
     trend: { status: "idle", data: null, rangeKey: null, cache: new Map(), requestId: 0 },
+    forecast: { status: "idle", data: null, requestId: 0 },
     minAvailableDate: null,
     maxAvailableDate: null,
     appliedStartDate: null,
@@ -2127,7 +2193,82 @@ function resetAnalyticsDom() {
   adminAnalyticsAvailablePeriodEl.textContent = "—";
   adminAnalyticsAppliedPeriodEl.textContent = "—";
   hideAnalyticsSectionStatus(adminSalesTrendStatusEl);
+  adminForecastContentEl.hidden = true;
+  adminForecastErrorEl.hidden = true;
+  adminForecastStatusEl.hidden = false;
+  showAnalyticsSectionStatus(adminForecastStatusEl, "admin.forecastLoading", "loading");
 }
+
+function isForecastResponse(data) {
+  if (!data || typeof data !== "object" || !isIsoCalendarDate(data.forecast_date) ||
+      typeof data.predicted_quantity !== "number" || !Number.isFinite(data.predicted_quantity) || data.predicted_quantity < 0) return false;
+  const context = data.historical_context;
+  const model = data.model;
+  if (!context || typeof context !== "object" || !isIsoCalendarDate(context.data_through) ||
+      ![context.trailing_7_day_average, context.trailing_28_day_average].every((value) => typeof value === "number" && Number.isFinite(value) && value >= 0) ||
+      ![context.vs_7_day_average_percent, context.vs_28_day_average_percent].every((value) => value === null || (typeof value === "number" && Number.isFinite(value))) ||
+      !model || model.family !== "hist_gradient_boosting" || model.artifact_version !== "1.0" || model.forecast_horizon_days !== 1) return false;
+  const next = new Date(`${context.data_through}T00:00:00Z`); next.setUTCDate(next.getUTCDate() + 1);
+  return next.toISOString().slice(0, 10) === data.forecast_date;
+}
+
+async function fetchForecast() {
+  const response = await fetch(`${API_BASE_URL}/api/analytics/forecast/next-day`, { credentials: "include" });
+  if (!response.ok) throw new Error(`Forecast API gagal dengan status ${response.status}`);
+  const data = await response.json();
+  if (!isForecastResponse(data)) throw new Error("Respons forecast tidak valid");
+  return data;
+}
+
+function forecastTemplate(key, value) {
+  return translations[document.documentElement.lang][key].replace("{value}", value).replace("{date}", value);
+}
+
+function formatForecastComparison(value) {
+  if (value === null) return forecastTemplate("admin.forecastUnavailable", "");
+  const rounded = Math.round(value * 10) / 10;
+  if (Math.abs(rounded) < 0.05) return forecastTemplate("admin.forecastClose", "");
+  const locale = document.documentElement.lang === "en" ? "en-US" : "id-ID";
+  const formatted = Math.abs(rounded).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return forecastTemplate(rounded > 0 ? "admin.forecastAbove" : "admin.forecastBelow", formatted);
+}
+
+function renderForecast(data) {
+  const locale = document.documentElement.lang === "en" ? "en-US" : "id-ID";
+  const unit = Math.round(data.predicted_quantity).toLocaleString(locale);
+  const average = (value) => value.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  adminForecastQuantityEl.textContent = forecastTemplate("admin.forecastQuantity", unit);
+  adminForecastDateEl.textContent = formatAnalyticsDate(data.forecast_date);
+  adminForecastDateEl.setAttribute("datetime", data.forecast_date);
+  adminForecast7AverageEl.textContent = forecastTemplate("admin.forecastAverage", average(data.historical_context.trailing_7_day_average));
+  adminForecast28AverageEl.textContent = forecastTemplate("admin.forecastAverage", average(data.historical_context.trailing_28_day_average));
+  adminForecast7ComparisonEl.textContent = formatForecastComparison(data.historical_context.vs_7_day_average_percent);
+  adminForecast28ComparisonEl.textContent = formatForecastComparison(data.historical_context.vs_28_day_average_percent);
+  adminForecastDataThroughEl.textContent = forecastTemplate("admin.forecastThroughPrefix", formatAnalyticsDate(data.historical_context.data_through));
+  adminForecastDateContextEl.textContent = formatAnalyticsDate(data.forecast_date);
+  adminForecastStatusEl.hidden = true; adminForecastErrorEl.hidden = true; adminForecastContentEl.hidden = false;
+}
+
+async function loadForecast(generation) {
+  if (!analyticsState) return;
+  const section = analyticsState.forecast;
+  if (section.status === "success" && section.data) { renderForecast(section.data); return; }
+  const requestId = ++section.requestId;
+  section.status = "loading"; section.data = null;
+  adminForecastContentEl.hidden = true; adminForecastErrorEl.hidden = true; adminForecastStatusEl.hidden = false;
+  showAnalyticsSectionStatus(adminForecastStatusEl, "admin.forecastLoading", "loading");
+  try {
+    const data = await fetchForecast();
+    if (generation !== analyticsGeneration || !analyticsState || requestId !== analyticsState.forecast.requestId) return;
+    section.status = "success"; section.data = data; renderForecast(data);
+  } catch (error) {
+    if (generation !== analyticsGeneration || !analyticsState || requestId !== analyticsState.forecast.requestId) return;
+    section.status = "error"; section.data = null; adminForecastStatusEl.hidden = true; adminForecastContentEl.hidden = true; adminForecastErrorEl.hidden = false;
+    console.error("Gagal memuat forecast:", error);
+  }
+}
+
+adminForecastRetryEl.addEventListener("click", () => loadForecast(analyticsGeneration));
 
 function analyticsRangeQuery(startDate, endDate) {
   const query = new URLSearchParams();
@@ -2801,6 +2942,9 @@ function ensureAnalyticsLoaded() {
   }
   if (analyticsState.trend.status === "idle" || analyticsState.trend.status === "error") {
     tasks.push(loadSalesTrend(generation));
+  }
+  if (analyticsState.forecast.status === "idle") {
+    tasks.push(loadForecast(generation));
   }
   if (tasks.length > 0) Promise.allSettled(tasks);
 }

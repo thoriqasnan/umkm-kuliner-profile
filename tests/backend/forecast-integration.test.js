@@ -8,6 +8,13 @@ const { isNextDayForecastResponse } = require('../../lib/pythonAnalyticsClient')
 const FORECAST = {
   forecast_date: '2026-01-01',
   predicted_quantity: 86.47720009609498,
+  historical_context: {
+    data_through: '2025-12-31',
+    trailing_7_day_average: 80.5,
+    trailing_28_day_average: 78.25,
+    vs_7_day_average_percent: 7.424,
+    vs_28_day_average_percent: 10.514,
+  },
   model: {
     family: 'hist_gradient_boosting',
     artifact_version: '1.0',
@@ -40,6 +47,16 @@ test('forecast contract validator rejects every malformed contract class', () =>
     { ...FORECAST, predicted_quantity: '86.4' },
     { ...FORECAST, predicted_quantity: NaN },
     { ...FORECAST, predicted_quantity: Infinity },
+    { ...FORECAST, predicted_quantity: -1 },
+    { ...FORECAST, historical_context: undefined },
+    { ...FORECAST, historical_context: [] },
+    { ...FORECAST, historical_context: { ...FORECAST.historical_context, data_through: '2025-02-30' } },
+    { ...FORECAST, historical_context: { ...FORECAST.historical_context, data_through: '2025-12-30' } },
+    { ...FORECAST, historical_context: { ...FORECAST.historical_context, trailing_7_day_average: -1 } },
+    { ...FORECAST, historical_context: { ...FORECAST.historical_context, trailing_28_day_average: Infinity } },
+    { ...FORECAST, historical_context: { ...FORECAST.historical_context, vs_7_day_average_percent: '7.4' } },
+    { ...FORECAST, historical_context: { ...FORECAST.historical_context, vs_28_day_average_percent: NaN } },
+    { ...FORECAST, historical_context: { ...FORECAST.historical_context, internals: true } },
     { ...FORECAST, model: undefined },
     { ...FORECAST, model: [] },
     { ...FORECAST, model: { ...FORECAST.model, family: '' } },
@@ -51,6 +68,14 @@ test('forecast contract validator rejects every malformed contract class', () =>
     { ...FORECAST, model: { ...FORECAST.model, internals: true } },
   ];
   for (const value of invalid) assert.equal(isNextDayForecastResponse(value), false);
+  assert.equal(isNextDayForecastResponse({
+    ...FORECAST,
+    historical_context: {
+      ...FORECAST.historical_context,
+      trailing_7_day_average: 0,
+      vs_7_day_average_percent: null,
+    },
+  }), true);
 });
 
 test('Node forecast gateway validates upstream, bounds failures, and rejects client overrides', async () => {

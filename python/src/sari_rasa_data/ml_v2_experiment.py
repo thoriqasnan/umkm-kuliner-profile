@@ -63,10 +63,14 @@ def load_v2_daily_quantity_series(path: Path | str, chunksize: int = 100_000) ->
         raise ValueError("V2 transactions must not be empty")
     if observed_product_ids != set(catalog):
         raise ValueError("V2 transactions must contain the complete application product catalog")
-    daily = pd.DataFrame({"date": sorted(totals), "quantity": [totals[day] for day in sorted(totals)]})
-    expected = pd.date_range(daily["date"].iloc[0], daily["date"].iloc[-1], freq="D")
-    if not daily["date"].reset_index(drop=True).equals(pd.Series(expected)):
-        raise ValueError("V2 daily dates must form a continuous calendar")
+    expected = pd.date_range(min(totals), max(totals), freq="D")
+    daily = (
+        pd.Series(totals, dtype="int64")
+        .reindex(expected, fill_value=0)
+        .rename_axis("date")
+        .rename("quantity")
+        .reset_index()
+    )
     return daily.loc[:, DAILY_COLUMNS]
 
 

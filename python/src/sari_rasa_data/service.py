@@ -50,6 +50,13 @@ def next_day_forecast() -> dict[str, object]:
     return {
         "forecast_date": result.forecast_date,
         "predicted_quantity": result.predicted_quantity,
+        "historical_context": {
+            "data_through": result.data_through,
+            "trailing_7_day_average": result.trailing_7_day_average,
+            "trailing_28_day_average": result.trailing_28_day_average,
+            "vs_7_day_average_percent": result.vs_7_day_average_percent,
+            "vs_28_day_average_percent": result.vs_28_day_average_percent,
+        },
         "model": {
             "family": result.model_family,
             "artifact_version": result.artifact_version,

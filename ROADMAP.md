@@ -522,13 +522,15 @@ The regenerated dataset preserves the approved aggregate daily demand series and
 
 ### 5G — ML Dashboard UI
 
-Status: ⏭️ **NEXT / NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
 
-Add an understandable forecast presentation with its horizon, units, limitations, loading/error states, and accessible responsive behavior.
+Phase 5G presents the existing verified next-day total-demand forecast in the Admin Analytics dashboard after Sales Trend. FastAPI now returns the latest historical cutoff, inclusive trailing 7- and 28-calendar-day actual-demand averages, and finite percentage comparisons (or `null` when an average is zero). Missing transaction dates contribute zero and incomplete windows fail safely. Node strictly validates the exact nested contract and one-day date invariant while preserving its three-second timeout, no-retry policy, and generic 502/504 failures.
+
+The responsive bilingual panel provides independent loading/error/retry state, locale-aware presentation rounding, neutral comparison wording, provenance, filter-independence guidance, disclaimer, and native expandable model explanation. A successful forecast is reused within the effective-admin lifecycle, global historical filters never refetch it, and logout/admin changes invalidate it with stale-response protection. Automated Python/Node/frontend regression, independent review, CSV verification, and user-performed manual browser acceptance passed. No dataset regeneration, model artifact change, or retraining occurred.
 
 ### 5H — Final Integration & Quality Gate
 
-Status: ⏳ **NOT STARTED**
+Status: ⏭️ **NEXT / NOT STARTED**
 
 Complete end-to-end verification, documentation, focused review, and required manual acceptance before Phase 5 can be marked verified complete.
 
@@ -714,12 +716,12 @@ Phase 5 Machine Learning              🔄 IN PROGRESS
   5F Node.js ↔ ML Integration         ✅ VERIFIED COMPLETE
   5F-R Large-Scale ML V2 Dataset, Retraining & Serving Verification ✅ VERIFIED COMPLETE
   5F-R2 11-Product Domain Alignment & Full Pipeline Reverification ✅ VERIFIED COMPLETE
-  5G ML Dashboard UI                  ⏭️ NEXT / NOT STARTED
-  5H Final Integration & Quality Gate ⏳ NOT STARTED
+  5G ML Dashboard UI                  ✅ VERIFIED COMPLETE
+  5H Final Integration & Quality Gate ⏭️ NEXT / NOT STARTED
 Phase 6 Deep Learning Fundamentals    ⏳ PLANNED
 Phase 7 AI Engineering                ⏳ PLANNED
 Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
 Final Engineering                     ⏳ PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), and the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension, including 4G-R2, are ✅ **VERIFIED COMPLETE** after automated/static verification, focused review, and user-performed browser acceptance. **Phase 5 — Machine Learning is in progress: 5A through 5F, 5F-R, and 5F-R2 are verified complete; 5G ML Dashboard UI is next but has not started.**
+The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), and the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension, including 4G-R2, are ✅ **VERIFIED COMPLETE** after automated/static verification, focused review, and user-performed browser acceptance. **Phase 5 — Machine Learning is in progress: 5A through 5G, 5F-R, and 5F-R2 are verified complete. Phase 5H Final Integration & Quality Gate is next and not started.**

@@ -79,7 +79,8 @@ def test_health_does_not_access_datasets_or_database(monkeypatch):
 def test_next_day_forecast_success_contract(monkeypatch):
     from sari_rasa_data.prediction import PredictionResult
     monkeypatch.setattr(service, "predict_next_day", lambda data, model: PredictionResult(
-        "2026-01-01", 91.25, "hist_gradient_boosting", "1.0", 1
+        "2026-01-01", 91.25, "2025-12-31", 80.0, 75.0, 14.0625, 21.666666666666668,
+        "hist_gradient_boosting", "1.0", 1
     ))
     with TestClient(app) as client:
         response = client.get("/analytics/forecast/next-day")
@@ -87,6 +88,13 @@ def test_next_day_forecast_success_contract(monkeypatch):
     assert response.json() == {
         "forecast_date": "2026-01-01",
         "predicted_quantity": 91.25,
+        "historical_context": {
+            "data_through": "2025-12-31",
+            "trailing_7_day_average": 80.0,
+            "trailing_28_day_average": 75.0,
+            "vs_7_day_average_percent": 14.0625,
+            "vs_28_day_average_percent": 21.666666666666668,
+        },
         "model": {"family": "hist_gradient_boosting", "artifact_version": "1.0", "forecast_horizon_days": 1},
     }
 

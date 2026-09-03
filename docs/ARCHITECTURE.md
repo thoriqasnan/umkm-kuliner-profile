@@ -625,6 +625,22 @@ Trusted local joblib artifact + ML history
 
 `lib/pythonAnalyticsClient.js` owns the shared Node-to-Python URL validation, built-in `fetch`, `AbortController`, timeout cleanup, and failure classification. Its forecast client accepts only the exact schema: a real ISO calendar date, finite numeric prediction, model family `hist_gradient_boosting`, artifact schema `1.0`, and integer one-day horizon. Extra fields, coercible strings, malformed JSON, non-2xx responses, and unsupported model metadata are rejected rather than proxied.
 
+### Phase 5G — forecast presentation and historical context
+
+`GET /analytics/forecast/next-day` now derives forecast and business comparison context from one trusted continuous daily quantity series. `data_through` is the last trusted historical date. The trailing 7- and 28-day averages include that cutoff day and every calendar day before it in the window; a date with no transaction rows is reindexed to quantity zero. These are comparison metrics, not a claim that the model uses only those windows. The model retains its existing calendar, lag, and shifted rolling features. Fewer than 28 complete historical calendar days fails closed, and a zero average produces a JSON `null` comparison rather than NaN or Infinity.
+
+```text
+Trusted ML CSV + versioned artifact
+  ↓ one continuous daily series
+Python forecast + 7D/28D business context
+  ↓ exact extended JSON contract
+Node strict schema/date/model validation (3 s, no retry)
+  ↓ GET /api/analytics/forecast/next-day
+Admin Analytics forecast panel
+```
+
+Node validates non-negative finite quantities/averages, finite-or-null comparisons, exact model metadata, and `forecast_date = data_through + 1 calendar day`. It does not recalculate forecast values. The browser calls only Node, formats values for ID/EN, and keeps forecast state separate from range-filtered analytics. A successful response is cached for the current effective-admin lifecycle; range Apply does not reload it. Logout or effective admin changes reset the cache/generation, so an older in-flight response cannot render into a newer identity. Retry targets only forecast. Native disclosure, semantic live/alert states, neutral comparison wording, focus treatment, responsive order, and reduced-motion behavior provide the accessibility boundary.
+
 The Express route accepts no query parameters and cannot receive an upstream URL, artifact path, dataset path, model family, or version override. It matches the existing read-only analytics API authorization behavior; those Node analytics routes are not guarded by admin middleware, while the current dashboard remains admin-only in the browser. Timeouts map to a redacted 504; network, upstream non-2xx, JSON, and contract failures map to a redacted 502. Python bodies, exception messages, filesystem paths, and service topology are never returned. The browser still never calls FastAPI directly, and Phase 5F adds no frontend rendering.
 
 ### Phase 5F-R — V2 experiment and serving refinement
@@ -669,7 +685,7 @@ The pre-4G-R2 analytics pipeline fully reloaded and validated the CSV for each c
 
 Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, the project documentation/runbook, the Phase 4A Python foundation workspace, the complete Phase 4B pure-Python pipeline, and the complete Phase 4C Pandas/NumPy analysis (4C-1 through 4C-4). Phase 4D-1 through 4D-4 and Phase 4D as a whole are verified complete after hardening, automated verification, documentation, independent review, and final user manual acceptance. The Python service remains a separately started process and is now integrated behind Node's Phase 4E analytics routes.
 
-Phase 4E Node-to-Python integration, Phase 4F, and Phase 4 are verified complete. The approved post-quality-gate Phase 4G extension, including 4G-R2 browser acceptance, is also verified complete. Phase 5A through Phase 5F, 5F-R, and 5F-R2 are verified complete; 5F-R2 aligns the shared V2 source and artifact to the 11-product catalog, with automated verification, independent review, and browser acceptance passed. Forecast dashboard UI remains unimplemented; Phase 5G is next.
+Phase 4E Node-to-Python integration, Phase 4F, and Phase 4 are verified complete. The approved post-quality-gate Phase 4G extension, including 4G-R2 browser acceptance, is also verified complete. Phase 5A through Phase 5G, 5F-R, and 5F-R2 are verified complete; 5F-R2 aligns the shared V2 source and artifact to the 11-product catalog. Phase 5G forecast presentation passed automated verification, independent review, CSV verification, and user-performed manual browser acceptance. Phase 5H is next and not started.
 
 See the [Project Roadmap](../ROADMAP.md) for the approved sequence and current status.
 
