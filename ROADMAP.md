@@ -536,13 +536,80 @@ Phase 5H completed the cumulative Phase 5 quality gate without retraining, regen
 
 Six focused read-only reviews found no unresolved Critical, High, or Medium blocker. Final provenance verification confirmed the active 750,000-row, 693-day, 11-product V2 dataset and its SHA-256; the trusted V2 artifact SHA-256, frozen metadata, catalog identity, and 664 supervised rows; and the served 2026-09-02 forecast from history through 2026-09-01 with the latest 7/28-calendar-day context. FastAPI → Node contract validation, the three-second timeout, no-retry and query-override boundaries, safe error translation, dashboard filter independence, and effective-admin lifecycle isolation remain intact. Prior Phase 5G manual acceptance supplies the required browser/integration evidence and was not unnecessarily repeated.
 
-## Phase 6 — Deep Learning
+## Phase 6 — Deep Learning Fundamentals
 
 Status: ⏭️ **NEXT / NOT STARTED**
 
 Goal: learn practical deep-learning fundamentals without turning Project 1 into a research project. Expected concepts include neural networks, tensors, training loops, loss, optimization, validation, overfitting, inference, comparison with traditional ML, and deciding when deep learning is appropriate.
 
-Scope remains intentionally smaller than the later AI Engineering phase unless project evidence justifies more. Do not attempt to train a foundation model or LLM from scratch.
+PyTorch is the approved deep-learning framework. Phase 6 reuses the verified Phase 5 next-day total-demand forecasting problem, existing ten-feature schema, and frozen temporal methodology so the previous-week baseline, production HistGradientBoosting (HGB) model, and experimental neural network can be compared over the same held-out TEST period with the same MAE/RMSE semantics. Deep-learning-specific preprocessing, training, artifacts, and inference remain separate from the frozen HGB implementation.
+
+The neural network starts as one small feed-forward multilayer perceptron (MLP), not an LSTM or Transformer, with no broad hyperparameter search. TRAIN and VALIDATION are used for model development. The complete DL policy must be frozen before one final Phase 6 TEST evaluation, followed by no post-TEST tuning. A worse DL result is acceptable and must be reported honestly. HGB remains the production forecast model throughout Phase 6 unless a later explicit model-promotion decision is separately approved; metrics never trigger automatic promotion.
+
+Phase 6F uses a separate validated DL artifact and inference path. Phase 6G adds experimental integration without altering the production HGB endpoint or the Browser → Node → FastAPI boundary. Phase 6H presents an experimental model-evaluation comparison, not two competing production forecasts. LLMs, RAG, embeddings, vector databases, agents, and related AI Engineering work remain outside Phase 6.
+
+### 6A — Neural Network Foundations
+
+Status: ⏳ **PLANNED / NOT STARTED**
+
+Learn and demonstrate tensors, neurons, weights and bias, layers, activation functions, forward propagation, loss, autograd/backpropagation, and optimizer steps through small PyTorch-based exercises.
+
+### 6B — Deep Learning Dataset & Preprocessing
+
+Status: ⏳ **PLANNED / NOT STARTED**
+
+Adapt the existing Phase 5 supervised dataset and frozen temporal split for PyTorch. Reuse the approved feature/target construction, fit feature scaling on TRAIN only, transform VALIDATION and TEST without refitting, prepare deterministic tensors/batches, and preserve the existing leakage protections and exact feature order.
+
+### 6C — Baseline Neural Network
+
+Status: ⏳ **PLANNED / NOT STARTED**
+
+Implement one small feed-forward MLP using the existing ten inputs and next-day total quantity target. Keep the architecture intentionally small and educational, with no recurrent, attention-based, or unnecessarily complex model.
+
+### 6D — Training & Validation
+
+Status: ⏳ **PLANNED / NOT STARTED**
+
+Implement explicit training and validation loops covering optimizer behavior, epochs, batches, validation monitoring, early stopping, best-weight restoration, and overfitting analysis. TEST remains unavailable for tuning, stopping, or model selection in this subphase.
+
+### 6E — Final Evaluation & ML-vs-DL Comparison
+
+Status: ⏳ **PLANNED / NOT STARTED**
+
+Freeze the complete experiment policy before TEST access, evaluate the experimental MLP once on the unchanged final TEST partition, and compare the previous-week baseline, production HGB model, and experimental MLP honestly with MAE and RMSE. No post-TEST tuning or automatic model promotion is permitted.
+
+### 6F — Deep Learning Model Artifact & Inference
+
+Status: ⏳ **PLANNED / NOT STARTED**
+
+Create a separate fail-closed DL artifact and inference path containing validated weights, allowlisted architecture configuration, preprocessing/scaler metadata, ordered features, artifact and framework versions, and dataset/catalog provenance. Do not weaken or replace the frozen HGB artifact contract.
+
+### 6G — Deep Learning Service Integration
+
+Status: ⏳ **PLANNED / NOT STARTED**
+
+Expose the experimental DL capability through additive FastAPI → Node contracts with strict response validation, bounded timeout/error behavior, and no direct frontend → FastAPI dependency. Preserve the existing production HGB endpoint unchanged.
+
+### 6H — Dashboard Model Comparison
+
+Status: ⏳ **PLANNED / NOT STARTED**
+
+Provide an explicitly experimental dashboard comparison of the previous-week baseline, production HGB model, and MLP evaluation results over the same held-out TEST period. Explain MAE/RMSE semantics and distinguish production from experimental status clearly; do not present two competing production forecasts, fabricate confidence/probability, or promote a model automatically.
+
+### 6I — Final Integration & Quality Gate
+
+Status: ⏳ **PLANNED / NOT STARTED**
+
+Run cumulative regression, provenance, architecture, documentation, and meaningful manual acceptance checks before Phase 6 can become verified complete. Manual acceptance should be required only where live service integration, browser behavior, accessibility, responsiveness, or production/experimental clarity cannot be established adequately through automated checks.
+
+Implementation may proceed in four practical delivery groups without changing, merging, removing, or renumbering the approved subphases:
+
+```text
+Group 1: 6A
+Group 2: 6B–6E
+Group 3: 6F–6G
+Group 4: 6H–6I
+```
 
 ## Phase 7 — AI Engineering
 
@@ -721,9 +788,18 @@ Phase 5 Machine Learning              ✅ VERIFIED COMPLETE
   5G ML Dashboard UI                  ✅ VERIFIED COMPLETE
   5H Final Integration & Quality Gate ✅ VERIFIED COMPLETE
 Phase 6 Deep Learning Fundamentals    ⏭️ NEXT / NOT STARTED
+  6A Neural Network Foundations       ⏳ PLANNED / NOT STARTED — NEXT IMPLEMENTATION SUBPHASE
+  6B Deep Learning Dataset & Preprocessing ⏳ PLANNED / NOT STARTED
+  6C Baseline Neural Network          ⏳ PLANNED / NOT STARTED
+  6D Training & Validation            ⏳ PLANNED / NOT STARTED
+  6E Final Evaluation & ML-vs-DL Comparison ⏳ PLANNED / NOT STARTED
+  6F Deep Learning Model Artifact & Inference ⏳ PLANNED / NOT STARTED
+  6G Deep Learning Service Integration ⏳ PLANNED / NOT STARTED
+  6H Dashboard Model Comparison       ⏳ PLANNED / NOT STARTED
+  6I Final Integration & Quality Gate ⏳ PLANNED / NOT STARTED
 Phase 7 AI Engineering                ⏳ PLANNED
 Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
 Final Engineering                     ⏳ PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension including 4G-R2, and **Phase 5 — Machine Learning** including 5H are ✅ **VERIFIED COMPLETE**. **Phase 6 — Deep Learning Fundamentals is next and not started.**
+The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension including 4G-R2, and **Phase 5 — Machine Learning** including 5H are ✅ **VERIFIED COMPLETE**. **Phase 6 — Deep Learning Fundamentals is next and not started; 6A — Neural Network Foundations is its next implementation subphase but remains planned and not started.**
