@@ -49,7 +49,7 @@ The currently implemented system uses a vanilla browser frontend, an Express API
 - Actual `index.html` ↔ `script.js` element contracts
 - Frontend ↔ backend API route and method contracts
 - Guards that prevent tests from opening the development database directly, through symlinks, or through hard-link aliases
-- Combined `npm test` runner with 57 passing tests
+- Combined `npm test` runner with 98 passing tests
 
 ## Technology stack
 
@@ -123,7 +123,7 @@ Use `localhost` consistently for both origins. Do not mix `localhost` and `127.0
 
 This is only the shortest supported local path. See the [Local Development Runbook](docs/RUNBOOK.md) for detailed setup, operations, and troubleshooting.
 
-The analytics gateway requires FastAPI to start before Node. Follow the runbook's Python-service and Node-to-Python integration sequence; the existing admin dashboard consumes the four analytics routes through Node.
+The analytics gateway requires FastAPI to start before Node. Follow the runbook's Python-service and Node-to-Python integration sequence; the existing admin dashboard consumes four date-filtered analytics routes plus the independent next-day forecast route through Node.
 
 ## Environment variables
 
@@ -161,7 +161,7 @@ Current verified baseline:
 |---|---:|---|
 | Backend and database | 35 | 35 passed |
 | Frontend VM and contracts | 63 | 63 passed |
-| Combined Node suites | 92 | 92 passed |
+| Combined Node suites | 98 | 98 passed |
 | Python data/service | 298 | 298 passed |
 
 The backend suite uses Node's built-in test runner, temporary SQLite databases, and ephemeral HTTP ports. It covers authentication, authorization, products, carts, merge idempotency, constraints, cascades, schema evolution, and development-database protection.
@@ -245,11 +245,12 @@ These controls are appropriate to the current learning project; they are not a c
 - Phase 5E — Prediction Service: verified complete (versioned trusted artifact and `GET /analytics/forecast/next-day`)
 - Phase 5F — Node.js ↔ ML Integration: verified complete (`GET /api/analytics/forecast/next-day` with strict upstream validation and bounded failures)
 - Phase 5G — ML Dashboard UI: verified complete (automated verification, independent review, CSV verification, and manual browser acceptance passed)
-- Phase 5H — Final Integration & Quality Gate: next / not started
+- Phase 5H — Final Integration & Quality Gate: verified complete (full regression, provenance/invariant verification, six focused reviews, and documentation consistency passed)
+- Phase 5 overall: verified complete
 - Phase 5F-R — Large-Scale ML V2 Dataset, Retraining & Serving Verification: verified complete (750K transaction rows → 664 daily observations; separate V2 evaluation/artifact)
 - Phase 4G-R2 — 750K Analytics Alignment & Performance: verified complete (shared validated aggregate cache; browser acceptance passed)
 - Phase 5F-R2 — 11-Product Domain Alignment & Full Pipeline Reverification: verified complete (750K shared analytics/ML history matches the 11 seeded products; automated review and browser acceptance passed)
-- Forecast dashboard visualization, deep learning, and AI phases: future work
+- Phase 6 deep-learning fundamentals is next; later AI phases remain future work
 
 See the [Project Roadmap](ROADMAP.md) for the approved phase sequence and current source of truth.
 

@@ -4,7 +4,7 @@
 
 Sari Rasa currently consists of a static browser frontend, a Node.js/Express API, and a local SQLite database. It implements a bilingual product menu, cookie-based authentication, database-authoritative roles, product administration, guest and authenticated carts, and WhatsApp checkout handoff.
 
-The machine-learning, deep-learning, and AI components described in the [roadmap](../ROADMAP.md) remain future learning phases. A local Python workspace and FastAPI data service now exist (see [Python workspace](#python-workspace-and-independent-data-service-foundation) below). Node/Express calls that service over server-to-server HTTP/JSON and remains the only application-facing backend; the browser does not call FastAPI directly. The project is also not presented as a production deployment.
+The implemented system also includes a local Python workspace and FastAPI service for cached V2 analytics and deterministic next-day demand forecasting (see [Python workspace](#python-workspace-and-independent-data-service-foundation) below). Node/Express calls that service over server-to-server HTTP/JSON and remains the only application-facing backend; the browser does not call FastAPI directly. Deep learning and AI remain future roadmap phases, and the project is not presented as a production deployment.
 
 ## Component overview
 
@@ -366,9 +366,9 @@ Tests fail before opening the real development database, including when a filesy
 
 ## Python workspace and independent data-service foundation
 
-Phase 4A introduced a repository-local Python workspace at `python/`, containing a small `sari_rasa_data` package and a pytest suite (`python/tests/`). Its modules include the Phase 4A foundations, Phase 4B transaction pipeline, Phase 4C Pandas/NumPy analysis, and the Phase 4D `service.py` FastAPI boundary. The service exposes health, compact summary, product, and category endpoints. Importing the application performs no analysis; each analytics endpoint loads and analyzes the canonical CSV only when requested. The workspace runs inside its own repository-local `.venv`, which is not committed.
+Phase 4A introduced a repository-local Python workspace at `python/`, containing the `sari_rasa_data` package and pytest suite (`python/tests/`). It now includes the Phase 4 foundations, the shared cached V2 analytics pipeline, Phase 5 forecasting/training modules, and the `service.py` FastAPI boundary. The service exposes health, four historical analytics endpoints, and the next-day forecast endpoint. Importing the application performs no analysis. Historical analytics use a stat-invalidated compact snapshot of the trusted configured CSV, while forecast requests validate the active CSV against trusted artifact provenance before inference. The workspace runs inside its own repository-local `.venv`, which is not committed.
 
-The FastAPI process is a separately started specialized service. Node.js/Express remains the only application-facing backend and delegates its four `/api/analytics/*` routes through `lib/pythonAnalyticsClient.js` to the matching FastAPI analytics routes. All four accept the same optional, inclusive `start_date` and `end_date` query parameters; omitted dates retain the full-dataset contract. Sales Trend also returns dataset-derived `min_available_date` and `max_available_date`, which bound the frontend calendar without hardcoded dataset dates. `PYTHON_SERVICE_URL` is trusted server-operator configuration, never request/frontend input; callers cannot choose arbitrary upstream paths. The client uses built-in Node `fetch`, exact contracts, and a three-second timeout. Errors remain controlled and redacted. There are no retries, background polling, or direct browser-to-Python requests. Each dashboard section has an independent status/cache while sharing one applied period.
+The FastAPI process is a separately started specialized service. Node.js/Express remains the only application-facing backend and delegates five `/api/analytics/*` routes through `lib/pythonAnalyticsClient.js` to matching FastAPI routes. Four historical routes accept the same optional, inclusive `start_date` and `end_date` parameters; the forecast route rejects every query parameter and always uses the latest trusted history. Sales Trend returns dataset-derived bounds for the frontend calendar. `PYTHON_SERVICE_URL` is trusted server-operator configuration, never request/frontend input; callers cannot choose arbitrary upstream paths. The client uses built-in Node `fetch`, exact contracts, and a three-second timeout. Errors remain controlled and redacted. There are no retries, background polling, or direct browser-to-Python requests. Historical dashboard sections share one applied period, while forecast state/cache is independent and scoped to the effective-admin lifecycle.
 
 ```text
 Admin Analytics browser UI
@@ -377,7 +377,8 @@ Node / Express
     ├── GET /api/analytics/summary?start_date=&end_date=
     ├── GET /api/analytics/products?start_date=&end_date=
     ├── GET /api/analytics/categories?start_date=&end_date=
-    └── GET /api/analytics/sales-trend?start_date=&end_date=
+    ├── GET /api/analytics/sales-trend?start_date=&end_date=
+    └── GET /api/analytics/forecast/next-day
             ↓ built-in fetch, HTTP/JSON, 3-second timeout
         Python FastAPI service
 ```
@@ -390,15 +391,16 @@ Python service process
     ├── GET /analytics/summary?start_date=&end_date=
     ├── GET /analytics/products?start_date=&end_date=
     ├── GET /analytics/categories?start_date=&end_date=
-    └── GET /analytics/sales-trend?start_date=&end_date=
+    ├── GET /analytics/sales-trend?start_date=&end_date=
+    └── GET /analytics/forecast/next-day
             ↓
-        canonical transactions.csv
+        trusted transactions_ml_v2.csv + next_day_quantity_v2.joblib
             ↓
-        Phase 4B/4C load and analytics functions
+        cached aggregate analytics + shared ML feature/inference functions
             ↓
-        JSON-safe summary, product, and category results
+        compact JSON analytics and forecast results
 
-No SQLite, Node, browser, or transactions_large.csv dependency
+No SQLite, browser-to-FastAPI, or transactions_large.csv dependency
 ```
 
 Phase 4B-1 adds `python/data/transactions.csv` as the canonical synthetic learning dataset and `sari_rasa_data.transactions` as its schema boundary. Each CSV row contains an order ID, ISO date, product ID and name, category, quantity, unit price, and payment method. The schema helper converts CSV-style date and integer strings into typed Python values and rejects missing or invalid required values. It does not load whole datasets, clean data, calculate analytics, access SQLite, or expose a service; those capabilities remain later roadmap work.
@@ -607,7 +609,7 @@ GET /analytics/forecast/next-day
 
 The schema `1.0` artifact is a joblib dictionary containing `metadata` and the fitted `model`. Metadata records the exact ordered features, target, one-day horizon, model family and hyperparameters, training dates/policy, generator identity and seed, model random state, and Python/scikit-learn versions. Loading fails closed on missing, corrupt, structurally invalid, wrong-version, wrong-family, wrong-feature, wrong-target/horizon/policy, or wrong-estimator artifacts.
 
-Joblib uses executable pickle deserialization. The model path is therefore trusted operator configuration only (`SARI_RASA_MODEL_ARTIFACT_PATH`, with a repository-local default), never an API parameter or upload. The separate ML source is likewise operator configuration (`SARI_RASA_ML_DATASET_PATH`) and defaults to the generated ML-development CSV. Existing analytics continue using only the small canonical CSV.
+Joblib uses executable pickle deserialization. The model path is therefore trusted operator configuration only (`SARI_RASA_MODEL_ARTIFACT_PATH`, with a repository-local default), never an API parameter or upload. The ML source is likewise operator configuration (`SARI_RASA_ML_DATASET_PATH`). The active defaults are the ignored V2 dataset and V2 artifact; historical analytics share that V2 transaction history through `SARI_RASA_ANALYTICS_DATASET_PATH`. Tests explicitly inject the small canonical CSV where a deterministic fixture is required. The V1 flow above remains historical implementation evidence.
 
 Inference takes transaction history, creates a continuous daily series (missing calendar days become zero), and calls the shared Phase 5B feature builder. It requires at least 29 continuous days and rejects invalid, duplicate, unsorted, non-finite, negative, or fractional daily quantities. The response preserves the finite floating-point regression output without rounding or clamping. Missing/incompatible artifacts and invalid internal source data produce a redacted HTTP 503. The service never trains during import, startup, or a request.
 
@@ -685,7 +687,7 @@ The pre-4G-R2 analytics pipeline fully reloaded and validated the CSV for each c
 
 Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, the project documentation/runbook, the Phase 4A Python foundation workspace, the complete Phase 4B pure-Python pipeline, and the complete Phase 4C Pandas/NumPy analysis (4C-1 through 4C-4). Phase 4D-1 through 4D-4 and Phase 4D as a whole are verified complete after hardening, automated verification, documentation, independent review, and final user manual acceptance. The Python service remains a separately started process and is now integrated behind Node's Phase 4E analytics routes.
 
-Phase 4E Node-to-Python integration, Phase 4F, and Phase 4 are verified complete. The approved post-quality-gate Phase 4G extension, including 4G-R2 browser acceptance, is also verified complete. Phase 5A through Phase 5G, 5F-R, and 5F-R2 are verified complete; 5F-R2 aligns the shared V2 source and artifact to the 11-product catalog. Phase 5G forecast presentation passed automated verification, independent review, CSV verification, and user-performed manual browser acceptance. Phase 5H is next and not started.
+Phase 4E Node-to-Python integration, Phase 4F, Phase 4, and the approved post-quality-gate Phase 4G extension including 4G-R2 are verified complete. Phase 5A through Phase 5H, 5F-R, and 5F-R2 are verified complete; the final quality gate passed full regression, provenance/invariant checks, six focused reviews, and documentation consistency without retraining or regenerating trusted artifacts. Phase 6 Deep Learning Fundamentals is next and not started.
 
 See the [Project Roadmap](../ROADMAP.md) for the approved sequence and current status.
 
