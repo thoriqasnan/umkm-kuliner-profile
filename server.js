@@ -18,6 +18,7 @@ const {
   getCategoriesAnalytics,
   getSalesTrendAnalytics,
   getNextDayForecast,
+  getModelComparison,
 } = require('./lib/pythonAnalyticsClient');
 
 const app = express();
@@ -1461,6 +1462,24 @@ app.get('/api/analytics/forecast/next-day', async (req, res) => {
       message: timedOut
         ? 'Layanan prediksi tidak merespons tepat waktu'
         : 'Layanan prediksi tidak tersedia',
+    });
+  }
+});
+
+app.get('/api/analytics/forecast/model-comparison', async (req, res) => {
+  if (Object.keys(req.query).length !== 0) {
+    return res.status(400).json({ status: 'error', message: 'Parameter perbandingan model tidak valid' });
+  }
+  try {
+    res.json(await getModelComparison());
+  } catch (error) {
+    const timedOut = error?.code === 'PYTHON_SERVICE_TIMEOUT';
+    console.error(`[GET /api/analytics/forecast/model-comparison] Layanan perbandingan model upstream ${timedOut ? 'timeout' : 'gagal'}`);
+    res.status(timedOut ? 504 : 502).json({
+      status: 'error',
+      message: timedOut
+        ? 'Layanan perbandingan model tidak merespons tepat waktu'
+        : 'Layanan perbandingan model tidak tersedia',
     });
   }
 });

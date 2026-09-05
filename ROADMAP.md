@@ -538,7 +538,7 @@ Six focused read-only reviews found no unresolved Critical, High, or Medium bloc
 
 ## Phase 6 — Deep Learning Fundamentals
 
-Status: 🔄 **IN PROGRESS**
+Status: ✅ **VERIFIED COMPLETE**
 
 Goal: learn practical deep-learning fundamentals without turning Project 1 into a research project. Expected concepts include neural networks, tensors, training loops, loss, optimization, validation, overfitting, inference, comparison with traditional ML, and deciding when deep learning is appropriate.
 
@@ -570,45 +570,79 @@ Focused verification passes with 10 tests proving feature/target reuse, split co
 
 ### 6C — Baseline Neural Network
 
-Status: ⏭️ **NEXT / NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
 
 Implement one small feed-forward MLP using the existing ten inputs and next-day total quantity target. Keep the architecture intentionally small and educational, with no recurrent, attention-based, or unnecessarily complex model.
 
+Phase 6C extends `sari_rasa_data.dl_experiment` with the single approved `Linear(10, 16) → ReLU → Linear(16, 1)` baseline and a deterministic CPU training routine over the Phase 6B TRAIN/VALIDATION tensors only. The fixed baseline uses seed `20260903`, MSE loss, Adam with learning rate `0.001`, batch size `32`, and `40` epochs; it has no output clamp, early stopping, checkpoint restoration, scheduler, architecture search, or TEST path. Its epoch-zero through epoch-40 history records full-partition TRAIN and VALIDATION MSE, with Phase 5 metric helpers providing final VALIDATION MAE/RMSE.
+
+The controlled V2 run reduces TRAIN MSE from `5765754.0` to `5649151.0`; final VALIDATION MSE is `6026301.0`, MAE is `2432.8427`, and RMSE is `2454.8526`. These values demonstrate a functioning baseline loop rather than a selected or production-ready model; training/validation policy improvement remains Phase 6D. Focused verification passes with 15 tests covering the exact architecture, finite forward output, trainable and changed parameters, finite history/metrics, loss reduction, practical CPU repeatability, input non-mutation, and continued TEST isolation. The complete Python suite passes with 322 tests, together with compile/import, PyTorch CPU, dependency-consistency, and diff checks. No dataset, HGB model, artifact, service, or frontend behavior changed. The user completed the Phase 6C conceptual review, so Phase 6C is ✅ **VERIFIED COMPLETE**.
+
 ### 6D — Training & Validation
 
-Status: ⏳ **PLANNED / NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
 
 Implement explicit training and validation loops covering optimizer behavior, epochs, batches, validation monitoring, early stopping, best-weight restoration, and overfitting analysis. TEST remains unavailable for tuning, stopping, or model selection in this subphase.
 
+Phase 6D extends the fixed Phase 6C MLP training workflow to at most `200` epochs with validation-based early stopping patience `20`. Adam, batch size `32`, CPU execution, seed `20260903`, and raw-output MSE training remain unchanged. After every epoch, the workflow records TRAIN MSE and VALIDATION MSE/MAE/RMSE; VALIDATION MAE is the sole checkpoint and stopping criterion, and the best weights are restored before returning the model. The non-negative demand policy is now frozen before TEST access: the network retains its unconstrained scalar output and trains against it directly, while model-selection/evaluation predictions are clamped to a minimum of zero.
+
+The original fixed V2 development run at learning rate `0.001` reached its best VALIDATION MAE at epoch `200`, which was also the configured stopping epoch, so patience-based early stopping did not trigger. TRAIN MSE decreased from `5765754.0` to `3587780.25`; the restored best model produced VALIDATION MAE `2020.7530` and RMSE `2036.8799`. One validation-only alternative run changed only the learning rate to `0.01`. It remained finite and stable through epoch `200`, did not trigger early stopping, reached its best checkpoint at epoch `198`, reduced observed TRAIN MSE from `5765754.0` to `36189.6133`, and produced restored VALIDATION MAE `192.1377` and RMSE `244.0085`. Based solely on this materially better VALIDATION result, the Phase 6 training policy freezes learning rate `0.01`; no third configuration or hyperparameter search was run.
+
+Focused Phase 6D verification passes with `4` tests covering the exact architecture, finite forward behavior, the non-negative evaluation policy, and TEST-free training/result contracts. The existing Phase 6B development-data boundary exposed only TRAIN/VALIDATION tensors to training; TEST predictions and metrics were never produced or evaluated. No artifact, dataset, HGB model, service, Node, or frontend behavior changed. The frozen policy was carried unchanged into the single Phase 6E TEST evaluation, so Phase 6D is ✅ **VERIFIED COMPLETE**.
+
 ### 6E — Final Evaluation & ML-vs-DL Comparison
 
-Status: ⏳ **PLANNED / NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
 
 Freeze the complete experiment policy before TEST access, evaluate the experimental MLP once on the unchanged final TEST partition, and compare the previous-week baseline, production HGB model, and experimental MLP honestly with MAE and RMSE. No post-TEST tuning or automatic model promotion is permitted.
 
+Phase 6E adds a parameter-free, single-use final-evaluation entry point. It trains the frozen `Linear(10, 16) → ReLU → Linear(16, 1)` policy on TRAIN with VALIDATION-MAE checkpoint selection, restores the best validation weights, transforms the 93-row frozen TEST split with the unchanged TRAIN-fitted scaler, clamps TEST predictions to zero minimum, and computes finite MAE/RMSE once. The entry point exposes no architecture, optimizer, learning-rate, epoch, patience, seed, preprocessing, or prediction-policy controls, and consumes its in-process evaluation gate before extracting TEST features and targets.
+
+Over the common `2026-06-01` through `2026-09-01` TEST period, the frozen Phase 5 results remain previous-week baseline MAE/RMSE `178.3333`/`228.5035` and production HGB MAE/RMSE `135.5097`/`177.6172`; neither was retrained or retuned. The Phase 6 MLP produced MAE `147.2643` and RMSE `193.5776`. Ranking by MAE (then RMSE) is HGB first, MLP second, and previous-week baseline third. MLP MAE is `8.67%` higher than HGB, so it loses to HGB while still improving on the baseline. The engineering conclusion is to retain HGB as the production model and keep the MLP experimental; deep learning is not promoted merely because it was evaluated.
+
+This evaluation was methodologically frozen but not psychologically blind: Phase 5 TEST outcomes were already known before Phase 6 began. The complete Phase 6 policy was nevertheless frozen using TRAIN/VALIDATION only before its first TEST predictions were evaluated, and no post-TEST tuning occurred. Focused Phase 6D–6E verification passes with `6` tests covering the architecture, frozen training result, validation-best restoration, non-negative evaluation, TEST-free development API, finite frozen-split TEST metrics, frozen Phase 5 comparison values, ranking, and the one-time/no-configuration TEST boundary. The accepted evaluation and engineering decision carry unchanged into the additive service integration, so Phase 6E is ✅ **VERIFIED COMPLETE**.
+
 ### 6F — Deep Learning Model Artifact & Inference
 
-Status: ⏳ **PLANNED / NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
 
 Create a separate fail-closed DL artifact and inference path containing validated weights, allowlisted architecture configuration, preprocessing/scaler metadata, ordered features, artifact and framework versions, and dataset/catalog provenance. Do not weaken or replace the frozen HGB artifact contract.
 
+Phase 6F adds a separate PyTorch artifact and next-day inference path for the experimental MLP without changing the production HGB artifact or prediction service. Export retrains only the frozen TRAIN/VALIDATION policy and stores the restored validation-best CPU weights alongside an exact allowlisted `10 → 16 → 1`/ReLU architecture, ordered ten-feature contract, TRAIN-fitted scaler state, Adam/MSE/VALIDATION-MAE training policy, non-negative clamp policy, artifact/PyTorch/Python versions, validation evidence, and V2 dataset/catalog provenance. It does not perform another TEST evaluation.
+
+The trusted loader uses PyTorch's restricted weights-only loading and fails closed on missing, corrupt, structurally unexpected, non-finite, wrong-shaped, policy-incompatible, version-incompatible, or provenance-incompatible content before rebuilding the fixed CPU model. The separate inference function verifies the dataset hash, reuses the established V2 daily loader and next-day feature builder, applies the stored scaler in authoritative feature order, clamps predictions to zero minimum, and labels its result explicitly experimental. Generated artifacts remain under the already Git-ignored `python/models/` boundary. Focused Phase 6F verification passes with `12` tests covering frozen metadata and policy, safe round-trip loading, CPU/finite weights, metadata and weight tampering, corrupt artifacts, deterministic finite non-negative inference, experimental labeling, and dataset-provenance mismatch. No manual acceptance is required at this artifact/inference-only phase. Its validated loader and inference contract are reused unchanged by Phase 6G, so Phase 6F is ✅ **VERIFIED COMPLETE**.
+
 ### 6G — Deep Learning Service Integration
 
-Status: ⏳ **PLANNED / NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
 
 Expose the experimental DL capability through additive FastAPI → Node contracts with strict response validation, bounded timeout/error behavior, and no direct frontend → FastAPI dependency. Preserve the existing production HGB endpoint unchanged.
 
+Phase 6G adds `GET /analytics/forecast/model-comparison` to FastAPI and the corresponding `GET /api/analytics/forecast/model-comparison` Node gateway without changing `GET /analytics/forecast/next-day` or its Node proxy. The response exposes the frozen common TEST period and dataset identity; fixed MAE/RMSE records label Phase 5 HGB as `production`, Phase 6 MLP as `experimental`, and the previous-week baseline as `benchmark`. It also includes one current next-day MLP inference from the existing Phase 6F path, labeled experimental with its artifact version and historical cutoff. No dataset, artifact, model, preprocessing, or evaluation is regenerated or retrained.
+
+FastAPI converts missing, corrupt, incompatible, or provenance-mismatched DL resources into a generic `503` without leaking internal paths. Node accepts no client override parameters, strictly validates the complete upstream JSON including model roles, finite non-negative metrics, evaluation dates, experimental identity, and one-day forecast invariant, and uses the existing bounded three-second/no-retry analytics client. Invalid/upstream failures become generic `502`; timeouts become generic `504`. Focused Phase 6G verification passes with `4` Python service tests and `4` Node contract/proxy tests, including the pre-existing production HGB endpoint contract and failure suite. The first sandboxed Node integration attempt could not bind loopback ports; the identical focused command passed when local ephemeral test servers were permitted. The accepted contract is consumed unchanged by Phase 6H, so Phase 6G is ✅ **VERIFIED COMPLETE**.
+
 ### 6H — Dashboard Model Comparison
 
-Status: ⏳ **PLANNED / NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
 
 Provide an explicitly experimental dashboard comparison of the previous-week baseline, production HGB model, and MLP evaluation results over the same held-out TEST period. Explain MAE/RMSE semantics and distinguish production from experimental status clearly; do not present two competing production forecasts, fabricate confidence/probability, or promote a model automatically.
 
+Phase 6H adds one bilingual model-performance panel directly below the unchanged Next-Day Demand Forecast and before Product Performance/Revenue by Category. It follows the existing white panel, neutral border, rounded-corner, spacing, typography, and restrained orange-accent system without gradients or a competing hero forecast. Three semantic cards render in one desktop row, wrap to two columns at tablet width, and stack vertically on mobile: HGB is visibly `PRODUCTION` with the best result, MLP is `EXPERIMENTAL` with its honest `+8.67%` MAE difference, and Previous Week is the `BENCHMARK` reference. The shared TEST dates come from the API response rather than frontend constants.
+
+The panel fetches the Node comparison route independently from the global analytics date filter and has isolated loading, strict invalid-response rejection, generic error, retry, successful-session reuse, and stale-admin-response protections matching the established dashboard lifecycle. Its engineering conclusion retains HGB as production. A keyboard-accessible native disclosure explains MAE/RMSE and the production/experimental decision; the current MLP inference appears only inside this secondary detail and remains explicitly experimental. Focused frontend verification passes with `8` tests covering the six-route Node-only dashboard boundary, exact roles and metrics, conclusion and TEST period, bilingual rendering, loading/error/retry behavior, independent caching, semantic disclosure, non-table responsive structure, and the unchanged existing HGB production forecast behavior. User-performed browser acceptance passed for the bilingual desktop/mobile presentation, role clarity, metric rendering, disclosure, responsive stacking, loading/error recovery, and unchanged production forecast card. No backend, model, artifact, dataset, or evaluation changed, so Phase 6H is ✅ **VERIFIED COMPLETE**.
+
 ### 6I — Final Integration & Quality Gate
 
-Status: ⏳ **PLANNED / NOT STARTED**
+Status: ✅ **VERIFIED COMPLETE**
 
 Run cumulative regression, provenance, architecture, documentation, and meaningful manual acceptance checks before Phase 6 can become verified complete. Manual acceptance should be required only where live service integration, browser behavior, accessibility, responsiveness, or production/experimental clarity cannot be established adequately through automated checks.
+
+Phase 6I completes the cumulative quality gate without retraining HGB, regenerating V2, tuning the MLP, or repeating its canonical TEST evaluation. Review found and fixed one methodological regression-test blocker: the Phase 6E one-time-evaluation test had exercised the real frozen TEST partition on every pytest run; it now verifies the same frozen-policy, clamp, metric, ranking, and single-use boundary against an isolated synthetic seam. The production evaluation record remains unchanged.
+
+Python compilation and Phase 6 imports pass on CPU with PyTorch `2.14.0`; dependency consistency reports no broken requirements. The complete Python regression passes `341` tests. The packaged `npm test` command passes `37` backend and `66` frontend tests (`103` total), including strict FastAPI/Node comparison contracts, bounded/redacted failures, unchanged HGB production behavior, model roles, responsive dashboard behavior, and the accepted browser-facing implementation. The only warning is joblib/loky's harmless fallback from unavailable physical-core discovery to logical cores.
+
+Cumulative review confirms the exact frozen feature/scaler/training policy, restricted weights-only artifact loading, finite CPU weight validation, dataset SHA/catalog provenance, operator-controlled paths, no fallback or internal-path disclosure, three-second/no-retry Node boundary, and browser-to-Node-only architecture. The ignored `python/models/next_day_quantity_mlp_v1.pt` exists locally for development, remains ignored and untracked, and no secrets, credentials, generated datasets, databases, or artifacts are staged/tracked by Phase 6. README, architecture, runbook, and roadmap now document setup, artifact export, endpoints, dashboard behavior, the `135.5097`/`177.6172` HGB, `147.2643`/`193.5776` MLP, and `178.3333`/`228.5035` previous-week TEST results, the `8.67%` MLP MAE disadvantage, production/experimental roles, and the psychological-blinding limitation. Phase 6I and Phase 6 are ✅ **VERIFIED COMPLETE**.
 
 Implementation may proceed in four practical delivery groups without changing, merging, removing, or renumbering the approved subphases:
 
@@ -621,7 +655,7 @@ Group 4: 6H–6I
 
 ## Phase 7 — AI Engineering
 
-Status: ⏳ **PLANNED**
+Status: ⏭️ **NEXT / NOT STARTED**
 
 Expected progression:
 
@@ -795,19 +829,19 @@ Phase 5 Machine Learning              ✅ VERIFIED COMPLETE
   5F-R2 11-Product Domain Alignment & Full Pipeline Reverification ✅ VERIFIED COMPLETE
   5G ML Dashboard UI                  ✅ VERIFIED COMPLETE
   5H Final Integration & Quality Gate ✅ VERIFIED COMPLETE
-Phase 6 Deep Learning Fundamentals    🔄 IN PROGRESS
+Phase 6 Deep Learning Fundamentals    ✅ VERIFIED COMPLETE
   6A Neural Network Foundations       ✅ VERIFIED COMPLETE
   6B Deep Learning Dataset & Preprocessing ✅ VERIFIED COMPLETE
-  6C Baseline Neural Network          ⏭️ NEXT / NOT STARTED
-  6D Training & Validation            ⏳ PLANNED / NOT STARTED
-  6E Final Evaluation & ML-vs-DL Comparison ⏳ PLANNED / NOT STARTED
-  6F Deep Learning Model Artifact & Inference ⏳ PLANNED / NOT STARTED
-  6G Deep Learning Service Integration ⏳ PLANNED / NOT STARTED
-  6H Dashboard Model Comparison       ⏳ PLANNED / NOT STARTED
-  6I Final Integration & Quality Gate ⏳ PLANNED / NOT STARTED
-Phase 7 AI Engineering                ⏳ PLANNED
+  6C Baseline Neural Network          ✅ VERIFIED COMPLETE
+  6D Training & Validation            ✅ VERIFIED COMPLETE
+  6E Final Evaluation & ML-vs-DL Comparison ✅ VERIFIED COMPLETE
+  6F Deep Learning Model Artifact & Inference ✅ VERIFIED COMPLETE
+  6G Deep Learning Service Integration ✅ VERIFIED COMPLETE
+  6H Dashboard Model Comparison       ✅ VERIFIED COMPLETE
+  6I Final Integration & Quality Gate ✅ VERIFIED COMPLETE
+Phase 7 AI Engineering                ⏭️ NEXT / NOT STARTED
 Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
 Final Engineering                     ⏳ PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension including 4G-R2, and **Phase 5 — Machine Learning** including 5H are ✅ **VERIFIED COMPLETE**. **Phase 6 — Deep Learning Fundamentals is in progress; 6A — Neural Network Foundations and 6B — Deep Learning Dataset & Preprocessing are verified complete, and 6C — Baseline Neural Network is next and not started.**
+The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension including 4G-R2, **Phase 5 — Machine Learning** including 5H, and **Phase 6 — Deep Learning Fundamentals** including 6I are ✅ **VERIFIED COMPLETE**. **Phase 7 — AI Engineering is next and not started.**

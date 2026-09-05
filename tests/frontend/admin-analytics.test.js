@@ -5,8 +5,9 @@ const { createFrontendHarness, response } = require('../helpers/frontend-vm-harn
 const ADMIN_USER = { id: 1, email: 'admin@example.test', role: 'admin' };
 const TREND = { available_period: { min_available_date: '2026-07-01', max_available_date: '2026-07-15' }, start_date: '2026-07-01', end_date: '2026-07-02', summary: { total_revenue: 105000, unique_orders: 3, total_quantity: 8, average_order_value: 35000 }, daily_sales: [{ date: '2026-07-01', total_revenue: 68000, unique_orders: 2, total_quantity: 5 }, { date: '2026-07-02', total_revenue: 37000, unique_orders: 1, total_quantity: 3 }], high_day: { date: '2026-07-01', total_revenue: 68000 }, low_day: { date: '2026-07-02', total_revenue: 37000 } };
 const FORECAST = { forecast_date: '2026-09-02', predicted_quantity: 2217.219, historical_context: { data_through: '2026-09-01', trailing_7_day_average: 2100.4, trailing_28_day_average: 2250.2, vs_7_day_average_percent: 5.56, vs_28_day_average_percent: -1.47 }, model: { family: 'hist_gradient_boosting', artifact_version: '1.0', forecast_horizon_days: 1 } };
+const MODEL_COMPARISON = { evaluation: { start_date: '2026-06-01', end_date: '2026-09-01', dataset_identity: 'sari_rasa_ml_synthetic_transactions_v2', metric_unit: 'next_day_total_quantity' }, models: [{ name: 'Phase 5 HistGradientBoosting', type: 'hist_gradient_boosting', role: 'production', mae: 135.5097, rmse: 177.6172 }, { name: 'Phase 6 MLP', type: 'mlp_10_16_1_relu', role: 'experimental', mae: 147.2643, rmse: 193.5776 }, { name: 'Previous-week baseline', type: 'previous_week', role: 'benchmark', mae: 178.3333, rmse: 228.5035 }], experimental_inference: { forecast_date: '2026-09-02', predicted_quantity: 2198.4, data_through: '2026-09-01', model_family: 'experimental_mlp', artifact_version: '1.0', role: 'experimental' } };
 
-test('opening Analytics as admin fetches five Node analytics routes, never FastAPI', async () => {
+test('opening Analytics as admin fetches six Node analytics routes, never FastAPI', async () => {
   const harness = await createFrontendHarness({ products: [] });
   harness.probe.setUser(ADMIN_USER);
   const seenUrls = [];
@@ -24,11 +25,12 @@ test('opening Analytics as admin fetches five Node analytics routes, never FastA
   });
   harness.addRoute('/api/analytics/sales-trend', async (url) => { seenUrls.push(url); return response(200, TREND); });
   harness.addRoute('/api/analytics/forecast/next-day', async (url) => { seenUrls.push(url); return response(200, FORECAST); });
+  harness.addRoute('/api/analytics/forecast/model-comparison', async (url) => { seenUrls.push(url); return response(200, MODEL_COMPARISON); });
 
   harness.probe.ensureAnalyticsLoaded();
   await harness.settle(20);
 
-  assert.equal(seenUrls.length, 5);
+  assert.equal(seenUrls.length, 6);
   for (const url of seenUrls) {
     assert.ok(url.startsWith('http://localhost:3000/api/analytics/'), `unexpected analytics URL: ${url}`);
     assert.doesNotMatch(url, /8000/);

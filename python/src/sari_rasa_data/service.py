@@ -22,6 +22,18 @@ from sari_rasa_data.pandas_analysis import (
 )
 from sari_rasa_data.model_artifact import ArtifactError, DEFAULT_ML_DATASET_PATH, DEFAULT_MODEL_ARTIFACT_PATH
 from sari_rasa_data.prediction import predict_next_day
+from sari_rasa_data.dl_experiment import (
+    PHASE5_TEST_BASELINE_MAE,
+    PHASE5_TEST_BASELINE_RMSE,
+    PHASE5_TEST_HGB_MAE,
+    PHASE5_TEST_HGB_RMSE,
+    PHASE6_TEST_MLP_MAE,
+    PHASE6_TEST_MLP_RMSE,
+)
+from sari_rasa_data.dl_model_artifact import DEFAULT_DL_ARTIFACT_PATH, DLArtifactError
+from sari_rasa_data.dl_prediction import predict_next_day_with_dl
+from sari_rasa_data.ml_v2_data import V2_DATASET_IDENTITY
+from sari_rasa_data.ml_v2_experiment import V2_TEST_END, V2_TEST_START
 from sari_rasa_data.analytics_store import ANALYTICS_DATASET_CACHE, V2_ANALYTICS_PATH, analytics_from_snapshot
 
 
@@ -32,6 +44,7 @@ CANONICAL_DATASET_PATH = (
 ANALYTICS_DATASET_PATH = Path(os.environ.get("SARI_RASA_ANALYTICS_DATASET_PATH", V2_ANALYTICS_PATH))
 ML_FORECAST_DATASET_PATH = Path(os.environ.get("SARI_RASA_ML_DATASET_PATH", DEFAULT_ML_DATASET_PATH))
 ML_MODEL_ARTIFACT_PATH = Path(os.environ.get("SARI_RASA_MODEL_ARTIFACT_PATH", DEFAULT_MODEL_ARTIFACT_PATH))
+DL_MODEL_ARTIFACT_PATH = Path(os.environ.get("SARI_RASA_DL_MODEL_ARTIFACT_PATH", DEFAULT_DL_ARTIFACT_PATH))
 
 
 @app.get("/health")
@@ -61,6 +74,57 @@ def next_day_forecast() -> dict[str, object]:
             "family": result.model_family,
             "artifact_version": result.artifact_version,
             "forecast_horizon_days": result.forecast_horizon_days,
+        },
+    }
+
+
+@app.get("/analytics/forecast/model-comparison")
+def forecast_model_comparison() -> dict[str, object]:
+    """Return frozen evaluation evidence plus experimental MLP inference."""
+    try:
+        inference = predict_next_day_with_dl(
+            ML_FORECAST_DATASET_PATH,
+            DL_MODEL_ARTIFACT_PATH,
+        )
+    except (DLArtifactError, OSError, csv.Error, KeyError, TypeError, ValueError):
+        raise HTTPException(status_code=503, detail="model comparison unavailable") from None
+    return {
+        "evaluation": {
+            "start_date": V2_TEST_START,
+            "end_date": V2_TEST_END,
+            "dataset_identity": V2_DATASET_IDENTITY,
+            "metric_unit": "next_day_total_quantity",
+        },
+        "models": [
+            {
+                "name": "Phase 5 HistGradientBoosting",
+                "type": "hist_gradient_boosting",
+                "role": "production",
+                "mae": PHASE5_TEST_HGB_MAE,
+                "rmse": PHASE5_TEST_HGB_RMSE,
+            },
+            {
+                "name": "Phase 6 MLP",
+                "type": "mlp_10_16_1_relu",
+                "role": "experimental",
+                "mae": PHASE6_TEST_MLP_MAE,
+                "rmse": PHASE6_TEST_MLP_RMSE,
+            },
+            {
+                "name": "Previous-week baseline",
+                "type": "previous_week",
+                "role": "benchmark",
+                "mae": PHASE5_TEST_BASELINE_MAE,
+                "rmse": PHASE5_TEST_BASELINE_RMSE,
+            },
+        ],
+        "experimental_inference": {
+            "forecast_date": inference.forecast_date,
+            "predicted_quantity": inference.predicted_quantity,
+            "data_through": inference.data_through,
+            "model_family": inference.model_family,
+            "artifact_version": inference.artifact_version,
+            "role": "experimental",
         },
     }
 

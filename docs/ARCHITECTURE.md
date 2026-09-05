@@ -332,7 +332,7 @@ Contract tests read the real files to verify that:
 - required class-based controls and the production script reference exist; and
 - frontend API paths and methods correspond to Express routes.
 
-The current automated baseline is 32 backend tests plus 57 frontend tests, for 89 combined Node tests, alongside 228 Python tests. Automated VM coverage is distinct from user-performed browser acceptance, which validated real responsive, keyboard, chart, calendar, global-filter, and failure/recovery behavior.
+The current automated baseline is 37 backend tests plus 66 frontend tests, for 103 combined Node tests, alongside 341 Python tests. Automated VM coverage is distinct from user-performed browser acceptance, which validated real responsive, keyboard, chart, calendar, global-filter, model-comparison, and failure/recovery behavior.
 
 ## Key engineering decisions
 
@@ -366,9 +366,9 @@ Tests fail before opening the real development database, including when a filesy
 
 ## Python workspace and independent data-service foundation
 
-Phase 4A introduced a repository-local Python workspace at `python/`, containing the `sari_rasa_data` package and pytest suite (`python/tests/`). It now includes the Phase 4 foundations, the shared cached V2 analytics pipeline, Phase 5 forecasting/training modules, and the `service.py` FastAPI boundary. The service exposes health, four historical analytics endpoints, and the next-day forecast endpoint. Importing the application performs no analysis. Historical analytics use a stat-invalidated compact snapshot of the trusted configured CSV, while forecast requests validate the active CSV against trusted artifact provenance before inference. The workspace runs inside its own repository-local `.venv`, which is not committed.
+Phase 4A introduced a repository-local Python workspace at `python/`, containing the `sari_rasa_data` package and pytest suite (`python/tests/`). It now includes the Phase 4 foundations, the shared cached V2 analytics pipeline, Phase 5 production forecasting, Phase 6 experimental deep learning, and the `service.py` FastAPI boundary. The service exposes health, four historical analytics endpoints, the production next-day forecast, and an experimental model-comparison endpoint. Importing the application performs no analysis or training. Historical analytics use a stat-invalidated compact snapshot of the trusted configured CSV, while forecast requests validate the active CSV against trusted artifact provenance before inference. The workspace runs inside its own repository-local `.venv`, which is not committed.
 
-The FastAPI process is a separately started specialized service. Node.js/Express remains the only application-facing backend and delegates five `/api/analytics/*` routes through `lib/pythonAnalyticsClient.js` to matching FastAPI routes. Four historical routes accept the same optional, inclusive `start_date` and `end_date` parameters; the forecast route rejects every query parameter and always uses the latest trusted history. Sales Trend returns dataset-derived bounds for the frontend calendar. `PYTHON_SERVICE_URL` is trusted server-operator configuration, never request/frontend input; callers cannot choose arbitrary upstream paths. The client uses built-in Node `fetch`, exact contracts, and a three-second timeout. Errors remain controlled and redacted. There are no retries, background polling, or direct browser-to-Python requests. Historical dashboard sections share one applied period, while forecast state/cache is independent and scoped to the effective-admin lifecycle.
+The FastAPI process is a separately started specialized service. Node.js/Express remains the only application-facing backend and delegates six `/api/analytics/*` routes through `lib/pythonAnalyticsClient.js` to matching FastAPI routes. Four historical routes accept the same optional, inclusive `start_date` and `end_date` parameters; the production forecast and experimental comparison reject client overrides and always use trusted operator resources. Sales Trend returns dataset-derived bounds for the frontend calendar. `PYTHON_SERVICE_URL` is trusted server-operator configuration, never request/frontend input; callers cannot choose arbitrary upstream paths. The client uses built-in Node `fetch`, exact contracts, and a three-second timeout. Errors remain controlled and redacted. There are no retries, background polling, or direct browser-to-Python requests. Historical dashboard sections share one applied period, while forecast and comparison state/cache are independent and scoped to the effective-admin lifecycle.
 
 ```text
 Admin Analytics browser UI
@@ -378,7 +378,8 @@ Node / Express
     ├── GET /api/analytics/products?start_date=&end_date=
     ├── GET /api/analytics/categories?start_date=&end_date=
     ├── GET /api/analytics/sales-trend?start_date=&end_date=
-    └── GET /api/analytics/forecast/next-day
+    ├── GET /api/analytics/forecast/next-day
+    └── GET /api/analytics/forecast/model-comparison
             ↓ built-in fetch, HTTP/JSON, 3-second timeout
         Python FastAPI service
 ```
@@ -687,7 +688,30 @@ The pre-4G-R2 analytics pipeline fully reloaded and validated the CSV for each c
 
 Current verified work includes the frontend foundation, Express API, SQLite-backed full-stack application, authentication, authorization, product administration, persistent carts, the automated regression foundation, the project documentation/runbook, the Phase 4A Python foundation workspace, the complete Phase 4B pure-Python pipeline, and the complete Phase 4C Pandas/NumPy analysis (4C-1 through 4C-4). Phase 4D-1 through 4D-4 and Phase 4D as a whole are verified complete after hardening, automated verification, documentation, independent review, and final user manual acceptance. The Python service remains a separately started process and is now integrated behind Node's Phase 4E analytics routes.
 
-Phase 4E Node-to-Python integration, Phase 4F, Phase 4, and the approved post-quality-gate Phase 4G extension including 4G-R2 are verified complete. Phase 5A through Phase 5H, 5F-R, and 5F-R2 are verified complete; the final quality gate passed full regression, provenance/invariant checks, six focused reviews, and documentation consistency without retraining or regenerating trusted artifacts. Phase 6 Deep Learning Fundamentals is next and not started.
+### Phase 6 experimental deep-learning boundary
+
+Phase 6 reuses the frozen V2 ten-feature next-day total-demand problem with one CPU `Linear(10, 16) → ReLU → Linear(16, 1)` MLP. TRAIN-only feature scaling and raw-output MSE optimization use Adam at learning rate `0.01`, batch size `32`, seed `20260903`, at most 200 epochs, and patience 20. VALIDATION MAE alone selects the restored checkpoint; evaluation/inference predictions are clamped to zero minimum. TEST was evaluated once only after this policy was frozen.
+
+```text
+Trusted V2 CSV
+    ├── TRAIN → fit scaler + MLP optimization
+    ├── VALIDATION → MAE checkpoint/early stopping only
+    └── frozen TEST → one final comparison only
+
+Generated ignored MLP artifact (.pt)
+    ├── exact allowlisted architecture and CPU state_dict
+    ├── TRAIN scaler + ordered features
+    ├── frozen training/prediction policy
+    └── framework, dataset SHA, and catalog provenance
+```
+
+The DL loader uses PyTorch restricted weights-only deserialization and fails closed on unexpected structure, incompatible policy/version/provenance, wrong tensor keys/shapes/dtypes/devices, or non-finite values. `dl_prediction.py` reuses the established feature builder, verifies the dataset SHA, applies the stored scaler, and clamps the experimental result. It never replaces `prediction.py` or the production HGB artifact. Missing or invalid DL resources yield a redacted FastAPI 503 and generic Node 502; Node never falls back to HGB because that would misrepresent the comparison.
+
+The frozen TEST record is HGB `135.5097`/`177.6172`, MLP `147.2643`/`193.5776`, and previous week `178.3333`/`228.5035` (MAE/RMSE). MLP MAE is 8.67% higher than HGB, so HGB remains production and MLP remains experimental. Phase 5 TEST outcomes were known before Phase 6, making the exercise methodologically frozen but not psychologically blind.
+
+The Admin Analytics model-comparison panel sits below the unchanged production forecast and labels HGB/MLP/previous week as Production/Experimental/Benchmark. It fetches independently from the historical date filter, uses isolated loading/error/retry and stale-response protection, and places current MLP inference only in secondary disclosure content. Desktop uses three cards, tablet may wrap, and mobile stacks them without a narrow table.
+
+Phase 4E Node-to-Python integration, Phase 4F, Phase 4, and the approved post-quality-gate Phase 4G extension including 4G-R2 are verified complete. Phase 5A through Phase 5H, 5F-R, and 5F-R2 are verified complete. Phase 6A through Phase 6I and Phase 6 overall are verified complete after frozen evaluation, fail-closed artifact/inference and service integration, responsive/manual dashboard acceptance, full regression, provenance/security review, and documentation consistency. Phase 7 AI Engineering is next and not started.
 
 See the [Project Roadmap](../ROADMAP.md) for the approved sequence and current status.
 

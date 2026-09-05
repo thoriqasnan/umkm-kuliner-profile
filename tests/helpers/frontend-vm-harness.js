@@ -313,7 +313,7 @@ async function createFrontendHarness(options = {}) {
     authority: cartAuthority, epoch: cartEpoch, userId: authenticatedCartUserId,
     unsynced: cartHasUnsyncedChanges, currentUser: currentUser ? {...currentUser} : null,
     items: serializeCartItems(cartItems), products: Array.from(productsById.values()),
-    analytics: analyticsState ? {min:analyticsState.minAvailableDate,max:analyticsState.maxAvailableDate,appliedStart:analyticsState.appliedStartDate,appliedEnd:analyticsState.appliedEndDate,forecastStatus:analyticsState.forecast.status} : null,
+    analytics: analyticsState ? {min:analyticsState.minAvailableDate,max:analyticsState.maxAvailableDate,appliedStart:analyticsState.appliedStartDate,appliedEnd:analyticsState.appliedEndDate,forecastStatus:analyticsState.forecast.status,modelComparisonStatus:analyticsState.modelComparison.status} : null,
     writes: Array.from(cartWriteStates, ([productId, value]) => ({productId, version:value.version, persistedVersion:value.persistedVersion, running:value.running, failed:value.failed, hasTimer:!!value.timer}))
   }),
   setProducts(products) { productsById = new Map(products.map(product => [product.id, product])); productsLoadState = products.length ? 'success' : 'empty'; updateCartSummary(); },
@@ -324,7 +324,7 @@ async function createFrontendHarness(options = {}) {
   drainAuthenticatedCartWritesForLogout, handleLogout, applyLanguage, loadMenu,
   setAuthMode, openProductDialog, handleDeleteProduct,
   readGuestCartSnapshot, readPendingCartMerge, writePendingCartMerge,
-  ensureAnalyticsLoaded, loadSalesTrend, fetchSalesTrend, validateSalesTrend, renderSalesTrend, loadForecast, fetchForecast, renderForecast, formatForecastComparison, renderCalendar, positionCalendar,
+  ensureAnalyticsLoaded, loadSalesTrend, fetchSalesTrend, validateSalesTrend, renderSalesTrend, loadForecast, fetchForecast, renderForecast, formatForecastComparison, loadModelComparison, fetchModelComparison, renderModelComparison, isModelComparisonResponse, renderCalendar, positionCalendar,
   elements: {cartCheckoutBtn, cartCountEl, cartTotalEl, cartStatus, cartPanel, cartPanelList, authForm, authEmailInput, authPasswordInput, authLoginBtn, authAccount, adminMenuActions, adminDashboardEntry, authStatus,
     productDialog, productForm, productSlugInput, productNameInput, productDescriptionIdInput, productDescriptionEnInput, productPriceInput, productCategoryInput, productImageSrcInput, productImageAltInput, productImageWidthInput, productImageHeightInput, productImageSrcsetInput, productImageSizesInput, productSubmitBtn, menuStatus,
     adminAnalyticsRevenue: adminAnalyticsRevenueEl, adminAnalyticsOrders: adminAnalyticsOrdersEl, adminAnalyticsQuantity: adminAnalyticsQuantityEl, adminAnalyticsAOV: adminAnalyticsAOVEl,
@@ -337,6 +337,10 @@ async function createFrontendHarness(options = {}) {
     adminForecastStatus: adminForecastStatusEl, adminForecastContent: adminForecastContentEl, adminForecastError: adminForecastErrorEl, adminForecastRetry: adminForecastRetryEl,
     adminForecastQuantity: adminForecastQuantityEl, adminForecastDate: adminForecastDateEl, adminForecast7Average: adminForecast7AverageEl, adminForecast28Average: adminForecast28AverageEl,
     adminForecast7Comparison: adminForecast7ComparisonEl, adminForecast28Comparison: adminForecast28ComparisonEl, adminForecastDataThrough: adminForecastDataThroughEl, adminForecastDateContext: adminForecastDateContextEl,
+    adminModelComparisonStatus: adminModelComparisonStatusEl, adminModelComparisonContent: adminModelComparisonContentEl, adminModelComparisonError: adminModelComparisonErrorEl, adminModelComparisonRetry: adminModelComparisonRetryEl,
+    adminModelHgbMae: adminModelHgbMaeEl, adminModelHgbRmse: adminModelHgbRmseEl, adminModelMlpMae: adminModelMlpMaeEl, adminModelMlpRmse: adminModelMlpRmseEl,
+    adminModelBaselineMae: adminModelBaselineMaeEl, adminModelBaselineRmse: adminModelBaselineRmseEl, adminModelMlpDifference: adminModelMlpDifferenceEl, adminModelTestPeriod: adminModelTestPeriodEl, adminModelInference: adminModelInferenceEl,
+    adminModelHgbRole: adminModelHgbRoleEl, adminModelMlpRole: adminModelMlpRoleEl, adminModelBaselineRole: adminModelBaselineRoleEl, adminModelConclusion: adminModelConclusionEl,
     startCalendarTrigger: startCalendar.trigger, startCalendarPopover: startCalendar.calendar, startCalendarMonth: startCalendar.month, startCalendarYear: startCalendar.year, startCalendarPrev: startCalendar.prev, startCalendarNext: startCalendar.next, startCalendarGrid: startCalendar.grid,
     endCalendarTrigger: endCalendar.trigger, endCalendarPopover: endCalendar.calendar, endCalendarMonth: endCalendar.month, endCalendarYear: endCalendar.year, endCalendarPrev: endCalendar.prev, endCalendarNext: endCalendar.next, endCalendarGrid: endCalendar.grid}
 };`;

@@ -51,6 +51,9 @@ The application does not include `dotenv` and does not automatically load `.env`
 | `PORT` | Optional. Defaults to `3000`; valid values are integer strings from 1 through 65535. |
 | `PYTHON_SERVICE_URL` | Optional. Trusted operator-controlled FastAPI base URL used by Node analytics and forecast routes; defaults to `http://127.0.0.1:8000`. Use HTTP/HTTPS without credentials, query, or fragment; never derive it from browser/request input. |
 | `SARI_RASA_ANALYTICS_DATASET_PATH` | Optional trusted FastAPI analytics CSV path. Development defaults to generated `python/data/transactions_ml_v2.csv`; tests pass the canonical fixture explicitly. Never derive this path from HTTP input. |
+| `SARI_RASA_ML_DATASET_PATH` | Optional trusted V2 source used by production HGB and experimental MLP inference. Defaults to `python/data/transactions_ml_v2.csv`. |
+| `SARI_RASA_MODEL_ARTIFACT_PATH` | Optional trusted production HGB artifact path. Defaults to `python/models/next_day_quantity_v2.joblib`. |
+| `SARI_RASA_DL_MODEL_ARTIFACT_PATH` | Optional trusted experimental MLP artifact path. Defaults to `python/models/next_day_quantity_mlp_v1.pt`. |
 
 Generate a random 32-byte value with the already-required Node runtime and export it into the current shell without printing it:
 
@@ -141,9 +144,9 @@ Current verified baseline:
 
 | Command | Expected tests | Current result |
 |---|---:|---|
-| `npm run test:backend` | 35 | 35 passed |
-| `npm run test:frontend` | 63 | 63 passed |
-| `npm test` | 98 total | 98 passed |
+| `npm run test:backend` | 37 | 37 passed |
+| `npm run test:frontend` | 66 | 66 passed |
+| `npm test` | 103 total | 103 passed |
 
 Use these packaged commands without manually setting `NODE_ENV`, `SESSION_SECRET`, or `DATABASE_PATH`. The backend harness creates an isolated temporary SQLite database per test file, chooses an ephemeral HTTP port, restores environment variables, closes its server and database, and removes temporary resources.
 
@@ -193,7 +196,7 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
 
    `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests, complete Phase 4B pipeline tests, Phase 4C DataFrame/filtering/grouping/NumPy-statistics tests, the Phase 4C-4 synthetic-generator/integrated-analysis tests, and FastAPI service contract/error tests. Service tests use FastAPI's in-process `TestClient`; Uvicorn does not need to be started manually. The Phase 4C-4 tests generate their own temporary large dataset (they do not depend on `python/data/transactions_large.csv` existing on disk).
 
-   Current verified Python data/service result: `298 passed`.
+   Current verified Python data/service result: `341 passed`.
 
 ### Start and check the Python service
 
@@ -594,6 +597,38 @@ curl --fail-with-body http://localhost:3000/api/analytics/forecast/next-day
 ```
 
 The V2 artifact is `python/models/next_day_quantity_v2.joblib`; schema `1.0` keeps the public API compatible while metadata records experiment `2.0`.
+
+### Phase 6 — export and verify the experimental MLP
+
+Phase 6 does not change the production HGB endpoint. Its frozen common TEST record is:
+
+| Role | Model | TEST MAE | TEST RMSE |
+|---|---|---:|---:|
+| Production | HGB | 135.5097 | 177.6172 |
+| Experimental | MLP | 147.2643 | 193.5776 |
+| Benchmark | Previous week | 178.3333 | 228.5035 |
+
+MLP MAE is 8.67% higher than HGB; HGB remains production. Phase 5 TEST outcomes were already known before Phase 6, so this was not psychologically blind, although the complete MLP policy was frozen from TRAIN/VALIDATION before its single TEST evaluation and no post-TEST tuning occurred.
+
+The generated MLP artifact is intentionally ignored by Git and is not included in a clone. With the V2 dataset present, export it once before starting FastAPI:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -c "from sari_rasa_data.dl_model_artifact import export_dl_model_artifact; export_dl_model_artifact()"
+git check-ignore python/models/next_day_quantity_mlp_v1.pt
+```
+
+Export uses the frozen `10 → 16 → 1`/ReLU CPU policy, Adam `0.01`, batch size 32, seed `20260903`, MSE training loss, validation-MAE selection, at most 200 epochs, patience 20, best-weight restoration, and non-negative evaluation/inference clamp. It trains only through the established TRAIN/VALIDATION development path; it does not rerun TEST or tune a model. Do not load a downloaded or client-selected artifact.
+
+After FastAPI and Node are running through the normal commands, verify both additive comparison routes:
+
+```sh
+curl --fail-with-body -i http://127.0.0.1:8000/analytics/forecast/model-comparison
+curl --fail-with-body -i http://localhost:3000/api/analytics/forecast/model-comparison
+```
+
+Both responses label HGB `production`, MLP `experimental`, and previous week `benchmark`. The current MLP prediction is experimental secondary information, not a replacement for the production HGB forecast. Missing, corrupt, stale, version-incompatible, or provenance-mismatched DL artifacts fail closed: FastAPI returns generic 503 and Node returns generic 502 without paths or exception details. If the default endpoint returns 503 on a fresh checkout, confirm the V2 dataset and ignored MLP artifact exist, export the artifact with the frozen command above, and do not weaken validation or substitute another model.
+
+In the Admin Analytics dashboard, Model Performance appears directly below Next-Day Demand Forecast. It is independent of the global historical date filter. HGB remains the visually emphasized production/best result; MLP is experimental; Previous Week is the benchmark. The MLP current inference appears only under **About model comparison**. Phase 6H manual browser acceptance covered the bilingual desktop/mobile layout, roles, metrics, disclosure, loading/error recovery, and unchanged production forecast card.
 
 Historical pre-4G-R2 benchmark (retained only as optimization evidence):
 

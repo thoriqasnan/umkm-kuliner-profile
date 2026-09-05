@@ -300,6 +300,56 @@
           </div>
         </section>
 
+        <section class="admin-analytics-panel admin-model-comparison" aria-labelledby="adminModelComparisonTitle">
+          <div class="admin-model-comparison-heading">
+            <div>
+              <p class="admin-model-comparison-eyebrow" data-i18n="admin.modelComparisonEyebrow">PERFORMA MODEL</p>
+              <h4 id="adminModelComparisonTitle" data-i18n="admin.modelComparisonTitle">Production vs Experimental</h4>
+              <p data-i18n="admin.modelComparisonSupport">Bandingkan pendekatan forecasting pada periode pengujian yang sama.</p>
+            </div>
+            <span class="admin-model-comparison-badge" data-i18n="admin.modelComparisonBadge">EKSPERIMENTAL</span>
+          </div>
+          <p class="menu-status admin-model-comparison-status loading" id="adminModelComparisonStatus" role="status" aria-live="polite" aria-atomic="true" tabindex="-1" data-i18n="admin.modelComparisonLoading">Memuat perbandingan model...</p>
+          <div id="adminModelComparisonContent" hidden>
+            <div class="admin-model-comparison-grid">
+              <article class="admin-model-card is-production">
+                <p class="admin-model-role" id="adminModelHgbRole" data-i18n="admin.modelRoleProduction">PRODUCTION</p>
+                <h5>HGB</h5>
+                <dl><div><dt>MAE</dt><dd id="adminModelHgbMae">—</dd></div><div><dt>RMSE</dt><dd id="adminModelHgbRmse">—</dd></div></dl>
+                <p class="admin-model-result" data-i18n="admin.modelBestResult">Hasil terbaik</p>
+              </article>
+              <article class="admin-model-card">
+                <p class="admin-model-role" id="adminModelMlpRole" data-i18n="admin.modelRoleExperimental">EXPERIMENTAL</p>
+                <h5>MLP</h5>
+                <dl><div><dt>MAE</dt><dd id="adminModelMlpMae">—</dd></div><div><dt>RMSE</dt><dd id="adminModelMlpRmse">—</dd></div></dl>
+                <p class="admin-model-result" id="adminModelMlpDifference" data-i18n="admin.modelMlpDifference">+8,67% MAE vs HGB</p>
+              </article>
+              <article class="admin-model-card">
+                <p class="admin-model-role" id="adminModelBaselineRole" data-i18n="admin.modelRoleBenchmark">BENCHMARK</p>
+                <h5 data-i18n="admin.modelPreviousWeek">Minggu Sebelumnya</h5>
+                <dl><div><dt>MAE</dt><dd id="adminModelBaselineMae">—</dd></div><div><dt>RMSE</dt><dd id="adminModelBaselineRmse">—</dd></div></dl>
+                <p class="admin-model-result" data-i18n="admin.modelReference">Referensi</p>
+              </article>
+            </div>
+            <p class="admin-model-conclusion" id="adminModelConclusion" data-i18n="admin.modelConclusion">HGB mencapai error pengujian terendah dan tetap menjadi model forecasting production.</p>
+            <p class="admin-model-period"><span data-i18n="admin.modelTestPeriod">Periode TEST</span>: <strong id="adminModelTestPeriod">—</strong></p>
+            <details class="admin-model-about">
+              <summary data-i18n="admin.modelAbout">Tentang perbandingan model</summary>
+              <ul>
+                <li data-i18n="admin.modelAboutMae">MAE adalah rata-rata error prediksi dalam unit; lebih rendah lebih baik.</li>
+                <li data-i18n="admin.modelAboutRmse">RMSE memberi bobot lebih besar pada error prediksi yang besar; lebih rendah lebih baik.</li>
+                <li data-i18n="admin.modelAboutMlp">MLP bersifat eksperimental dan tidak digunakan untuk forecasting production.</li>
+                <li data-i18n="admin.modelAboutHgb">HGB tetap menjadi production karena mencapai error TEST terendah.</li>
+              </ul>
+              <p class="admin-model-inference"><strong data-i18n="admin.modelInferenceLabel">Inference MLP eksperimental</strong>: <span id="adminModelInference">—</span></p>
+            </details>
+          </div>
+          <div id="adminModelComparisonError" class="admin-forecast-error" hidden>
+            <p role="alert"><strong data-i18n="admin.modelComparisonErrorTitle">Perbandingan model tidak dapat dimuat.</strong> <span data-i18n="admin.modelComparisonErrorBody">Layanan perbandingan sementara tidak tersedia.</span></p>
+            <button type="button" class="btn btn-primary" id="adminModelComparisonRetry" data-i18n="admin.modelComparisonRetry">Coba Lagi</button>
+          </div>
+        </section>
+
         <div class="admin-analytics-panels">
           <div class="admin-analytics-panel admin-analytics-table-panel">
             <h4 id="adminAnalyticsProductPerfHeading" data-i18n="admin.analyticsProductPerfTitle">Performa Produk</h4>

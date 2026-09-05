@@ -1422,6 +1422,31 @@ const translations = {
     "admin.forecastErrorTitle": "Prediksi tidak dapat dimuat.",
     "admin.forecastErrorBody": "Layanan prediksi sementara tidak tersedia.",
     "admin.forecastRetry": "Coba Lagi",
+    "admin.modelComparisonEyebrow": "PERFORMA MODEL",
+    "admin.modelComparisonTitle": "Production vs Experimental",
+    "admin.modelComparisonBadge": "EKSPERIMENTAL",
+    "admin.modelComparisonSupport": "Bandingkan pendekatan forecasting pada periode pengujian yang sama.",
+    "admin.modelComparisonLoading": "Memuat perbandingan model...",
+    "admin.modelMetricUnits": "{value} unit",
+    "admin.modelRoleProduction": "PRODUCTION",
+    "admin.modelRoleExperimental": "EXPERIMENTAL",
+    "admin.modelRoleBenchmark": "BENCHMARK",
+    "admin.modelBestResult": "Hasil terbaik",
+    "admin.modelMlpDifference": "+{value}% MAE vs HGB",
+    "admin.modelPreviousWeek": "Minggu Sebelumnya",
+    "admin.modelReference": "Referensi",
+    "admin.modelConclusion": "HGB mencapai error pengujian terendah dan tetap menjadi model forecasting production.",
+    "admin.modelTestPeriod": "Periode TEST",
+    "admin.modelAbout": "Tentang perbandingan model",
+    "admin.modelAboutMae": "MAE adalah rata-rata error prediksi dalam unit; lebih rendah lebih baik.",
+    "admin.modelAboutRmse": "RMSE memberi bobot lebih besar pada error prediksi yang besar; lebih rendah lebih baik.",
+    "admin.modelAboutMlp": "MLP bersifat eksperimental dan tidak digunakan untuk forecasting production.",
+    "admin.modelAboutHgb": "HGB tetap menjadi production karena mencapai error TEST terendah.",
+    "admin.modelInferenceLabel": "Inference MLP eksperimental",
+    "admin.modelInferenceValue": "{value} unit untuk {date}",
+    "admin.modelComparisonErrorTitle": "Perbandingan model tidak dapat dimuat.",
+    "admin.modelComparisonErrorBody": "Layanan perbandingan sementara tidak tersedia.",
+    "admin.modelComparisonRetry": "Coba Lagi",
     "admin.activePeriod": "Periode aktif",
     "admin.availablePeriod": "Data tersedia",
     "admin.calendarPrev": "Bulan sebelumnya",
@@ -1647,6 +1672,31 @@ const translations = {
     "admin.forecastErrorTitle": "The forecast could not be loaded.",
     "admin.forecastErrorBody": "The forecast service is temporarily unavailable.",
     "admin.forecastRetry": "Try Again",
+    "admin.modelComparisonEyebrow": "MODEL PERFORMANCE",
+    "admin.modelComparisonTitle": "Production vs Experimental",
+    "admin.modelComparisonBadge": "EXPERIMENTAL",
+    "admin.modelComparisonSupport": "Compare forecasting approaches on the same test period.",
+    "admin.modelComparisonLoading": "Loading model comparison...",
+    "admin.modelMetricUnits": "{value} units",
+    "admin.modelRoleProduction": "PRODUCTION",
+    "admin.modelRoleExperimental": "EXPERIMENTAL",
+    "admin.modelRoleBenchmark": "BENCHMARK",
+    "admin.modelBestResult": "Best result",
+    "admin.modelMlpDifference": "+{value}% MAE vs HGB",
+    "admin.modelPreviousWeek": "Previous Week",
+    "admin.modelReference": "Reference",
+    "admin.modelConclusion": "HGB achieved the lowest test error and remains the production forecasting model.",
+    "admin.modelTestPeriod": "TEST period",
+    "admin.modelAbout": "About model comparison",
+    "admin.modelAboutMae": "MAE is the average prediction error in units; lower is better.",
+    "admin.modelAboutRmse": "RMSE gives more weight to larger prediction errors; lower is better.",
+    "admin.modelAboutMlp": "MLP is experimental and is not used for production forecasting.",
+    "admin.modelAboutHgb": "HGB remains production because it achieved the lowest TEST error.",
+    "admin.modelInferenceLabel": "Experimental MLP inference",
+    "admin.modelInferenceValue": "{value} units for {date}",
+    "admin.modelComparisonErrorTitle": "The model comparison could not be loaded.",
+    "admin.modelComparisonErrorBody": "The comparison service is temporarily unavailable.",
+    "admin.modelComparisonRetry": "Try Again",
     "admin.activePeriod": "Active period",
     "admin.availablePeriod": "Data available",
     "admin.calendarPrev": "Previous month",
@@ -1769,6 +1819,7 @@ langButtons.forEach((btn) => {
       if (!endCalendar.calendar.hidden) renderCalendar(endCalendar);
     }
     if (analyticsState && analyticsState.forecast && analyticsState.forecast.data) renderForecast(analyticsState.forecast.data);
+    if (analyticsState && analyticsState.modelComparison && analyticsState.modelComparison.data) renderModelComparison(analyticsState.modelComparison.data);
   });
 });
 
@@ -2098,6 +2149,23 @@ const adminForecast7ComparisonEl = document.getElementById("adminForecast7Compar
 const adminForecast28ComparisonEl = document.getElementById("adminForecast28Comparison");
 const adminForecastDataThroughEl = document.getElementById("adminForecastDataThrough");
 const adminForecastDateContextEl = document.getElementById("adminForecastDateContext");
+const adminModelComparisonStatusEl = document.getElementById("adminModelComparisonStatus");
+const adminModelComparisonContentEl = document.getElementById("adminModelComparisonContent");
+const adminModelComparisonErrorEl = document.getElementById("adminModelComparisonError");
+const adminModelComparisonRetryEl = document.getElementById("adminModelComparisonRetry");
+const adminModelHgbMaeEl = document.getElementById("adminModelHgbMae");
+const adminModelHgbRmseEl = document.getElementById("adminModelHgbRmse");
+const adminModelMlpMaeEl = document.getElementById("adminModelMlpMae");
+const adminModelMlpRmseEl = document.getElementById("adminModelMlpRmse");
+const adminModelBaselineMaeEl = document.getElementById("adminModelBaselineMae");
+const adminModelBaselineRmseEl = document.getElementById("adminModelBaselineRmse");
+const adminModelMlpDifferenceEl = document.getElementById("adminModelMlpDifference");
+const adminModelTestPeriodEl = document.getElementById("adminModelTestPeriod");
+const adminModelInferenceEl = document.getElementById("adminModelInference");
+const adminModelHgbRoleEl = document.getElementById("adminModelHgbRole");
+const adminModelMlpRoleEl = document.getElementById("adminModelMlpRole");
+const adminModelBaselineRoleEl = document.getElementById("adminModelBaselineRole");
+const adminModelConclusionEl = document.getElementById("adminModelConclusion");
 
 function calendarElements(prefix) {
   return {
@@ -2134,6 +2202,7 @@ function createAnalyticsState() {
     categories: { status: "idle", data: null, cache: new Map(), requestId: 0, rangeKey: null },
     trend: { status: "idle", data: null, rangeKey: null, cache: new Map(), requestId: 0 },
     forecast: { status: "idle", data: null, requestId: 0 },
+    modelComparison: { status: "idle", data: null, requestId: 0 },
     minAvailableDate: null,
     maxAvailableDate: null,
     appliedStartDate: null,
@@ -2197,6 +2266,10 @@ function resetAnalyticsDom() {
   adminForecastErrorEl.hidden = true;
   adminForecastStatusEl.hidden = false;
   showAnalyticsSectionStatus(adminForecastStatusEl, "admin.forecastLoading", "loading");
+  adminModelComparisonContentEl.hidden = true;
+  adminModelComparisonErrorEl.hidden = true;
+  adminModelComparisonStatusEl.hidden = false;
+  showAnalyticsSectionStatus(adminModelComparisonStatusEl, "admin.modelComparisonLoading", "loading");
 }
 
 function isForecastResponse(data) {
@@ -2269,6 +2342,76 @@ async function loadForecast(generation) {
 }
 
 adminForecastRetryEl.addEventListener("click", () => loadForecast(analyticsGeneration));
+
+function isModelComparisonResponse(data) {
+  if (!data || typeof data !== "object" || !data.evaluation || !Array.isArray(data.models) || data.models.length !== 3 || !data.experimental_inference) return false;
+  const evaluation = data.evaluation;
+  if (!isIsoCalendarDate(evaluation.start_date) || !isIsoCalendarDate(evaluation.end_date) || evaluation.start_date > evaluation.end_date ||
+      evaluation.dataset_identity !== "sari_rasa_ml_synthetic_transactions_v2" || evaluation.metric_unit !== "next_day_total_quantity") return false;
+  const expected = [["hist_gradient_boosting", "production"], ["mlp_10_16_1_relu", "experimental"], ["previous_week", "benchmark"]];
+  if (!data.models.every((model, index) => model && typeof model.name === "string" && model.name.trim() &&
+      model.type === expected[index][0] && model.role === expected[index][1] &&
+      [model.mae, model.rmse].every((value) => typeof value === "number" && Number.isFinite(value) && value >= 0))) return false;
+  const inference = data.experimental_inference;
+  if (!isIsoCalendarDate(inference.forecast_date) || !isIsoCalendarDate(inference.data_through) ||
+      typeof inference.predicted_quantity !== "number" || !Number.isFinite(inference.predicted_quantity) || inference.predicted_quantity < 0 ||
+      inference.model_family !== "experimental_mlp" || inference.artifact_version !== "1.0" || inference.role !== "experimental") return false;
+  const next = new Date(`${inference.data_through}T00:00:00Z`); next.setUTCDate(next.getUTCDate() + 1);
+  return next.toISOString().slice(0, 10) === inference.forecast_date;
+}
+
+async function fetchModelComparison() {
+  const response = await fetch(`${API_BASE_URL}/api/analytics/forecast/model-comparison`, { credentials: "include" });
+  if (!response.ok) throw new Error(`Model comparison API gagal dengan status ${response.status}`);
+  const data = await response.json();
+  if (!isModelComparisonResponse(data)) throw new Error("Respons perbandingan model tidak valid");
+  return data;
+}
+
+function renderModelComparison(data) {
+  const locale = document.documentElement.lang === "en" ? "en-US" : "id-ID";
+  const language = document.documentElement.lang;
+  const metric = (value) => translations[language]["admin.modelMetricUnits"].replace(
+    "{value}", value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  );
+  const [hgb, mlp, baseline] = data.models;
+  adminModelHgbRoleEl.textContent = translations[language]["admin.modelRoleProduction"];
+  adminModelMlpRoleEl.textContent = translations[language]["admin.modelRoleExperimental"];
+  adminModelBaselineRoleEl.textContent = translations[language]["admin.modelRoleBenchmark"];
+  adminModelConclusionEl.textContent = translations[language]["admin.modelConclusion"];
+  adminModelHgbMaeEl.textContent = metric(hgb.mae); adminModelHgbRmseEl.textContent = metric(hgb.rmse);
+  adminModelMlpMaeEl.textContent = metric(mlp.mae); adminModelMlpRmseEl.textContent = metric(mlp.rmse);
+  adminModelBaselineMaeEl.textContent = metric(baseline.mae); adminModelBaselineRmseEl.textContent = metric(baseline.rmse);
+  const difference = ((mlp.mae - hgb.mae) / hgb.mae) * 100;
+  const differenceText = difference.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  adminModelMlpDifferenceEl.textContent = translations[language]["admin.modelMlpDifference"].replace("{value}", differenceText);
+  adminModelTestPeriodEl.textContent = `${formatAnalyticsDate(data.evaluation.start_date)} – ${formatAnalyticsDate(data.evaluation.end_date)}`;
+  const inferenceValue = Math.round(data.experimental_inference.predicted_quantity).toLocaleString(locale);
+  adminModelInferenceEl.textContent = translations[language]["admin.modelInferenceValue"]
+    .replace("{value}", inferenceValue).replace("{date}", formatAnalyticsDate(data.experimental_inference.forecast_date));
+  adminModelComparisonStatusEl.hidden = true; adminModelComparisonErrorEl.hidden = true; adminModelComparisonContentEl.hidden = false;
+}
+
+async function loadModelComparison(generation) {
+  if (!analyticsState) return;
+  const section = analyticsState.modelComparison;
+  if (section.status === "success" && section.data) { renderModelComparison(section.data); return; }
+  const requestId = ++section.requestId;
+  section.status = "loading"; section.data = null;
+  adminModelComparisonContentEl.hidden = true; adminModelComparisonErrorEl.hidden = true; adminModelComparisonStatusEl.hidden = false;
+  showAnalyticsSectionStatus(adminModelComparisonStatusEl, "admin.modelComparisonLoading", "loading");
+  try {
+    const data = await fetchModelComparison();
+    if (generation !== analyticsGeneration || !analyticsState || requestId !== analyticsState.modelComparison.requestId) return;
+    section.status = "success"; section.data = data; renderModelComparison(data);
+  } catch (error) {
+    if (generation !== analyticsGeneration || !analyticsState || requestId !== analyticsState.modelComparison.requestId) return;
+    section.status = "error"; section.data = null; adminModelComparisonStatusEl.hidden = true; adminModelComparisonContentEl.hidden = true; adminModelComparisonErrorEl.hidden = false;
+    console.error("Gagal memuat perbandingan model:", error);
+  }
+}
+
+adminModelComparisonRetryEl.addEventListener("click", () => loadModelComparison(analyticsGeneration));
 
 function analyticsRangeQuery(startDate, endDate) {
   const query = new URLSearchParams();
@@ -2945,6 +3088,9 @@ function ensureAnalyticsLoaded() {
   }
   if (analyticsState.forecast.status === "idle") {
     tasks.push(loadForecast(generation));
+  }
+  if (analyticsState.modelComparison.status === "idle") {
+    tasks.push(loadModelComparison(generation));
   }
   if (tasks.length > 0) Promise.allSettled(tasks);
 }

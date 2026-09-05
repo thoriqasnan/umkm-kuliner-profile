@@ -113,6 +113,75 @@ def test_next_day_forecast_missing_or_corrupt_artifact_is_controlled(monkeypatch
     assert rejected_input.status_code == 503
 
 
+def test_model_comparison_success_contract_labels_roles(monkeypatch):
+    from sari_rasa_data.dl_prediction import DLPredictionResult
+
+    monkeypatch.setattr(
+        service,
+        "predict_next_day_with_dl",
+        lambda data, model: DLPredictionResult(
+            "2026-09-02", 2460.5, "2026-09-01", "experimental_mlp", "1.0", True
+        ),
+    )
+    with TestClient(app) as client:
+        response = client.get("/analytics/forecast/model-comparison")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["evaluation"] == {
+        "start_date": "2026-06-01",
+        "end_date": "2026-09-01",
+        "dataset_identity": "sari_rasa_ml_synthetic_transactions_v2",
+        "metric_unit": "next_day_total_quantity",
+    }
+    assert body["models"] == [
+        {
+            "name": "Phase 5 HistGradientBoosting",
+            "type": "hist_gradient_boosting",
+            "role": "production",
+            "mae": 135.5097,
+            "rmse": 177.6172,
+        },
+        {
+            "name": "Phase 6 MLP",
+            "type": "mlp_10_16_1_relu",
+            "role": "experimental",
+            "mae": 147.2643,
+            "rmse": 193.5776,
+        },
+        {
+            "name": "Previous-week baseline",
+            "type": "previous_week",
+            "role": "benchmark",
+            "mae": 178.3333,
+            "rmse": 228.5035,
+        },
+    ]
+    assert body["experimental_inference"] == {
+        "forecast_date": "2026-09-02",
+        "predicted_quantity": 2460.5,
+        "data_through": "2026-09-01",
+        "model_family": "experimental_mlp",
+        "artifact_version": "1.0",
+        "role": "experimental",
+    }
+
+
+def test_model_comparison_missing_or_invalid_dl_artifact_is_controlled(monkeypatch):
+    from sari_rasa_data.dl_model_artifact import DLArtifactError
+
+    def fail(data, model):
+        raise DLArtifactError("/private/python/models/secret.pt internal detail")
+
+    monkeypatch.setattr(service, "predict_next_day_with_dl", fail)
+    with TestClient(app) as client:
+        response = client.get("/analytics/forecast/model-comparison")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "model comparison unavailable"}
+    assert "/private" not in response.text
+
+
 def test_sales_trend_endpoint_supports_full_partial_empty_and_invalid_ranges():
     with TestClient(app) as client:
         full = client.get("/analytics/sales-trend")
