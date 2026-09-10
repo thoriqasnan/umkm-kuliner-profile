@@ -26,6 +26,68 @@ The current local origin contract is fixed:
 
 Use the hostname `localhost` consistently. Do not treat `localhost` and `127.0.0.1` as interchangeable: browsers consider them different origins, while the backend CORS allowlist accepts only `http://localhost:5500`.
 
+## Full Local Development Startup
+
+This is the canonical startup procedure for Project 1. There is no repository-provided process orchestrator: start each required long-running process manually and stop it with `Ctrl-C` in the terminal that owns it.
+
+```text
+Browser / static frontend (localhost:5500)
+        |
+        | all application API requests
+        v
+Node / Express (localhost:3000) <----> SQLite (data/umkm.db)
+        |
+        | server-to-server HTTP/JSON, analytics/forecast routes only
+        v
+Python FastAPI (127.0.0.1:8000) ---> trusted local datasets/model artifacts
+```
+
+The Python process is not involved in authentication, account/admin management, products, carts, password recovery, email delivery, or ordinary menu browsing. It is a separately started long-running service only when the Admin Analytics, production forecast, or experimental model-comparison features are needed. Node remains the only application-facing backend; the browser never calls FastAPI directly.
+
+### One-time prerequisites
+
+From the repository root (`umkm-kuliner-profile`):
+
+```sh
+npm ci
+cp .env.example .env
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r python/requirements.txt
+```
+
+Fill the local `.env` according to [Environment configuration](#environment-configuration), without committing or sharing it. The repository-local `.venv` is required for Python commands, but not for Node or Live Server. The ignored V2 dataset and model artifacts must exist before using analytics/forecast features; their verified generation/export commands remain in the maintenance sections below and are not normal startup commands.
+
+### Process 1 — Node/Express backend (required for the website)
+
+- Working directory: repository root.
+- Command: `npm start`.
+- Long-running: yes; keep it running for all website API, auth/admin, product, cart, recovery, and email functionality.
+- Address: `http://localhost:3000` (default).
+- Health check: `curl http://localhost:3000/api/health`.
+- Stop: press `Ctrl-C` in its terminal.
+
+### Process 2 — frontend / Live Server (required for the website)
+
+- Working directory served: repository root; open `index.html` with VS Code Live Server.
+- Command/action: VS Code **Go Live**, configured to port `5500`.
+- Long-running: yes; keep it running while using the browser application.
+- Address: `http://localhost:5500` exactly; do not substitute `127.0.0.1`.
+- Health check: open the URL and confirm product cards replace the loading state.
+- Stop: use Live Server's **Port: 5500 / Stop Live Server** action.
+
+### Process 3 — Python FastAPI analytics service (feature-specific)
+
+- Working directory: `python/`.
+- Prerequisite: create `.venv` once, install `python/requirements.txt`, and activate it with `source ../.venv/bin/activate` after entering `python/`.
+- Command: `uvicorn sari_rasa_data.service:app --reload --app-dir src`.
+- Long-running: yes, but only for Admin Analytics, next-day forecast, and model comparison.
+- Address: `http://127.0.0.1:8000`.
+- Health check: `curl http://127.0.0.1:8000/health`.
+- Stop: press `Ctrl-C` in its terminal.
+
+Normal website development therefore needs two live processes: Node and Live Server. Analytics/forecast work needs a third live process, FastAPI. Python tests, dataset generation, model training/export, and the sample `python -m sari_rasa_data` entry point are batch/testing/maintenance commands; they do not remain running and are not prerequisites for ordinary website startup.
+
 ## First-time installation
 
 From the repository root, confirm the Node version and install exactly the dependency tree represented by `package-lock.json`:
@@ -41,12 +103,18 @@ No global frontend package is required by this repository. Install or enable VS 
 
 ## Environment configuration
 
-The application does not include `dotenv` and does not automatically load `.env`. [.env.example](../.env.example) is reference documentation, not an active configuration file. Supply variables to the backend process through your shell unless you independently configure external environment tooling.
+The application does not include `dotenv`. For local development, `npm start` uses Node's built-in `--env-file-if-exists=.env` support. It loads a local `.env` when present and otherwise keeps using variables supplied by the runtime, so production does not depend on a local file. Existing process environment values and fail-closed validation remain authoritative.
 
 | Variable | Operational requirement |
 |---|---|
 | `SESSION_SECRET` | Required. Startup rejects missing, blank, or shorter-than-16-character values. Use a much longer random local value and never commit it. |
 | `NODE_ENV` | Set to `development` for explicit local mode. `production` enables the session cookie's `Secure` flag; local development keeps the signed HttpOnly cookie usable over HTTP. |
+| `FRONTEND_ORIGIN` | Optional locally; defaults to `http://localhost:5500`. It controls CORS and must exactly match the browser `Origin` for privileged admin mutations. Set it explicitly for deployment; production requires HTTPS. |
+| `APP_PUBLIC_ORIGIN` | Optional locally; defaults to `FRONTEND_ORIGIN`. Required explicitly in production. Trusted server origin used to compose reset links; never derived from request headers. It must contain no credentials/path/query/fragment, and production requires HTTPS. |
+| `EMAIL_DELIVERY_MODE` | Defaults to `disabled` outside production. Set to `resend` for real delivery; production refuses a missing/disabled provider mode. |
+| `RESEND_API_KEY` | Required in `resend` mode. Supply through runtime secrets; never expose it to frontend, logs, source, or examples. |
+| `EMAIL_FROM` | Required valid and provider-verified sender address in `resend` mode. |
+| `EMAIL_FROM_NAME` | Optional sender display name; defaults to `Sari Rasa`. |
 | `DATABASE_PATH` | Normally omit it. Runtime then uses `data/umkm.db`. Tests require an explicit isolated path internally. |
 | `PORT` | Optional. Defaults to `3000`; valid values are integer strings from 1 through 65535. |
 | `PYTHON_SERVICE_URL` | Optional. Trusted operator-controlled FastAPI base URL used by Node analytics and forecast routes; defaults to `http://127.0.0.1:8000`. Use HTTP/HTTPS without credentials, query, or fragment; never derive it from browser/request input. |
@@ -55,28 +123,29 @@ The application does not include `dotenv` and does not automatically load `.env`
 | `SARI_RASA_MODEL_ARTIFACT_PATH` | Optional trusted production HGB artifact path. Defaults to `python/models/next_day_quantity_v2.joblib`. |
 | `SARI_RASA_DL_MODEL_ARTIFACT_PATH` | Optional trusted experimental MLP artifact path. Defaults to `python/models/next_day_quantity_mlp_v1.pt`. |
 
-Generate a random 32-byte value with the already-required Node runtime and export it into the current shell without printing it:
+Copy the safe template, then generate a random 32-byte session secret:
 
 ```sh
-export SESSION_SECRET="$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))")"
+cp .env.example .env
+openssl rand -hex 32
 ```
 
-This value exists only in the current shell session unless you independently persist it. Do not print, share, or store it in this repository. Then start the backend with that existing value:
+Paste the generated value after `SESSION_SECRET=` in `.env`. Leave `EMAIL_DELIVERY_MODE=disabled` for normal local development. If you intentionally enable `resend`, add your own `RESEND_API_KEY` and verified sender configuration. Do not print or share these values. `.env` is ignored by Git and must never be committed; production secrets remain deployment-platform/runtime configuration.
+
+Start the backend:
 
 ```sh
-NODE_ENV=development \
-SESSION_SECRET="$SESSION_SECRET" \
 npm start
 ```
 
 If the variable is unset, blank, or too short, the server refuses to start. Do not replace this pattern with a public example value: any public string that meets the length check is still predictable and cryptographically unsafe. Never add the local value to documentation, source code, shell scripts committed to Git, or command output shared with others.
 
-For ordinary development, leave `DATABASE_PATH` unset. Although the backend accepts another `PORT`, `script.js` currently calls `http://localhost:3000` and CORS currently expects the frontend at `http://localhost:5500`. Changing the backend port alone breaks browser-to-API communication; this runbook does not redefine that contract.
+For ordinary development, leave `DATABASE_PATH` and `FRONTEND_ORIGIN` unset. The latter defaults to `http://localhost:5500`. Although the backend accepts another `PORT`, `script.js` currently calls `http://localhost:3000`; changing the backend port alone breaks browser-to-API communication.
 
 ## Start the backend
 
 1. Open a terminal at the repository root.
-2. Supply `NODE_ENV=development` and a local `SESSION_SECRET` as shown above.
+2. Create and fill the local `.env` as shown above.
 3. Run `npm start`.
 4. Keep that terminal open while using the application.
 
@@ -140,17 +209,39 @@ npm run test:backend
 npm run test:frontend
 ```
 
-Current verified baseline:
+The final Phase 6-EXT-H regression baseline is recorded after the complete suites run:
 
 | Command | Expected tests | Current result |
 |---|---:|---|
-| `npm run test:backend` | 37 | 37 passed |
-| `npm run test:frontend` | 66 | 66 passed |
-| `npm test` | 103 total | 103 passed |
+| `npm run test:backend` | 72 | 72 passed |
+| `npm run test:frontend` | 95 | 95 passed |
+| `npm test` | 167 total | 167 passed |
 
 Use these packaged commands without manually setting `NODE_ENV`, `SESSION_SECRET`, or `DATABASE_PATH`. The backend harness creates an isolated temporary SQLite database per test file, chooses an ephemeral HTTP port, restores environment variables, closes its server and database, and removes temporary resources.
 
 Never set test `DATABASE_PATH` to `data/umkm.db`. Test-mode startup intentionally refuses the development database, including canonical/symlink aliases and existing hard links that identify the same file. Frontend tests run `script.js` inside `node:vm`; they do not start the normal backend or make real network calls.
+
+### Password-reset email delivery
+
+Phase 6-EXT-D exposes JSON-only `POST /api/auth/forgot-password` and `POST /api/auth/reset-password`. Both require an `Origin` header that exactly matches `FRONTEND_ORIGIN`. A valid forgot request always returns the same generic `202`, whether the account exists or delivery fails. Reset links are composed exclusively from trusted `APP_PUBLIC_ORIGIN`; request `Host`, `Origin`, and redirect input never select the link destination.
+
+Phase 6-EXT-F uses Resend because its small HTTP API works with Node's built-in `fetch`, adds no package dependency, and keeps vendor concepts inside one adapter. Local development/test defaults to `EMAIL_DELIVERY_MODE=disabled`: it makes no network request and records only a redacted operational failure when delivery is attempted. Automated tests inject a controlled in-memory adapter and never contact Resend. Do not add temporary token or URL logging to work around this boundary.
+
+For controlled real-email acceptance, create a restricted Resend API key and verify the intended sender/domain in Resend. Supply `EMAIL_DELIVERY_MODE=resend`, `RESEND_API_KEY`, `EMAIL_FROM`, optional `EMAIL_FROM_NAME`, and HTTPS `APP_PUBLIC_ORIGIN` through runtime configuration, then restart. Request a reset only for a controlled mailbox, confirm receipt and 30-minute copy, confirm the link uses the exact configured origin, complete one reset, and verify replay fails. Also test an unknown address and an invalid/revoked provider credential: both must retain the same generic `202`. Never paste the key, full reset URL, or token into logs or reports.
+
+Dispatch starts after the generic response finishes. Network/timeout, rejection/authentication, rate limit, and unavailable outcomes log only an allowlisted category; provider bodies, recipient, token, URL, and credential are omitted. There is no automatic retry. A committed token remains unconsumed after delivery failure because the provider may already have accepted it; a new request supersedes it safely.
+
+Reset tokens expire after 30 minutes, are stored only as SHA-256 digests, are superseded by a newer request, and are consumed once. A successful reset atomically replaces the bcrypt hash, consumes all outstanding credentials for the account, increments `token_version`, clears the calling session cookie, and requires normal login. Recovery limiter state remains process-local and resets on restart; a shared store and reviewed proxy/IP configuration remain production prerequisites.
+
+### Account-extension manual acceptance record
+
+The user-performed Phase 6-EXT acceptance is complete and is not inferred from VM tests. Admin listing, promote/demote, search/filter/reset/empty states, confirmations, self-demotion protection, bilingual UI, responsive/mobile layout, keyboard access, zoom/reflow, hidden-page auth revalidation, duplicate-confirm prevention, and role persistence passed. Pagination beyond 25, network failure, and last-admin enforcement remain automated-covered because the manual dataset had only three accounts or the condition is safer and deterministic in tests.
+
+Password recovery passed malformed-email validation, generic existing/nonexistent-account parity, request-new-link and back-to-login state resets, submitting/disabled behavior, mobile layout, URL token scrubbing, password mismatch handling, successful reset, no auto-login, post-reset Login transition and success message, consumed-token replay rejection, old-password rejection, and new-password login. Real Resend acceptance passed receipt, SariRasa sender display, subject **Reset password akun Sari Rasa**, 30-minute expiry wording, configured `localhost:5500` destination, and the complete link/reset flow.
+
+Integrated security acceptance also passed old-session revocation after a reset performed in another browser session. A controlled invalid-provider credential test confirmed the backend still started, the UI remained generic, no email was delivered, and provider/API/internal details did not reach the UI; the real credential was then restored and startup succeeded.
+
+Password visibility passed for Login, Register, both independent Reset Password fields, value preservation, reset-to-hidden on mode changes, Space-key activation, narrow/mobile presentation, and approximately 200% zoom/reflow. The final visual revisions align the right-side controls with the fields and retain a proportional visible focus ring. Safari + VoiceOver may occasionally announce wording containing “Closing” when visibility changes, but manual retest confirmed the navigation stays closed, the dialog stays open, focus remains on the native `type="button"` toggle, `aria-pressed` and bilingual accessible names remain synchronized, and no menu/status state changes. This is accepted as non-blocking platform-specific announcement behavior; do not add a nonstandard accessibility hack to force screen-reader wording.
 
 ## Python environment and FastAPI service
 
@@ -662,7 +753,13 @@ On a later login, the account's persisted cart is loaded from the backend. Sessi
 
 Normal registration always creates a user with role `user`. Admin controls appear only when `/api/auth/me` reports a current database user with role `admin`. Product creation, update, and deletion additionally require backend `requireAdmin` authorization; hiding controls in the browser is not the security boundary.
 
-There is currently no supported UI or CLI workflow for creating or promoting an administrator, and the repository provides no bundled admin credential. This runbook intentionally does not provide SQL edits, hidden credentials, or an unofficial promotion procedure.
+The verified **Users & Admins** UI lets an authenticated administrator list accounts and promote or demote other eligible accounts while preserving self/last-admin protections. To provision the first administrator, register the intended account normally, stop the backend so the operator command has exclusive operational ownership, and run from the repository root:
+
+```sh
+npm run admin:provision -- --email admin@example.com
+```
+
+The command uses `DATABASE_PATH` when explicitly configured, otherwise the normal development database. It only promotes an existing account, is safe to repeat, and fails for an unknown email. It never creates an account/password and there is no bundled credential or public promotion endpoint. Restart the backend afterward and sign in normally.
 
 ## Development database lifecycle
 
@@ -688,7 +785,7 @@ There is no officially supported development-database reset, reseed, backup, or 
 ## Safe operational boundaries
 
 - Never commit a real `SESSION_SECRET` or a `.env` file containing secrets.
-- Do not assume `.env.example` or a copied `.env` is loaded automatically.
+- Keep `.env` out of Git; `npm start` loads it only for local convenience, while production secrets come from the deployment platform/runtime.
 - Never point tests at `data/umkm.db` or an alias to it.
 - Use the packaged npm test commands instead of constructing a test environment manually.
 - Use `localhost` consistently; do not mix it with `127.0.0.1` for the current authentication flow.
@@ -749,13 +846,13 @@ This historical checklist covers the established web application and documentati
 - [ ] The registration and login guidance is understandable and produces a normal account.
 - [ ] The session persists after refresh under the documented local configuration.
 - [ ] The distinction between guest browser storage and authenticated server persistence is clear.
-- [ ] The admin-provisioning limitation is clear and does not imply hidden credentials.
+- [ ] The local existing-account provisioning command is clear and does not imply hidden credentials or a public promotion route.
 
 ### Tests and documentation navigation
 
-- [ ] `npm test` passes 57 tests.
-- [ ] `npm run test:backend` passes 31 tests.
-- [ ] `npm run test:frontend` passes 26 tests.
+- [ ] `npm test` passes 115 tests.
+- [ ] `npm run test:backend` passes 49 tests.
+- [ ] `npm run test:frontend` passes 66 tests.
 - [ ] Navigation among [README](../README.md), [Architecture](ARCHITECTURE.md), this runbook, and the [Roadmap](../ROADMAP.md) works.
 
 ### Phase 4 final quality-gate acceptance
@@ -768,8 +865,8 @@ This historical checklist covers the established web application and documentati
 ## Known limitations
 
 - The supported instructions target local development, not production deployment.
-- The frontend/CORS origin is fixed to `http://localhost:5500`, and the frontend API URL is fixed to `http://localhost:3000`; although the backend listener supports `PORT`, changing it alone breaks browser integration.
-- The repository has no supported admin-provisioning workflow or bundled admin account.
+- The frontend API URL is fixed to `http://localhost:3000`; CORS/admin mutation checks default to `http://localhost:5500` and can use trusted `FRONTEND_ORIGIN` configuration.
+- The repository has a local operator provisioning command and a verified admin-management UI, but no bundled admin account or credential.
 - The repository has no supported development-database reset, backup, or recovery workflow.
 - Authentication and registration rate limits are stored in process memory and reset with the backend.
 - A production deployment runbook has not been implemented.

@@ -18,6 +18,9 @@ async function createBackendHarness(options = {}) {
     DATABASE_PATH: process.env.DATABASE_PATH,
     PORT: process.env.PORT,
     PYTHON_SERVICE_URL: process.env.PYTHON_SERVICE_URL,
+    FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN,
+    APP_PUBLIC_ORIGIN: process.env.APP_PUBLIC_ORIGIN,
+    EMAIL_DELIVERY_MODE: process.env.EMAIL_DELIVERY_MODE,
   };
   let server = null;
   let db = null;
@@ -30,6 +33,9 @@ async function createBackendHarness(options = {}) {
     process.env.NODE_ENV = 'test';
     process.env.SESSION_SECRET = TEST_SESSION_SECRET;
     process.env.DATABASE_PATH = databasePath;
+    process.env.FRONTEND_ORIGIN = 'http://localhost:5500';
+    process.env.APP_PUBLIC_ORIGIN = 'http://localhost:5500';
+    process.env.EMAIL_DELIVERY_MODE = 'disabled';
     delete process.env.PORT;
     if (options.pythonServiceUrl === undefined) delete process.env.PYTHON_SERVICE_URL;
     else process.env.PYTHON_SERVICE_URL = options.pythonServiceUrl;
@@ -37,6 +43,9 @@ async function createBackendHarness(options = {}) {
     const { app, startServer } = require('../../server');
     const databaseModule = require('../../db/database');
     db = databaseModule.db;
+    if (options.passwordResetDelivery) app.locals.passwordResetDelivery = options.passwordResetDelivery;
+    if (options.passwordResetNow) app.locals.passwordResetNow = options.passwordResetNow;
+    if (options.passwordResetRandomBytes) app.locals.passwordResetRandomBytes = options.passwordResetRandomBytes;
 
     if (databaseModule.DB_PATH !== databasePath || !isPathInside(temporaryDirectory, databaseModule.DB_PATH)) {
       throw new Error('Backend tidak memakai database sementara yang dipilih harness.');
@@ -72,6 +81,9 @@ async function createBackendHarness(options = {}) {
           cleanupError ||= error;
         }
         db = null;
+        delete app.locals.passwordResetDelivery;
+        delete app.locals.passwordResetNow;
+        delete app.locals.passwordResetRandomBytes;
         try {
           fs.rmSync(temporaryDirectory, { recursive: true, force: true });
         } catch (error) {

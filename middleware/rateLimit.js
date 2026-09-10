@@ -15,6 +15,7 @@
 
 const { checkLimit } = require('../lib/rateLimiter');
 const { normalizeEmail } = require('../lib/user');
+const { digestToken } = require('../lib/passwordRecovery');
 
 // --- loginRateLimiter: key = IP + email (dinormalisasi) ---
 // Kenapa IP+email, BUKAN IP saja: kalau cuma IP, satu warnet/kantor/NAT yang
@@ -117,4 +118,64 @@ function registerRateLimiter(req, res, next) {
   next();
 }
 
-module.exports = { loginRateLimiter, registerRateLimiter };
+const ADMIN_ROLE_WINDOW_MS = 5 * 60 * 1000;
+const ADMIN_ROLE_MAX_ATTEMPTS = 20;
+
+function adminRoleMutationRateLimiter(req, res, next) {
+  const key = `admin-role:${req.user.id}:${req.ip}`;
+  const result = checkLimit(key, { windowMs: ADMIN_ROLE_WINDOW_MS, max: ADMIN_ROLE_MAX_ATTEMPTS });
+  if (!result.allowed) {
+    res.set('Retry-After', String(Math.ceil(result.retryAfterMs / 1000)));
+    return res.status(429).json({
+      status: 'error',
+      code: 'RATE_LIMITED',
+      message: 'Terlalu banyak operasi administratif. Coba lagi nanti.',
+    });
+  }
+  next();
+}
+
+function rejectPasswordRecoveryLimit(res, retryAfterMs) {
+  res.set('Retry-After', String(Math.ceil(retryAfterMs / 1000)));
+  return res.status(429).json({
+    status: 'error', code: 'RATE_LIMITED', message: 'Terlalu banyak permintaan. Coba lagi nanti.',
+  });
+}
+
+function forgotPasswordRateLimiter(req, res, next) {
+  const rawEmail = req.body?.email;
+  const normalized = typeof rawEmail === 'string' ? normalizeEmail(rawEmail) : '';
+  const bodyKeys = req.body && !Array.isArray(req.body) && typeof req.body === 'object'
+    ? Object.keys(req.body) : [];
+  const malformed = bodyKeys.length !== 1 || bodyKeys[0] !== 'email'
+    || normalized.length === 0 || normalized.length > 254
+    || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+  const accountKey = malformed
+    ? `forgot:malformed:${req.ip}`
+    : `forgot:account:${req.ip}:${normalized}`;
+  const accountResult = checkLimit(accountKey, { windowMs: 15 * 60 * 1000, max: 5 });
+  const ipResult = checkLimit(`forgot:ip:${req.ip}`, { windowMs: 60 * 60 * 1000, max: 20 });
+  if (!accountResult.allowed || !ipResult.allowed) {
+    return rejectPasswordRecoveryLimit(res, Math.max(accountResult.retryAfterMs || 0, ipResult.retryAfterMs || 0));
+  }
+  next();
+}
+
+function resetPasswordRateLimiter(req, res, next) {
+  const token = typeof req.body?.token === 'string' ? req.body.token : '';
+  const canonicalToken = /^[A-Za-z0-9_-]{43}$/.test(token)
+    && Buffer.from(token, 'base64url').toString('base64url') === token;
+  const tokenPrefix = canonicalToken ? digestToken(token).toString('hex').slice(0, 16) : null;
+  const ipResult = checkLimit(`reset:ip:${req.ip}`, { windowMs: 15 * 60 * 1000, max: 5 });
+  const tokenKey = tokenPrefix ? `reset:token:${tokenPrefix}` : `reset:malformed:${req.ip}`;
+  const tokenResult = checkLimit(tokenKey, { windowMs: 15 * 60 * 1000, max: 5 });
+  if (!ipResult.allowed || !tokenResult.allowed) {
+    return rejectPasswordRecoveryLimit(res, Math.max(ipResult.retryAfterMs || 0, tokenResult.retryAfterMs || 0));
+  }
+  next();
+}
+
+module.exports = {
+  adminRoleMutationRateLimiter, forgotPasswordRateLimiter, loginRateLimiter,
+  registerRateLimiter, resetPasswordRateLimiter,
+};

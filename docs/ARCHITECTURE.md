@@ -97,6 +97,7 @@ Unknown routes receive a JSON 404. The global error handler distinguishes malfor
 | Product mutations | `POST /api/products`, `PUT /api/products/:id`, `DELETE /api/products/:id` | Authenticated admin |
 | Authentication | `POST /api/auth/register`, `POST /api/auth/login` | Public, rate-limited |
 | Authenticated identity | `GET /api/auth/me`, `POST /api/auth/logout` | Authenticated user |
+| Admin accounts | `GET /api/admin/users`, `PATCH /api/admin/users/:id/role` | Authenticated admin; mutation also requires trusted origin and rate limit |
 | Cart | `GET /api/cart`, `PUT /api/cart/items/:productId`, `DELETE /api/cart/items/:productId`, `DELETE /api/cart` | Authenticated owner |
 | Cart merge | `POST /api/cart/merge` | Authenticated owner |
 
@@ -211,6 +212,22 @@ This database lookup means role and token revocation state remain authoritative 
 
 Logout first increments the user's `token_version`, invalidating previously issued cookies for that account, and then clears the browser cookie with matching security attributes. A copied pre-logout cookie is rejected on subsequent protected requests.
 
+## Account and admin extension (Phase 6-EXT)
+
+Status: Phase 6-EXT-A through 6-EXT-H and Phase 6-EXT overall are **VERIFIED COMPLETE**. Admin management, password recovery, real Resend delivery, controlled provider failure, integrated reset/login/session revocation, and password-visibility accessibility received their required automated and user-performed acceptance. [Account & Admin Extension](ACCOUNT_ADMIN_EXTENSION.md) is the detailed source of truth.
+
+The implemented extension adds admin-only account listing/role management, password-reset lifecycle handling, a vanilla-JavaScript recovery flow, and a Resend delivery adapter to the existing frontend → Node/Express → SQLite account system. The existing auth dialog now owns login, registration, forgot-password, and reset-password states. It retains only `user` and `admin`, signed-cookie sessions, and database-authoritative authorization. Real-provider inbox acceptance passed using runtime-only local configuration. Authentication remains distinct from authorization; Python/AI services are outside this account boundary.
+
+The server authenticates and authorizes every account-management request and enforces **“SariRasa must always retain at least one administrator.”** A SQLite `BEGIN IMMEDIATE` transaction acquires the write lock before rechecking actor authority/session version, the target, and global admin count. Self-demotion is rejected and concurrent demotions cannot both remove the final administrators. The first admin is provisioned with `npm run admin:provision -- --email <email>`, which promotes an existing registered account—never by default credentials, first-user auto-promotion, startup seeding, or a public endpoint. The Phase 6-EXT-C management UI passed automated and user-performed acceptance.
+
+Password recovery uses `POST /api/auth/forgot-password` and `POST /api/auth/reset-password`, a dedicated `password_reset_tokens` table, and an injected server-side delivery adapter. A 32-byte random base64url token expires after 30 minutes; only its SHA-256 digest is stored. Supersession and successful bcrypt password replacement use `BEGIN IMMEDIATE`; conditional one-time consumption, all-token invalidation, and session revocation through `token_version` commit atomically. Valid forgot requests always return the same generic `202`; provider dispatch is detached from HTTP completion and failures are redacted. Layered process-local throttling, JSON-only requests, trusted `APP_PUBLIC_ORIGIN`, and exact `FRONTEND_ORIGIN` checks protect both public mutations. Success clears the calling cookie defensively and returns the user to normal login without automatic authentication.
+
+Phase 6-EXT-F connects that interface to a thin Resend HTTP adapter using Node's built-in `fetch`, so vendor credentials, payload, sender formatting, response mapping, and a ten-second timeout remain outside core reset logic. Development/test defaults to explicit non-network `disabled` mode; production fails startup unless Resend mode, API key, and a valid sender are configured. Provider rejection/authentication, rate limit, unavailability, timeout, and network failures become allowlisted operational categories without provider-body leakage. The committed token stays unconsumed after failure because delivery may have succeeded before a transport error; a later request safely supersedes it.
+
+The frontend reads `reset_token` only from the initial URL query, requires one 43-character base64url value for client-side UX, immediately removes the query from browser history, and retains the credential only in memory until success, invalidation, or leaving the flow. It never stores or renders the token. Forgot-password responses use one generic bilingual success state. Reset submits only `{token,password}`, treats the backend as authoritative, maps every unusable token to one invalid/expired/used state, clears password fields and the in-memory token on success, drops stale local identity, and rechecks `/api/auth/me`; it never creates a session. Generation and pending guards prevent duplicate submissions and stale recovery responses from replacing a newer auth view.
+
+Password visibility controls remain native `type="button"` elements with synchronized `aria-pressed` and bilingual dynamic accessible names. Login, registration, and the two reset fields preserve values and independent state while mode changes reset visibility to hidden. Manual keyboard/mobile/zoom acceptance passed after right-edge alignment and proportional focus-ring revisions. Safari + VoiceOver may occasionally include “Closing” in its announcement when the pressed state changes; inspection and retest found no application menu/dialog/status mutation, the navigation remained closed, the dialog remained open, and focus stayed on the toggle. This is an accepted non-blocking platform announcement, not a reason to replace standards-compliant semantics with an accessibility hack.
+
 ## Guest-to-authenticated cart merge
 
 ```mermaid
@@ -285,11 +302,14 @@ Current controls include:
 - HMAC-SHA256 signed session cookies with a fail-loud secret requirement;
 - HttpOnly, SameSite, Secure, and maximum-age cookie controls;
 - current database role and token-version checks on protected requests;
-- credentialed CORS restricted to `http://localhost:5500`;
+- credentialed CORS and privileged mutation checks restricted to validated `FRONTEND_ORIGIN` (default `http://localhost:5500`);
 - backend authentication and admin authorization middleware;
+- admin listing with bounded filters/pagination and minimal response fields;
+- concurrency-safe role mutation with transaction-time actor/session recheck;
+- local, existing-account-only administrator provisioning;
 - parameterized SQL and request validation;
 - generic unexpected-error responses;
-- login and registration rate limiting;
+- login, registration, and admin-role-mutation rate limiting;
 - security response headers; and
 - test-mode guards against direct, canonical, symlinked, or hard-linked access to the development database.
 
@@ -298,7 +318,7 @@ Relevant boundaries remain:
 - the system is configured around local development;
 - production-like browser authentication requires HTTPS because cookies remain Secure outside explicit development mode;
 - rate-limit state is in process memory and resets on restart;
-- there is no supported admin-provisioning workflow;
+- there is no bundled administrator credential; an operator promotes an existing account locally;
 - there is no documented development-database reset, backup, or recovery command; and
 - these controls are not a claim of complete production hardening.
 
@@ -332,7 +352,7 @@ Contract tests read the real files to verify that:
 - required class-based controls and the production script reference exist; and
 - frontend API paths and methods correspond to Express routes.
 
-The current automated baseline is 37 backend tests plus 66 frontend tests, for 103 combined Node tests, alongside 341 Python tests. Automated VM coverage is distinct from user-performed browser acceptance, which validated real responsive, keyboard, chart, calendar, global-filter, model-comparison, and failure/recovery behavior.
+The Phase 6-EXT-H automated baseline is 72 backend tests plus 95 frontend tests, for 167 combined Node tests, alongside the previously verified 341 Python tests. Automated VM coverage is distinct from user-performed browser acceptance. Phase 6-EXT-C adds focused navigation, listing, search/filter/pagination, mutation/protection, authorization-loss, stale-response, and i18n coverage. Phase 6-EXT-G adds fail-closed privileged UI removal on an authoritative admin-operation `403`, one authoritative auth recheck after returning from a hidden page, and focused stale-role tests. Required C/E browser, F real-provider, and G integration acceptance all passed.
 
 ## Key engineering decisions
 
@@ -711,7 +731,7 @@ The frozen TEST record is HGB `135.5097`/`177.6172`, MLP `147.2643`/`193.5776`, 
 
 The Admin Analytics model-comparison panel sits below the unchanged production forecast and labels HGB/MLP/previous week as Production/Experimental/Benchmark. It fetches independently from the historical date filter, uses isolated loading/error/retry and stale-response protection, and places current MLP inference only in secondary disclosure content. Desktop uses three cards, tablet may wrap, and mobile stacks them without a narrow table.
 
-Phase 4E Node-to-Python integration, Phase 4F, Phase 4, and the approved post-quality-gate Phase 4G extension including 4G-R2 are verified complete. Phase 5A through Phase 5H, 5F-R, and 5F-R2 are verified complete. Phase 6A through Phase 6I and Phase 6 overall are verified complete after frozen evaluation, fail-closed artifact/inference and service integration, responsive/manual dashboard acceptance, full regression, provenance/security review, and documentation consistency. Phase 7 AI Engineering is next and not started.
+Phase 4E Node-to-Python integration, Phase 4F, Phase 4, and the approved post-quality-gate Phase 4G extension including 4G-R2 are verified complete. Phase 5A through Phase 5H, 5F-R, and 5F-R2 are verified complete. Phase 6A through Phase 6I and Phase 6 overall are verified complete after frozen evaluation, fail-closed artifact/inference and service integration, responsive/manual dashboard acceptance, full regression, provenance/security review, and documentation consistency. Phase 6-EXT-A through 6-EXT-H and Phase 6-EXT overall are verified complete after automated regression, manual acceptance, secret-hygiene verification, documentation reconciliation, and independent review. Phase 7 AI Engineering remains not started.
 
 See the [Project Roadmap](../ROADMAP.md) for the approved sequence and current status.
 

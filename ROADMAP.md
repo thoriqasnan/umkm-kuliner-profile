@@ -653,9 +653,32 @@ Group 3: 6F–6G
 Group 4: 6H–6I
 ```
 
+## Phase 6-EXT — Account & Admin Extension
+
+Status: ✅ **VERIFIED COMPLETE — DOCUMENTATION, FINAL REGRESSION, SECRET HYGIENE, MANUAL ACCEPTANCE, AND INDEPENDENT REVIEW PASSED**
+
+Approved production-oriented account extension after **Phase 6 — Deep Learning Fundamentals (VERIFIED COMPLETE)** and before **Phase 7 — AI Engineering (NOT STARTED)**. The `6-EXT` convention preserves Phase 7 and all existing future numbering; it does not reopen Phase 6 or retroactively insert work into completed Phase 3.
+
+Goal delivered: extend the existing authentication/session and `user`/`admin` role model with **Admin Management (Users & Admins)** and **Forgot Password / Password Recovery**. Contracts, backend business rules, UI, reset-token lifecycle, Resend delivery, security/integration acceptance, and the final documentation/quality gate are verified. Detailed contracts and evidence are in [Account & Admin Extension](docs/ACCOUNT_ADMIN_EXTENSION.md).
+
+Core requirements delivered: backend-enforced, concurrency-safe minimum-one-admin invariant; confirmed role changes with current/last-admin protection; responsive desktop tables/mobile cards; generic reset-request responses; secure expiring single-use reset tokens; existing password hashing/policy; normal login after reset; and Resend behind the provider-independent delivery boundary. Real delivery and controlled provider-failure acceptance passed. No extra roles, account deletion, granular permissions, or dashboard redesign were added.
+
+| Subphase | Goal / scope | Status |
+|---|---|---|
+| 6-EXT-A — Architecture & Data Contracts | Freeze contracts, transaction/security design, and provisioning prerequisites. | ✅ VERIFIED COMPLETE |
+| 6-EXT-B — Admin Backend & Business Rules | Admin-only account listing and concurrency-safe promotion/demotion. | ✅ VERIFIED COMPLETE |
+| 6-EXT-C — Admin Management UI/UX | Users & Admins, confirmations, protected states, responsive/accessibility checkpoint. | ✅ VERIFIED COMPLETE |
+| 6-EXT-D — Password Reset Backend & Token Lifecycle | Generic requests, secure token lifecycle, atomic password replacement/session revocation. | ✅ VERIFIED COMPLETE |
+| 6-EXT-E — Password Recovery UI/UX | Secondary login entry through reset success/expired-link screens. | ✅ VERIFIED COMPLETE |
+| 6-EXT-F — Email Delivery Integration | Finalize provider and environment-only delivery integration. | ✅ VERIFIED COMPLETE |
+| 6-EXT-G — Security, Integration & Manual Acceptance | Verify full account/email flows, concurrency, accessibility, and regressions. | ✅ VERIFIED COMPLETE |
+| 6-EXT-H — Documentation & Final Quality Gate | Reconcile delivered behavior and required evidence before completion. | ✅ VERIFIED COMPLETE |
+
+Each slice's scope boundary, key acceptance criteria, and expected verification type are defined in the [implementation slices](docs/ACCOUNT_ADMIN_EXTENSION.md#planned-implementation-slices). Meaningful browser checkpoints are C and G; no implementation slice is complete merely because this design has been documented. Implementation is deferred to a later task.
+
 ## Phase 7 — AI Engineering
 
-Status: ⏭️ **NEXT / NOT STARTED**
+Status: ⏳ **NOT STARTED — follows Phase 6-EXT**
 
 Expected progression:
 
@@ -709,7 +732,7 @@ Deployment belongs here unless an earlier phase needs a temporary deployment che
 
 ## Project 1 Completion Definition
 
-Project 1 may be marked ✅ **VERIFIED COMPLETE** only after Phase 1, Phase 2, Phase 3, the Quality Gate, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, and Final Engineering are individually verified; final regression and required manual acceptance pass; documentation is complete; and the portfolio presentation is ready.
+Project 1 may be marked ✅ **VERIFIED COMPLETE** only after Phase 1, Phase 2, Phase 3, the Quality Gate, Phase 4, Phase 5, Phase 6, Phase 6-EXT, Phase 7, Phase 8, and Final Engineering are individually verified; final regression and required manual acceptance pass; documentation is complete; and the portfolio presentation is ready.
 
 ## Scope Discipline
 
@@ -839,9 +862,18 @@ Phase 6 Deep Learning Fundamentals    ✅ VERIFIED COMPLETE
   6G Deep Learning Service Integration ✅ VERIFIED COMPLETE
   6H Dashboard Model Comparison       ✅ VERIFIED COMPLETE
   6I Final Integration & Quality Gate ✅ VERIFIED COMPLETE
-Phase 7 AI Engineering                ⏭️ NEXT / NOT STARTED
+Phase 6-EXT Account & Admin Extension ✅ VERIFIED COMPLETE
+  6-EXT-A Architecture & Data Contracts ✅ VERIFIED COMPLETE
+  6-EXT-B Admin Backend & Business Rules ✅ VERIFIED COMPLETE
+  6-EXT-C Admin Management UI/UX       ✅ VERIFIED COMPLETE
+  6-EXT-D Password Reset Backend & Token Lifecycle ✅ VERIFIED COMPLETE
+  6-EXT-E Password Recovery UI/UX      ✅ VERIFIED COMPLETE
+  6-EXT-F Email Delivery Integration   ✅ VERIFIED COMPLETE
+  6-EXT-G Security, Integration & Manual Acceptance ✅ VERIFIED COMPLETE
+  6-EXT-H Documentation & Final Quality Gate ✅ VERIFIED COMPLETE
+Phase 7 AI Engineering                ⏳ NOT STARTED — follows Phase 6-EXT
 Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
 Final Engineering                     ⏳ PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension including 4G-R2, **Phase 5 — Machine Learning** including 5H, and **Phase 6 — Deep Learning Fundamentals** including 6I are ✅ **VERIFIED COMPLETE**. **Phase 7 — AI Engineering is next and not started.**
+The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), the approved post-quality-gate **Phase 4G — Analytics Dashboard UI** extension including 4G-R2, **Phase 5 — Machine Learning** including 5H, **Phase 6 — Deep Learning Fundamentals** including 6I, and **Phase 6-EXT — Account & Admin Extension** are ✅ **VERIFIED COMPLETE**. Phase 6-EXT includes user-performed admin/recovery/accessibility acceptance, real Resend and provider-failure acceptance, integrated old-session revocation, final automated regression, documentation reconciliation, secret-hygiene verification, and independent review. **Phase 7 — AI Engineering remains NOT STARTED**, with its numbering and approved progression preserved.

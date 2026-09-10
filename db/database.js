@@ -55,6 +55,11 @@ fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 // table-nya sendiri lewat CREATE TABLE di bawah.
 const db = new Database(DB_PATH);
 
+// Bound lock contention so privileged BEGIN IMMEDIATE transactions fail
+// safely instead of waiting without limit. SQLite reports SQLITE_BUSY after
+// this window; the admin API maps that outcome to a redacted 503 contract.
+db.pragma('busy_timeout = 1000');
+
 // Foreign-key enforcement di SQLite bersifat per-connection dan default-nya
 // nonaktif. Cart bergantung pada FK untuk mencegah row orphan dan menjalankan
 // ON DELETE CASCADE, jadi aktifkan lalu verifikasi secara fail-loud sebelum
@@ -289,6 +294,42 @@ if (!hasTokenVersionColumn) {
   console.log('[db] Kolom token_version ditambahkan ke table users (revocation logout).');
 } else {
   console.log('[db] Kolom token_version sudah ada di table users, migrasi dilewati.');
+}
+
+// Phase 6-EXT-D: one-time password-reset credentials. The reusable raw token
+// never enters SQLite; token_digest is the 32-byte SHA-256 result. CREATE IF
+// NOT EXISTS keeps fresh and existing databases on the same deterministic
+// schema without rebuilding users or disturbing sessions.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    token_digest BLOB NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    consumed_at TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS password_reset_tokens_user_id_idx
+    ON password_reset_tokens(user_id);
+  CREATE INDEX IF NOT EXISTS password_reset_tokens_expires_at_idx
+    ON password_reset_tokens(expires_at);
+`);
+
+const passwordResetColumns = new Map(
+  db.prepare('PRAGMA table_info(password_reset_tokens)').all().map((column) => [column.name, column])
+);
+for (const requiredColumn of ['id', 'user_id', 'token_digest', 'expires_at', 'consumed_at', 'created_at']) {
+  if (!passwordResetColumns.has(requiredColumn)) {
+    throw new Error(`Schema password_reset_tokens tidak kompatibel: kolom ${requiredColumn} tidak ada.`);
+  }
+}
+const passwordResetForeignKeys = db.prepare('PRAGMA foreign_key_list(password_reset_tokens)').all();
+if (!passwordResetForeignKeys.some((foreignKey) => (
+  foreignKey.table === 'users' && foreignKey.from === 'user_id'
+  && foreignKey.to === 'id' && foreignKey.on_delete === 'CASCADE'
+))) {
+  throw new Error('Schema password_reset_tokens tidak kompatibel: foreign key user_id tidak valid.');
 }
 
 // --- 1d. Migrasi: tambah kolom description_id & description_en ke table products (Phase 3C-5: deskripsi bilingual) ---

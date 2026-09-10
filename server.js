@@ -9,9 +9,24 @@ const { db } = require('./db/database');
 const { hashPassword, verifyPassword, SALT_ROUNDS } = require('./lib/password');
 const { normalizeEmail, findUserByEmail } = require('./lib/user');
 const { sign, getSessionCookieOptions, COOKIE_NAME } = require('./lib/session');
+const { AdminUserError, changeAdminUserRole, listAdminUsers } = require('./lib/adminUsers');
+const {
+  PasswordResetError,
+  acceptUnknownAccountRequest,
+  createResetCredential,
+  parseToken,
+  resetPasswordAtomically,
+} = require('./lib/passwordRecovery');
+const {
+  createPasswordResetDeliveryFromEnv,
+  safeDeliveryFailureCategory,
+} = require('./lib/passwordResetDelivery');
 const { requireAuth } = require('./middleware/auth');
 const { requireAdmin } = require('./middleware/authorize');
-const { loginRateLimiter, registerRateLimiter } = require('./middleware/rateLimit');
+const {
+  adminRoleMutationRateLimiter, forgotPasswordRateLimiter, loginRateLimiter,
+  registerRateLimiter, resetPasswordRateLimiter,
+} = require('./middleware/rateLimit');
 const {
   getAnalyticsSummary,
   getProductsAnalytics,
@@ -37,6 +52,33 @@ function parseConfiguredPort(value) {
 }
 
 const PORT = parseConfiguredPort(process.env.PORT);
+
+function parseConfiguredOrigin(value, name = 'FRONTEND_ORIGIN', fallback = 'http://localhost:5500') {
+  const configured = value === undefined ? fallback : value;
+  let parsed;
+  try {
+    parsed = new URL(configured);
+  } catch {
+    throw new Error(`${name} harus berupa origin HTTP/HTTPS absolut yang valid.`);
+  }
+  if (
+    (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') ||
+    parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash
+  ) {
+    throw new Error(`${name} harus berupa origin HTTP/HTTPS absolut tanpa path, credentials, query, atau fragment.`);
+  }
+  if (process.env.NODE_ENV === 'production' && parsed.protocol !== 'https:') {
+    throw new Error(`${name} production wajib memakai HTTPS.`);
+  }
+  return parsed.origin;
+}
+
+const FRONTEND_ORIGIN = parseConfiguredOrigin(process.env.FRONTEND_ORIGIN);
+if (process.env.NODE_ENV === 'production' && process.env.APP_PUBLIC_ORIGIN === undefined) {
+  throw new Error('APP_PUBLIC_ORIGIN wajib dikonfigurasi secara eksplisit pada production.');
+}
+const APP_PUBLIC_ORIGIN = parseConfiguredOrigin(process.env.APP_PUBLIC_ORIGIN, 'APP_PUBLIC_ORIGIN', FRONTEND_ORIGIN);
+const defaultPasswordResetDelivery = createPasswordResetDeliveryFromEnv();
 
 // --- Phase 3C-4: matikan header X-Powered-By ---
 // Express secara default menambahkan header response `X-Powered-By: Express`
@@ -139,7 +181,7 @@ if (dummyHashCostFactor !== SALT_ROUNDS) {
 // sukses. (Catatan: sisi frontend/fetch() juga tetap harus menyertakan
 // `credentials: 'include'` supaya cookie ikut terkirim - itu di luar scope
 // perubahan server.js ini, disebutkan di sini sebagai pengingat.)
-app.use(cors({ origin: 'http://localhost:5500', credentials: true }));
+app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
 
 // --- JSON body parser ---
 // Express (versi 5.x yang dipakai di project ini, lihat package.json) sudah
@@ -815,6 +857,145 @@ app.delete('/api/products/:id', requireAuth, requireAdmin, (req, res) => {
   }
 });
 
+const PASSWORD_RESET_GENERIC_ACCEPTED = {
+  status: 'success',
+  message: 'Jika akun tersedia, instruksi reset password telah dikirim.',
+};
+const FORGOT_RESPONSE_FLOOR_MS = 100;
+
+function requireJsonAndTrustedOrigin(req, res, next) {
+  if (!req.is('application/json')) {
+    return res.status(400).json({
+      status: 'error', code: 'VALIDATION_ERROR', message: 'Request harus menggunakan application/json',
+    });
+  }
+  return requireTrustedMutationOrigin(req, res, next);
+}
+
+function recoveryDependencies() {
+  return {
+    now: app.locals.passwordResetNow ? app.locals.passwordResetNow() : new Date(),
+    randomBytes: app.locals.passwordResetRandomBytes,
+  };
+}
+
+function isSqliteBusy(error) {
+  return error && typeof error.code === 'string' && error.code.startsWith('SQLITE_BUSY');
+}
+
+app.post(
+  '/api/auth/forgot-password',
+  requireJsonAndTrustedOrigin,
+  forgotPasswordRateLimiter,
+  async (req, res) => {
+    const responseStartedAt = Date.now();
+    const body = req.body;
+    const keys = body && !Array.isArray(body) && typeof body === 'object' ? Object.keys(body) : [];
+    const email = body?.email;
+    const validEmail = typeof email === 'string'
+      && email.trim().length <= 254
+      && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    if (keys.length !== 1 || keys[0] !== 'email' || !validEmail) {
+      return res.status(400).json({
+        status: 'error', code: 'VALIDATION_ERROR', message: 'Validasi gagal',
+        details: ['email wajib berupa alamat email valid dengan panjang maksimal 254 karakter'],
+      });
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    try {
+      const user = findUserByEmail(db, normalizedEmail);
+      if (!user) {
+        acceptUnknownAccountRequest(db, recoveryDependencies());
+      } else {
+        const credential = createResetCredential(db, user.id, recoveryDependencies());
+        const delivery = app.locals.passwordResetDelivery || defaultPasswordResetDelivery;
+        const resetUrl = `${APP_PUBLIC_ORIGIN}/?reset_token=${encodeURIComponent(credential.rawToken)}`;
+        // Dispatch is deliberately detached from HTTP completion. A slow or
+        // failing provider must not make known-account responses observably
+        // slower than unknown-account responses. Phase F may replace this
+        // adapter with a durable queue/provider boundary without changing the
+        // token lifecycle or public contract.
+        res.once('finish', () => {
+          setImmediate(() => {
+            Promise.resolve().then(() => delivery.sendPasswordReset({
+              to: normalizedEmail, resetUrl, expiresAt: credential.expiresAt,
+            })).catch((error) => {
+              const category = safeDeliveryFailureCategory(error);
+              console.error(`[password-reset-delivery] Pengiriman gagal: ${category} (detail dan credential disunting).`);
+            });
+          });
+        });
+      }
+    } catch {
+      // Valid-address responses remain identical even when account-dependent
+      // persistence cannot be completed. Operators get only a redacted event.
+      console.error('[forgot-password] Permintaan tidak dapat diproses (detail dan identitas disunting).');
+    }
+    // Normalize fast local-path differences (lookup plus SQLite insert versus
+    // dummy transaction) into one minimum response envelope. Delivery begins
+    // only after the response finishes, so provider behavior is not observable
+    // through this request. This is not a substitute for Phase F's durable
+    // production queue, but closes the Phase D enumeration boundary.
+    const remainingDelay = FORGOT_RESPONSE_FLOOR_MS - (Date.now() - responseStartedAt);
+    if (remainingDelay > 0) await new Promise((resolve) => setTimeout(resolve, remainingDelay));
+    return res.status(202).json(PASSWORD_RESET_GENERIC_ACCEPTED);
+  }
+);
+
+app.post(
+  '/api/auth/reset-password',
+  requireJsonAndTrustedOrigin,
+  resetPasswordRateLimiter,
+  async (req, res) => {
+    const body = req.body;
+    const keys = body && !Array.isArray(body) && typeof body === 'object' ? Object.keys(body).sort() : [];
+    const token = body?.token;
+    const password = body?.password;
+    const passwordValid = typeof password === 'string'
+      && password.length >= 8
+      && password.trim().length > 0
+      && Buffer.byteLength(password, 'utf8') <= 72;
+    if (keys.length !== 2 || keys[0] !== 'password' || keys[1] !== 'token' || !passwordValid) {
+      return res.status(400).json({
+        status: 'error', code: 'VALIDATION_ERROR', message: 'Validasi gagal',
+        details: ['password wajib 8 karakter atau lebih dan maksimal 72 byte'],
+      });
+    }
+
+    const tokenDigest = parseToken(token);
+    if (!tokenDigest) {
+      return res.status(400).json({
+        status: 'error', code: 'RESET_TOKEN_INVALID', message: 'Token reset tidak valid atau telah kedaluwarsa',
+      });
+    }
+
+    try {
+      const passwordHash = await hashPassword(password);
+      resetPasswordAtomically(db, tokenDigest, passwordHash, recoveryDependencies());
+      res.clearCookie(COOKIE_NAME, getSessionCookieOptions());
+      return res.status(200).json({
+        status: 'success', message: 'Password berhasil direset. Silakan login kembali.',
+      });
+    } catch (error) {
+      if (error instanceof PasswordResetError) {
+        return res.status(400).json({
+          status: 'error', code: 'RESET_TOKEN_INVALID', message: 'Token reset tidak valid atau telah kedaluwarsa',
+        });
+      }
+      if (isSqliteBusy(error)) {
+        return res.status(503).json({
+          status: 'error', code: 'DATABASE_BUSY', message: 'Database sedang sibuk. Coba lagi nanti.',
+        });
+      }
+      console.error('[reset-password] Operasi gagal (detail dan credential disunting).');
+      return res.status(500).json({
+        status: 'error', code: 'INTERNAL_ERROR', message: 'Terjadi kesalahan pada server',
+      });
+    }
+  }
+);
+
 // --- Route Phase 3C-2: registrasi akun baru (CREATE user) ---
 // Bedanya dengan CRUD /api/products di atas: yang disimpan di sini adalah
 // KREDENSIAL akun (email + password), jadi ada dua langkah tambahan yang
@@ -1182,6 +1363,114 @@ app.post('/api/auth/logout', requireAuth, (req, res) => {
 app.get('/api/auth/me', requireAuth, (req, res) => {
   res.status(200).json({ status: 'success', user: { id: req.user.id, email: req.user.email, role: req.user.role } });
 });
+
+// --- Phase 6-EXT-B: admin account listing and role management ---
+function validationError(res, details) {
+  return res.status(400).json({ status: 'error', code: 'VALIDATION_ERROR', message: 'Validasi gagal', details });
+}
+
+function requireTrustedMutationOrigin(req, res, next) {
+  if (req.get('Origin') !== FRONTEND_ORIGIN) {
+    return res.status(403).json({
+      status: 'error',
+      code: 'CSRF_ORIGIN_INVALID',
+      message: 'Origin request tidak diizinkan',
+    });
+  }
+  next();
+}
+
+function parseBoundedIntegerQuery(rawValue, { name, minimum, maximum, fallback }, errors) {
+  if (rawValue === undefined) return fallback;
+  if (Array.isArray(rawValue) || typeof rawValue !== 'string' || !/^\d+$/.test(rawValue)) {
+    errors.push(`${name} harus berupa angka bulat`);
+    return fallback;
+  }
+  const value = Number(rawValue);
+  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
+    errors.push(`${name} harus antara ${minimum} dan ${maximum}`);
+    return fallback;
+  }
+  return value;
+}
+
+app.get('/api/admin/users', requireAuth, requireAdmin, (req, res) => {
+  const errors = [];
+  const allowedKeys = new Set(['search', 'role', 'limit', 'offset']);
+  for (const key of Object.keys(req.query)) {
+    if (!allowedKeys.has(key)) errors.push(`query '${key}' tidak didukung`);
+    if (Array.isArray(req.query[key])) errors.push(`query '${key}' tidak boleh diulang`);
+  }
+
+  let search;
+  if (req.query.search !== undefined && !Array.isArray(req.query.search)) {
+    if (typeof req.query.search !== 'string') errors.push('search harus berupa teks');
+    else {
+      search = req.query.search.trim().toLowerCase();
+      if (search.length > 100) errors.push('search maksimal 100 karakter');
+      if (search.length === 0) search = undefined;
+    }
+  }
+
+  let role;
+  if (req.query.role !== undefined && !Array.isArray(req.query.role)) {
+    if (req.query.role !== 'user' && req.query.role !== 'admin') errors.push("role harus 'user' atau 'admin'");
+    else role = req.query.role;
+  }
+
+  const limit = parseBoundedIntegerQuery(req.query.limit, { name: 'limit', minimum: 1, maximum: 100, fallback: 25 }, errors);
+  const offset = parseBoundedIntegerQuery(req.query.offset, { name: 'offset', minimum: 0, maximum: Number.MAX_SAFE_INTEGER, fallback: 0 }, errors);
+  if (errors.length > 0) return validationError(res, errors);
+
+  try {
+    const result = listAdminUsers(db, req.user.id, { search, role, limit, offset });
+    return res.status(200).json({ status: 'success', ...result });
+  } catch (error) {
+    console.error('[GET /api/admin/users] Gagal mengambil daftar pengguna:', error);
+    return res.status(500).json({ status: 'error', code: 'INTERNAL_ERROR', message: 'Terjadi kesalahan pada server' });
+  }
+});
+
+app.patch(
+  '/api/admin/users/:id/role',
+  requireAuth,
+  requireAdmin,
+  requireTrustedMutationOrigin,
+  adminRoleMutationRateLimiter,
+  (req, res) => {
+    const targetId = /^[1-9]\d*$/.test(req.params.id) ? Number(req.params.id) : NaN;
+    const body = req.body;
+    const errors = [];
+    if (!Number.isSafeInteger(targetId) || targetId <= 0) errors.push('id pengguna harus berupa angka bulat positif');
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      errors.push('body harus berupa object JSON');
+    } else {
+      const keys = Object.keys(body);
+      if (keys.length !== 1 || keys[0] !== 'role') errors.push("body hanya boleh berisi field 'role'");
+      if (body.role !== 'user' && body.role !== 'admin') errors.push("role harus 'user' atau 'admin'");
+    }
+    if (errors.length > 0) return validationError(res, errors);
+
+    try {
+      const user = changeAdminUserRole(db, {
+        actorId: req.user.id,
+        actorTokenVersion: req.authTokenVersion,
+        targetId,
+        role: body.role,
+      });
+      return res.status(200).json({ status: 'success', message: 'Role pengguna berhasil diperbarui', user });
+    } catch (error) {
+      if (error instanceof AdminUserError) {
+        return res.status(error.status).json({ status: 'error', code: error.code, message: error.message });
+      }
+      if (error && (error.code === 'SQLITE_BUSY' || error.code === 'SQLITE_BUSY_TIMEOUT')) {
+        return res.status(503).json({ status: 'error', code: 'DATABASE_BUSY', message: 'Database sedang sibuk. Coba lagi nanti.' });
+      }
+      console.error('[PATCH /api/admin/users/:id/role] Gagal memperbarui role:', error);
+      return res.status(500).json({ status: 'error', code: 'INTERNAL_ERROR', message: 'Terjadi kesalahan pada server' });
+    }
+  }
+);
 
 // --- Routes Phase 3D-7B: authenticated cart persistence ---
 const MAX_CART_QUANTITY = 99;

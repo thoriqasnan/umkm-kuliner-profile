@@ -1149,6 +1149,34 @@ h2 {
   text-transform: capitalize;
 }
 
+.admin-users { margin-top: 32px; }
+.admin-users-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 16px; }
+.admin-users-heading > div > p { color: var(--color-text-muted); font-size: .9rem; }
+.admin-users-controls { display: flex; align-items: end; gap: 10px; }
+.admin-users-controls > div { display: grid; gap: 5px; }
+.admin-users-controls label { color: var(--color-text-muted); font-size: .8rem; font-weight: 600; }
+.admin-users-controls input, .admin-users-controls select { min-height: 42px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-bg); font: inherit; }
+.admin-users-reset { background: var(--color-bg-soft); }
+.admin-users-table-wrap { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-bg); }
+.admin-users-table { width: 100%; border-collapse: collapse; }
+.admin-users-table th, .admin-users-table td { padding: 14px 16px; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: middle; }
+.admin-users-table th { color: var(--color-text-muted); font-size: .8rem; text-transform: uppercase; }
+.admin-users-table tr:last-child td { border-bottom: 0; }
+.admin-users-table td:first-child { overflow-wrap: anywhere; }
+.admin-users-table td:last-child { width: 1%; min-width: 190px; }
+.admin-users-current { display: inline-block; margin-left: 8px; padding: 2px 7px; border-radius: 999px; background: var(--color-bg-soft); color: var(--color-accent-dark); font-size: .75rem; font-weight: 700; }
+.admin-users-role-btn { border: 1px solid; background: var(--color-bg); font: inherit; cursor: pointer; white-space: nowrap; }
+.admin-users-role-btn--promote { border-color: var(--color-accent); color: var(--color-accent-dark); }
+.admin-users-role-btn--promote:hover:not(:disabled) { border-color: var(--color-accent-dark); background: var(--color-bg-soft); transform: translateY(-1px); }
+.admin-users-role-btn--demote { border-color: color-mix(in srgb, var(--color-accent-dark) 45%, var(--color-text)); background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)); color: color-mix(in srgb, var(--color-accent-dark) 35%, var(--color-text)); }
+.admin-users-role-btn--demote:hover:not(:disabled) { border-color: color-mix(in srgb, var(--color-accent-dark) 32%, var(--color-text)); background: color-mix(in srgb, var(--color-accent) 18%, var(--color-bg)); transform: translateY(-1px); }
+.admin-users-role-btn:disabled { border-color: var(--color-border); background: var(--color-border); color: var(--color-text-muted); cursor: not-allowed; opacity: .65; transform: none; }
+.admin-users-protection { display: block; max-width: 28rem; margin-top: 5px; color: var(--color-text-muted); font-size: .78rem; }
+.admin-users-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
+.admin-role-dialog { max-width: 520px; }
+.admin-role-dialog > p { color: var(--color-text-muted); }
+.admin-role-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+
 /* ==========================================================
    ADMIN ANALYTICS (Phase 4G - Analytics Dashboard UI)
    KPI memakai .admin-overview-card yang sama (4 kolom) supaya konsisten
@@ -1740,6 +1768,15 @@ h2 {
   outline-offset: 2px;
 }
 
+.password-visibility-btn:focus-visible {
+  outline: 2px solid var(--color-accent-dark);
+  outline-offset: -3px;
+}
+.admin-users:focus-visible, .admin-users-table-wrap:focus-visible, .admin-users-controls input:focus-visible, .admin-users-controls select:focus-visible, .admin-users-role-btn:focus-visible {
+  outline: 2px solid var(--color-accent-dark);
+  outline-offset: 2px;
+}
+
 .admin-forecast-about summary:focus-visible,
 #adminForecastRetry:focus-visible,
 .admin-model-about summary:focus-visible,
@@ -1924,6 +1961,16 @@ h2 {
   .admin-overview {
     grid-template-columns: 1fr;
   }
+
+  .admin-users-heading, .admin-users-controls { align-items: stretch; flex-direction: column; }
+  .admin-users-controls input, .admin-users-controls select, .admin-users-controls .btn { width: 100%; }
+  .admin-users-table, .admin-users-table tbody, .admin-users-table tr, .admin-users-table td { display: block; }
+  .admin-users-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .admin-users-table tr { padding: 14px; border-bottom: 1px solid var(--color-border); }
+  .admin-users-table tr:last-child { border-bottom: 0; }
+  .admin-users-table td { width: auto !important; min-width: 0 !important; padding: 5px 0; border: 0; }
+  .admin-users-role-btn { width: 100%; margin-top: 4px; }
+  .admin-users-pagination { align-items: stretch; flex-direction: column; text-align: center; }
 
   .admin-analytics-kpi {
     grid-template-columns: 1fr;
@@ -2132,13 +2179,80 @@ h2 {
   margin-top: 10px;
 }
 
+.form-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field-group.hide,
+.form-help.hide,
+.form-switch.hide,
+.recovery-actions.hide,
+.auth-forgot-btn.hide,
+.form .btn.hide {
+  display: none;
+}
+
+.password-input-wrap {
+  position: relative;
+}
+
+.password-input-wrap input {
+  padding-right: 48px;
+}
+
+.password-visibility-btn {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 44px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 0 8px 8px 0;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.password-visibility-btn:hover {
+  color: var(--color-accent-dark);
+  background-color: var(--color-bg-soft);
+}
+
+.password-visibility-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.password-visibility-icon-hide,
+.password-visibility-btn[aria-pressed="true"] .password-visibility-icon-show {
+  display: none;
+}
+
+.password-visibility-btn[aria-pressed="true"] .password-visibility-icon-hide {
+  display: block;
+}
+
+.form-help {
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 /* Tanda "*" merah otomatis untuk field wajib diisi - dipilih pakai selector
    relasional ":has()" (bukan menambah markup/class di tiap label satu-satu)
    supaya otomatis tetap benar kalau field required ditambah/dikurangi nanti,
    dan tidak perlu string i18n baru karena "*" bukan teks yang diterjemahkan.
-   Andalkan struktur markup #authForm/#productForm: tiap <label> memang selalu
-   langsung diikuti sibling <input>/<select> miliknya persis di HTML. */
+   Andalkan struktur markup #authForm/#productForm: tiap <label> langsung
+   diikuti control-nya, atau wrapper khusus untuk input password. */
 .form label:has(+ input[required])::after,
+.form label:has(+ .password-input-wrap input[required])::after,
 .form label:has(+ select[required])::after {
   content: " *";
   color: #b3261e; /* sama dengan warna .form-message.error yang sudah ada */
@@ -2253,6 +2367,7 @@ h2 {
   font-weight: 600;
   padding: 10px 14px;
   border-radius: 8px;
+  overflow-wrap: anywhere;
 }
 
 .form-message.hide {
@@ -2267,6 +2382,11 @@ h2 {
 .form-message.success {
   background-color: #eaf6ec;
   color: #2e7d32;
+}
+
+.form-message.info {
+  background-color: var(--color-bg-soft);
+  color: var(--color-text-muted);
 }
 
 .form-switch {
@@ -2286,6 +2406,25 @@ h2 {
   color: var(--color-accent-dark);
   cursor: pointer;
   text-decoration: underline;
+}
+
+.auth-forgot-btn {
+  align-self: flex-end;
+  margin-top: 8px;
+  min-height: 36px;
+}
+
+.recovery-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.recovery-actions .form-switch-btn {
+  min-height: 40px;
+  margin-left: 0;
 }
 
 /* ----- Tombol "+ Tambah Produk" & tombol Edit/Hapus di tiap kartu menu -----

@@ -15,6 +15,7 @@
   />
   <meta property="og:image" content="images/soto-ayam-kampung-hero.jpg" />
   <meta property="og:type" content="website" />
+  <meta name="referrer" content="no-referrer" />
   <link rel="icon" type="image/svg+xml" href="images/favicon.svg" />
   <link rel="stylesheet" href="style.css" />
 
@@ -142,6 +143,7 @@
       <nav class="admin-navigation" aria-label="Navigasi admin" data-i18n-aria="admin.navigationLabel">
         <a href="#adminOverview" class="admin-nav-link" data-admin-destination="dashboard" data-i18n="admin.dashboardNav">Dashboard</a>
         <a href="#adminAnalytics" class="admin-nav-link" data-admin-destination="analytics" data-i18n="admin.analyticsNav">Analitik</a>
+        <a href="#adminUsers" class="admin-nav-link" data-admin-destination="users" data-i18n="admin.usersNav">Pengguna &amp; Admin</a>
         <a href="#menu" class="admin-nav-link" data-admin-destination="products" data-i18n="admin.productsNav">Produk</a>
         <a href="#beranda" class="admin-nav-link" data-admin-destination="website" data-i18n="admin.viewWebsiteNav">Lihat Website</a>
         <button type="button" id="adminLogoutBtn" class="admin-nav-link admin-logout-btn" data-i18n="auth.logoutBtn">Keluar</button>
@@ -161,6 +163,46 @@
           <strong id="adminLoggedInEmail"></strong>
         </article>
       </div>
+
+      <section id="adminUsers" class="admin-users" aria-labelledby="adminUsersTitle" tabindex="-1">
+        <div class="admin-users-heading">
+          <div>
+            <h3 id="adminUsersTitle" data-i18n="admin.usersTitle">Pengguna &amp; Admin</h3>
+            <p data-i18n="admin.usersDesc">Cari akun dan kelola role administrator.</p>
+          </div>
+          <form id="adminUsersSearchForm" class="admin-users-controls" role="search">
+            <div>
+              <label for="adminUsersSearchInput" data-i18n="admin.usersSearchLabel">Cari email</label>
+              <input id="adminUsersSearchInput" type="search" maxlength="100" autocomplete="off" data-i18n-placeholder="admin.usersSearchPlaceholder" placeholder="Cari berdasarkan email" />
+            </div>
+            <div>
+              <label for="adminUsersRoleFilter" data-i18n="admin.usersRoleFilter">Filter role</label>
+              <select id="adminUsersRoleFilter">
+                <option value="" data-i18n="admin.usersRoleAll">Semua role</option>
+                <option value="user" data-i18n="admin.roleUser">Pengguna</option>
+                <option value="admin" data-i18n="admin.roleAdmin">Admin</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary" id="adminUsersSearchBtn" data-i18n="admin.usersSearchAction">Cari</button>
+            <button type="button" class="btn admin-users-reset" id="adminUsersResetBtn" data-i18n="admin.usersReset">Reset</button>
+          </form>
+        </div>
+        <p class="menu-status hide" id="adminUsersStatus" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"></p>
+        <div id="adminUsersResults" hidden>
+          <div class="admin-users-table-wrap" role="region" aria-labelledby="adminUsersTitle" tabindex="0">
+            <table class="admin-users-table">
+              <caption class="visually-hidden" data-i18n="admin.usersTableCaption">Daftar akun dan role</caption>
+              <thead><tr><th scope="col" data-i18n="admin.usersEmail">Email</th><th scope="col" data-i18n="admin.usersRole">Role</th><th scope="col" data-i18n="admin.usersAction">Aksi</th></tr></thead>
+              <tbody id="adminUsersBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-users-pagination">
+            <button type="button" class="btn" id="adminUsersPrevBtn" data-i18n="admin.usersPrevious">Sebelumnya</button>
+            <p id="adminUsersPageContext" aria-live="polite"></p>
+            <button type="button" class="btn" id="adminUsersNextBtn" data-i18n="admin.usersNext">Berikutnya</button>
+          </div>
+        </div>
+      </section>
 
       <!-- ======================= ADMIN ANALYTICS (Phase 4G) =======================
            Markup ini kerangka statis (Phase 4G-1); nilai KPI/baris tabel/bar
@@ -533,8 +575,9 @@
     <ul class="cart-panel-list" id="cartPanelList"></ul>
   </dialog>
 
-  <!-- ======================= LOGIN & DAFTAR AKUN =======================
-       Satu <dialog> dipakai bergantian untuk login DAN daftar akun baru lewat
+  <!-- ======================= AUTENTIKASI & PEMULIHAN PASSWORD =======================
+       Satu <dialog> dipakai bergantian untuk login, daftar, lupa password,
+       dan reset password lewat
        toggle mode di script.js (setAuthMode()), supaya tidak ada markup form
        yang terduplikasi. Memakai elemen <dialog> bawaan browser lewat
        showModal()/close() - MEKANISME SAMA PERSIS seperti #cartPanel di atas
@@ -551,21 +594,76 @@
            otomatis membacakannya begitu isinya berubah, tanpa user perlu
            pindah fokus (pola yang sama seperti #cartStatus). Default
            tersembunyi lewat class "hide" sampai benar-benar ada pesan. -->
-      <p class="form-message hide" id="authFormMessage" aria-live="polite"></p>
+      <p class="form-message hide" id="authFormMessage" aria-atomic="true" tabindex="-1"></p>
 
-      <label for="authEmailInput" data-i18n="auth.emailLabel">Email</label>
-      <input type="email" id="authEmailInput" name="email" autocomplete="email" required />
+      <div id="authEmailGroup" class="form-field-group">
+        <label for="authEmailInput" data-i18n="auth.emailLabel">Email</label>
+        <input type="email" id="authEmailInput" name="email" autocomplete="email" required />
+      </div>
 
-      <label for="authPasswordInput" data-i18n="auth.passwordLabel">Kata Sandi</label>
-      <input type="password" id="authPasswordInput" name="password" autocomplete="current-password" required minlength="8" />
+      <div id="authPasswordGroup" class="form-field-group">
+        <label for="authPasswordInput" id="authPasswordLabel" data-i18n="auth.passwordLabel">Kata Sandi</label>
+        <div class="password-input-wrap">
+          <input type="password" id="authPasswordInput" name="password" autocomplete="current-password" required minlength="8" />
+          <button type="button" id="authPasswordVisibilityBtn" class="password-visibility-btn" aria-label="Tampilkan kata sandi" aria-pressed="false" data-i18n-aria="auth.showPassword">
+            <svg class="password-visibility-icon password-visibility-icon-show" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+              <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+              <circle cx="12" cy="12" r="2.5" />
+            </svg>
+            <svg class="password-visibility-icon password-visibility-icon-hide" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+              <path d="M3 3l18 18M10.6 6.1A9.7 9.7 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3 3.7M6.2 6.2C3.8 8 2.5 12 2.5 12s3.5 6 9.5 6a9.6 9.6 0 0 0 3-.5M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="authConfirmPasswordGroup" class="form-field-group hide">
+        <label for="authConfirmPasswordInput" data-i18n="recovery.confirmPasswordLabel">Konfirmasi Kata Sandi Baru</label>
+        <div class="password-input-wrap">
+          <input type="password" id="authConfirmPasswordInput" name="confirmPassword" autocomplete="new-password" minlength="8" aria-describedby="authPasswordRequirements" />
+          <button type="button" id="authConfirmPasswordVisibilityBtn" class="password-visibility-btn" aria-label="Tampilkan kata sandi" aria-pressed="false" data-i18n-aria="auth.showPassword">
+            <svg class="password-visibility-icon password-visibility-icon-show" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+              <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+              <circle cx="12" cy="12" r="2.5" />
+            </svg>
+            <svg class="password-visibility-icon password-visibility-icon-hide" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+              <path d="M3 3l18 18M10.6 6.1A9.7 9.7 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3 3.7M6.2 6.2C3.8 8 2.5 12 2.5 12s3.5 6 9.5 6a9.6 9.6 0 0 0 3-.5M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <p id="authPasswordRequirements" class="form-help hide" data-i18n="recovery.passwordRequirements">
+        Gunakan minimal 8 karakter dan maksimal 72 byte; kata sandi tidak boleh hanya berisi spasi.
+      </p>
+
+      <button type="button" id="authForgotPasswordBtn" class="form-switch-btn auth-forgot-btn" data-i18n="recovery.forgotEntry">Lupa password?</button>
 
       <button type="submit" class="btn btn-primary" id="authSubmitBtn" data-i18n="auth.loginSubmit">Masuk</button>
 
-      <p class="form-switch">
+      <p class="form-switch" id="authSwitchRow">
         <span id="authSwitchText" data-i18n="auth.noAccount">Belum punya akun?</span>
         <button type="button" id="authSwitchModeBtn" class="form-switch-btn" data-i18n="auth.switchToRegister">Daftar di sini</button>
       </p>
+
+      <div id="authRecoveryActions" class="recovery-actions hide">
+        <button type="button" id="authBackToLoginBtn" class="form-switch-btn" data-i18n="recovery.backToLogin">Kembali ke login</button>
+        <button type="button" id="authRequestNewResetBtn" class="form-switch-btn hide" data-i18n="recovery.requestNew">Minta link reset baru</button>
+      </div>
     </form>
+  </dialog>
+
+  <dialog id="adminRoleDialog" class="product-dialog admin-role-dialog" aria-labelledby="adminRoleDialogTitle" aria-describedby="adminRoleDialogDescription">
+    <div class="dialog-header">
+      <h2 id="adminRoleDialogTitle" data-i18n="admin.roleDialogTitle">Ubah role akun</h2>
+      <button type="button" id="adminRoleDialogCloseBtn" class="dialog-close-btn" aria-label="Tutup" data-i18n-aria="dialog.close">&times;</button>
+    </div>
+    <p id="adminRoleDialogDescription"></p>
+    <p class="form-message hide" id="adminRoleDialogMessage" aria-live="polite"></p>
+    <div class="admin-role-dialog-actions">
+      <button type="button" class="btn" id="adminRoleCancelBtn" data-i18n="admin.roleCancel">Batal</button>
+      <button type="button" class="btn btn-primary" id="adminRoleConfirmBtn" data-i18n="admin.roleConfirm">Konfirmasi</button>
+    </div>
   </dialog>
 
   <!-- ======================= FORM PRODUK (ADMIN) =======================

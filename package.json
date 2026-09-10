@@ -4,7 +4,8 @@
   "description": "Backend Node.js + Express untuk UMKM Sari Rasa",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --env-file-if-exists=.env server.js",
+    "admin:provision": "node scripts/provision-admin.js",
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "node --test --test-concurrency=1 tests/backend/*.test.js",
     "test:frontend": "node --test --test-concurrency=1 tests/frontend/*.test.js"

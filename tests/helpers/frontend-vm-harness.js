@@ -148,6 +148,7 @@ class FakeDocument {
     this.body = new FakeElement('body', this);
     this.documentElement.appendChild(this.body);
     this.activeElement = null;
+    this.visibilityState = 'visible';
     this.listeners = new Map();
     this.byId = new Map();
   }
@@ -252,10 +253,12 @@ async function createFrontendHarness(options = {}) {
     document.body.appendChild(button);
   }
   const storage = createStorage(options.storage, options.failStorageWrites);
+  const sessionStorage = createStorage(options.sessionStorage, options.failSessionStorageWrites);
   const timers = createTimers();
   const calls = [];
   const routes = [];
   const opened = [];
+  const historyCalls = [];
 
   const addRoute = (matcher, handler) => routes.unshift({ matcher, handler });
   const fetch = async (url, request = {}) => {
@@ -284,7 +287,8 @@ async function createFrontendHarness(options = {}) {
     innerWidth: options.viewportWidth || 1024,
     innerHeight: options.viewportHeight || 768,
     visualViewport,
-    location: { hash: '' },
+    location: { hash: options.hash || '', search: options.search || '', pathname: options.pathname || '/' },
+    history: { replaceState(...args) { historyCalls.push(args); window.location.search = ''; } },
     matchMedia: () => ({ matches: true }),
     addEventListener(type, listener) { if (!windowListeners.has(type)) windowListeners.set(type, []); windowListeners.get(type).push(listener); },
     async dispatch(type) { for (const listener of windowListeners.get(type) || []) await listener({ type }); },
@@ -292,7 +296,7 @@ async function createFrontendHarness(options = {}) {
     scrollTo() {},
   };
   const context = {
-    window, document, localStorage: storage, fetch,
+    window, document, localStorage: storage, sessionStorage, fetch,
     setTimeout: timers.setTimeout, clearTimeout: timers.clearTimeout,
     setInterval: () => 1, clearInterval() {},
     queueMicrotask,
@@ -314,6 +318,7 @@ async function createFrontendHarness(options = {}) {
     unsynced: cartHasUnsyncedChanges, currentUser: currentUser ? {...currentUser} : null,
     items: serializeCartItems(cartItems), products: Array.from(productsById.values()),
     analytics: analyticsState ? {min:analyticsState.minAvailableDate,max:analyticsState.maxAvailableDate,appliedStart:analyticsState.appliedStartDate,appliedEnd:analyticsState.appliedEndDate,forecastStatus:analyticsState.forecast.status,modelComparisonStatus:analyticsState.modelComparison.status} : null,
+    adminUsers: {...adminUsersState, users: adminUsersState.users.map(user => ({...user})), generation: adminUsersGeneration},
     writes: Array.from(cartWriteStates, ([productId, value]) => ({productId, version:value.version, persistedVersion:value.persistedVersion, running:value.running, failed:value.failed, hasTimer:!!value.timer}))
   }),
   setProducts(products) { productsById = new Map(products.map(product => [product.id, product])); productsLoadState = products.length ? 'success' : 'empty'; updateCartSummary(); },
@@ -322,11 +327,15 @@ async function createFrontendHarness(options = {}) {
   activateAuthenticatedCart, checkAuthState, changeCartQuantity, buildOrderMessage,
   renderCartPanel, scheduleAuthenticatedCartWrite, flushAuthenticatedCartWrite,
   drainAuthenticatedCartWritesForLogout, handleLogout, applyLanguage, loadMenu,
-  setAuthMode, openProductDialog, handleDeleteProduct,
+  setAuthMode, initializePasswordRecoveryFromLocation, openProductDialog, handleDeleteProduct, handleAdminAuthError,
   readGuestCartSnapshot, readPendingCartMerge, writePendingCartMerge,
   ensureAnalyticsLoaded, loadSalesTrend, fetchSalesTrend, validateSalesTrend, renderSalesTrend, loadForecast, fetchForecast, renderForecast, formatForecastComparison, loadModelComparison, fetchModelComparison, renderModelComparison, isModelComparisonResponse, renderCalendar, positionCalendar,
-  elements: {cartCheckoutBtn, cartCountEl, cartTotalEl, cartStatus, cartPanel, cartPanelList, authForm, authEmailInput, authPasswordInput, authLoginBtn, authAccount, adminMenuActions, adminDashboardEntry, authStatus,
+  loadAdminUsers, renderAdminUsers, openAdminRoleDialog, confirmAdminRoleChange,
+  recovery: () => ({mode: authMode, hasToken: recoveryToken !== null, pending: authSubmissionGenerations.has(authFlowGeneration), generation: authFlowGeneration}),
+  elements: {cartCheckoutBtn, cartCountEl, cartTotalEl, cartStatus, cartPanel, cartPanelList, authForm, authEmailInput, authPasswordInput, authPasswordVisibilityBtn, authConfirmPasswordInput, authConfirmPasswordVisibilityBtn, authSubmitBtn, authForgotPasswordBtn, authBackToLoginBtn, authRequestNewResetBtn, authFormMessage, authDialog, authDialogCloseBtn, authLoginBtn, authAccount, adminMenuActions, adminDashboardEntry, authStatus,
     productDialog, productForm, productSlugInput, productNameInput, productDescriptionIdInput, productDescriptionEnInput, productPriceInput, productCategoryInput, productImageSrcInput, productImageAltInput, productImageWidthInput, productImageHeightInput, productImageSrcsetInput, productImageSizesInput, productSubmitBtn, menuStatus,
+    adminUsers, adminUsersSearchForm, adminUsersSearchInput, adminUsersRoleFilter, adminUsersResetBtn, adminUsersStatus, adminUsersResults, adminUsersBody, adminUsersPrevBtn, adminUsersNextBtn, adminUsersPageContext,
+    adminRoleDialog, adminRoleDialogDescription, adminRoleDialogMessage, adminRoleCancelBtn, adminRoleConfirmBtn,
     adminAnalyticsRevenue: adminAnalyticsRevenueEl, adminAnalyticsOrders: adminAnalyticsOrdersEl, adminAnalyticsQuantity: adminAnalyticsQuantityEl, adminAnalyticsAOV: adminAnalyticsAOVEl,
     adminAnalyticsProductBody: adminAnalyticsProductBodyEl, adminAnalyticsCategoryChart: adminAnalyticsCategoryChartEl,
     adminAnalyticsStatus: adminAnalyticsStatusEl, adminAnalyticsProductsStatus: adminAnalyticsProductsStatusEl, adminAnalyticsCategoriesStatus: adminAnalyticsCategoriesStatusEl,
@@ -350,7 +359,7 @@ async function createFrontendHarness(options = {}) {
 
   const rawProbe = context.__frontendProbe;
   const probe = { ...rawProbe, state: () => JSON.parse(JSON.stringify(rawProbe.state())) };
-  return { context, probe, document, storage, timers, calls, opened, addRoute, response, deferred, settle };
+  return { context, probe, document, storage, sessionStorage, timers, calls, opened, historyCalls, addRoute, response, deferred, settle };
 }
 
 async function settle(turns = 8) {

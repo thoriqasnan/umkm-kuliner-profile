@@ -148,6 +148,9 @@ function requireAuth(req, res, next) {
   // req.user.id/email/role tanpa perlu parsing cookie atau query database
   // lagi sendiri-sendiri.
   req.user = { id: user.id, email: user.email, role: user.role };
+  // Internal-only session fact for privileged transaction-time rechecks.
+  // Never include this value in an API response.
+  req.authTokenVersion = tokenVersion;
   next();
 }
 

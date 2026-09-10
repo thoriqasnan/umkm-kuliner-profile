@@ -1339,6 +1339,8 @@ const translations = {
     "auth.registerTitle": "Daftar Akun",
     "auth.emailLabel": "Email",
     "auth.passwordLabel": "Kata Sandi",
+    "auth.showPassword": "Tampilkan kata sandi",
+    "auth.hidePassword": "Sembunyikan kata sandi",
     "auth.loginSubmit": "Masuk",
     "auth.registerSubmit": "Daftar",
     "auth.loginLoading": "Sedang masuk...",
@@ -1357,6 +1359,32 @@ const translations = {
     "auth.genericError": "Permintaan gagal. Silakan coba lagi.",
     "auth.verifyError": "Status login tidak dapat diverifikasi. Silakan coba lagi.",
     "auth.logoutError": "Gagal keluar. Kamu masih login, silakan coba lagi.",
+    "recovery.forgotEntry": "Lupa password?",
+    "recovery.forgotTitle": "Lupa Password",
+    "recovery.forgotInstructions": "Masukkan email akunmu. Kami akan memproses permintaan reset tanpa mengungkap apakah akun tersedia.",
+    "recovery.forgotSubmit": "Kirim Instruksi Reset",
+    "recovery.forgotLoading": "Mengirim permintaan...",
+    "recovery.forgotSuccess": "Jika akun tersedia, instruksi reset password telah dikirim.",
+    "recovery.resetTitle": "Reset Password",
+    "recovery.newPasswordLabel": "Kata Sandi Baru",
+    "recovery.confirmPasswordLabel": "Konfirmasi Kata Sandi Baru",
+    "recovery.passwordRequirements": "Gunakan minimal 8 karakter dan maksimal 72 byte; kata sandi tidak boleh hanya berisi spasi.",
+    "recovery.resetSubmit": "Perbarui Password",
+    "recovery.resetLoading": "Memperbarui password...",
+    "recovery.resetSuccess": "Password berhasil diperbarui. Silakan login kembali dengan password baru.",
+    "recovery.invalidEmail": "Masukkan alamat email yang valid.",
+    "recovery.passwordEmpty": "Masukkan kata sandi baru.",
+    "recovery.passwordInvalid": "Kata sandi harus minimal 8 karakter, tidak hanya spasi, dan maksimal 72 byte.",
+    "recovery.passwordMismatch": "Konfirmasi kata sandi tidak cocok.",
+    "recovery.invalidLink": "Link reset tidak valid, sudah kedaluwarsa, atau sudah pernah digunakan.",
+    "recovery.expiredLink": "Link reset tidak valid, sudah kedaluwarsa, atau sudah pernah digunakan.",
+    "recovery.usedLink": "Link reset tidak valid, sudah kedaluwarsa, atau sudah pernah digunakan.",
+    "recovery.rateLimited": "Terlalu banyak percobaan. Tunggu beberapa saat sebelum mencoba lagi.",
+    "recovery.databaseBusy": "Layanan sedang sibuk. Silakan coba lagi nanti.",
+    "recovery.networkError": "Tidak dapat terhubung ke server. Periksa koneksi dan coba lagi.",
+    "recovery.serverError": "Permintaan tidak dapat diproses. Silakan coba lagi.",
+    "recovery.backToLogin": "Kembali ke login",
+    "recovery.requestNew": "Minta link reset baru",
 
     "admin.dashboardEntry": "Dashboard",
     "admin.dashboardLabel": "Area Admin",
@@ -1367,6 +1395,18 @@ const translations = {
     "admin.productsNav": "Produk",
     "admin.viewWebsiteNav": "Lihat Website",
     "admin.analyticsNav": "Analitik",
+    "admin.usersNav": "Pengguna & Admin", "admin.usersTitle": "Pengguna & Admin", "admin.usersDesc": "Cari akun dan kelola role administrator.",
+    "admin.usersSearchLabel": "Cari email", "admin.usersSearchPlaceholder": "Cari berdasarkan email", "admin.usersRoleFilter": "Filter role", "admin.usersRoleAll": "Semua role",
+    "admin.roleUser": "Pengguna", "admin.roleAdmin": "Admin", "admin.usersSearchAction": "Cari", "admin.usersReset": "Reset",
+    "admin.usersTableCaption": "Daftar akun dan role", "admin.usersEmail": "Email", "admin.usersRole": "Role", "admin.usersAction": "Aksi",
+    "admin.usersPrevious": "Sebelumnya", "admin.usersNext": "Berikutnya", "admin.usersLoading": "Memuat daftar pengguna...", "admin.usersEmpty": "Tidak ada akun yang cocok.",
+    "admin.usersLoadError": "Daftar pengguna tidak dapat dimuat. Coba lagi.", "admin.usersPage": "Menampilkan {start}–{end} dari {total}",
+    "admin.usersPromote": "Jadikan admin", "admin.usersDemote": "Jadikan pengguna", "admin.usersCurrent": "Akun Anda",
+    "admin.usersSelfProtected": "Role akun yang sedang digunakan tidak dapat diturunkan.", "admin.usersLastAdminProtected": "Minimal satu administrator harus tetap tersedia.",
+    "admin.roleDialogTitle": "Ubah role akun", "admin.roleDialogDescription": "Ubah {email} dari {from} menjadi {to}? Hak akses akun akan mengikuti role baru.",
+    "admin.roleCancel": "Batal", "admin.roleConfirm": "Konfirmasi", "admin.roleChanging": "Memperbarui role...", "admin.roleChanged": "Role {email} berhasil diperbarui menjadi {role}.",
+    "admin.userNotFound": "Akun tidak lagi tersedia.", "admin.selfDemotionError": "Anda tidak dapat menurunkan role akun sendiri.", "admin.lastAdminError": "Role admin terakhir tidak dapat diturunkan.",
+    "admin.roleValidationError": "Permintaan perubahan role tidak valid.", "admin.databaseBusy": "Layanan sedang sibuk. Coba lagi sebentar.", "admin.networkError": "Tidak dapat terhubung ke server. Coba lagi.",
     "admin.analyticsTitle": "Analitik Penjualan",
     "admin.analyticsDesc": "Ringkasan performa penjualan yang didukung layanan analitik.",
     "admin.analyticsRevenue": "Total Pendapatan",
@@ -1589,6 +1629,8 @@ const translations = {
     "auth.registerTitle": "Create Account",
     "auth.emailLabel": "Email",
     "auth.passwordLabel": "Password",
+    "auth.showPassword": "Show password",
+    "auth.hidePassword": "Hide password",
     "auth.loginSubmit": "Log In",
     "auth.registerSubmit": "Register",
     "auth.loginLoading": "Logging in...",
@@ -1607,6 +1649,32 @@ const translations = {
     "auth.genericError": "The request failed. Please try again.",
     "auth.verifyError": "Your sign-in status could not be verified. Please try again.",
     "auth.logoutError": "Log out failed. You are still signed in; please try again.",
+    "recovery.forgotEntry": "Forgot password?",
+    "recovery.forgotTitle": "Forgot Password",
+    "recovery.forgotInstructions": "Enter your account email. We will process the reset request without revealing whether an account exists.",
+    "recovery.forgotSubmit": "Send Reset Instructions",
+    "recovery.forgotLoading": "Sending request...",
+    "recovery.forgotSuccess": "If an account is available, password reset instructions have been sent.",
+    "recovery.resetTitle": "Reset Password",
+    "recovery.newPasswordLabel": "New Password",
+    "recovery.confirmPasswordLabel": "Confirm New Password",
+    "recovery.passwordRequirements": "Use at least 8 characters and no more than 72 bytes; the password cannot contain only spaces.",
+    "recovery.resetSubmit": "Update Password",
+    "recovery.resetLoading": "Updating password...",
+    "recovery.resetSuccess": "Your password has been updated. Please log in again with the new password.",
+    "recovery.invalidEmail": "Enter a valid email address.",
+    "recovery.passwordEmpty": "Enter a new password.",
+    "recovery.passwordInvalid": "The password must be at least 8 characters, not only spaces, and no more than 72 bytes.",
+    "recovery.passwordMismatch": "The password confirmation does not match.",
+    "recovery.invalidLink": "This reset link is invalid, expired, or has already been used.",
+    "recovery.expiredLink": "This reset link is invalid, expired, or has already been used.",
+    "recovery.usedLink": "This reset link is invalid, expired, or has already been used.",
+    "recovery.rateLimited": "Too many attempts. Wait a while before trying again.",
+    "recovery.databaseBusy": "The service is busy. Please try again later.",
+    "recovery.networkError": "Unable to reach the server. Check your connection and try again.",
+    "recovery.serverError": "The request could not be processed. Please try again.",
+    "recovery.backToLogin": "Back to login",
+    "recovery.requestNew": "Request a new reset link",
 
     "admin.dashboardEntry": "Dashboard",
     "admin.dashboardLabel": "Admin Area",
@@ -1617,6 +1685,18 @@ const translations = {
     "admin.productsNav": "Products",
     "admin.viewWebsiteNav": "View Website",
     "admin.analyticsNav": "Analytics",
+    "admin.usersNav": "Users & Admins", "admin.usersTitle": "Users & Admins", "admin.usersDesc": "Find accounts and manage administrator roles.",
+    "admin.usersSearchLabel": "Search email", "admin.usersSearchPlaceholder": "Search by email", "admin.usersRoleFilter": "Role filter", "admin.usersRoleAll": "All roles",
+    "admin.roleUser": "User", "admin.roleAdmin": "Admin", "admin.usersSearchAction": "Search", "admin.usersReset": "Reset",
+    "admin.usersTableCaption": "Accounts and roles", "admin.usersEmail": "Email", "admin.usersRole": "Role", "admin.usersAction": "Action",
+    "admin.usersPrevious": "Previous", "admin.usersNext": "Next", "admin.usersLoading": "Loading users...", "admin.usersEmpty": "No matching accounts.",
+    "admin.usersLoadError": "The user list could not be loaded. Try again.", "admin.usersPage": "Showing {start}–{end} of {total}",
+    "admin.usersPromote": "Promote to admin", "admin.usersDemote": "Demote to user", "admin.usersCurrent": "Your account",
+    "admin.usersSelfProtected": "The role of the account in use cannot be demoted.", "admin.usersLastAdminProtected": "At least one administrator must remain available.",
+    "admin.roleDialogTitle": "Change account role", "admin.roleDialogDescription": "Change {email} from {from} to {to}? The account's access will follow its new role.",
+    "admin.roleCancel": "Cancel", "admin.roleConfirm": "Confirm", "admin.roleChanging": "Updating role...", "admin.roleChanged": "The role for {email} was updated to {role}.",
+    "admin.userNotFound": "The account is no longer available.", "admin.selfDemotionError": "You cannot demote your own account.", "admin.lastAdminError": "The last administrator cannot be demoted.",
+    "admin.roleValidationError": "The role-change request is invalid.", "admin.databaseBusy": "The service is busy. Try again shortly.", "admin.networkError": "Could not connect to the server. Try again.",
     "admin.analyticsTitle": "Sales Analytics",
     "admin.analyticsDesc": "Sales performance summary powered by the analytics service.",
     "admin.analyticsRevenue": "Total Revenue",
@@ -1796,6 +1876,10 @@ function applyLanguage(lang) {
     const text = translations[lang][key];
     if (text !== undefined) el.setAttribute("aria-label", text);
   });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const text = translations[lang][el.getAttribute("data-i18n-placeholder")];
+    if (text !== undefined) el.setAttribute("placeholder", text);
+  });
 
   langButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.lang === lang));
   document.documentElement.lang = lang;
@@ -1820,6 +1904,15 @@ langButtons.forEach((btn) => {
     }
     if (analyticsState && analyticsState.forecast && analyticsState.forecast.data) renderForecast(analyticsState.forecast.data);
     if (analyticsState && analyticsState.modelComparison && analyticsState.modelComparison.data) renderModelComparison(analyticsState.modelComparison.data);
+    if (adminUsersState && (adminUsersState.status === "success" || adminUsersState.status === "empty")) renderAdminUsers();
+    if (pendingRoleChange && adminRoleDialog.open) {
+      const { user } = pendingRoleChange;
+      adminRoleDialogDescription.textContent = adminUsersText("admin.roleDialogDescription", {
+        email: user.email,
+        from: adminUsersText(user.role === "admin" ? "admin.roleAdmin" : "admin.roleUser"),
+        to: adminUsersText(user.role === "admin" ? "admin.roleUser" : "admin.roleAdmin"),
+      });
+    }
   });
 });
 
@@ -1932,7 +2025,11 @@ backToTopBtn.addEventListener("click", () => {
 // memanggil endpoint admin langsung lewat DevTools tanpa lewat tombol apa pun
 // di sini, backend tetap akan menolaknya kalau dia bukan admin yang sah.
 let currentUser = null; // null = anonim, atau {id, email, role} kalau sedang login
-let authMode = "login"; // "login" | "register" - mode aktif dialog #authDialog
+let authMode = "login"; // "login" | "register" | "forgot" | "reset"
+let recoveryToken = null; // memory-only; never copied to storage, DOM, or logs
+let authFlowGeneration = 0;
+const authSubmissionGenerations = new Set();
+let pageWasHidden = false;
 let editingProductId = null; // id produk yang sedang diedit di #productDialog, null = mode "tambah baru"
 let productsById = new Map(); // diisi ulang tiap loadMenu() sukses fetch - dipakai untuk pre-fill form edit & pesan konfirmasi hapus
 
@@ -1948,19 +2045,49 @@ const adminLoggedInEmail = document.getElementById("adminLoggedInEmail");
 const adminTotalProducts = document.getElementById("adminTotalProducts");
 const adminOverview = document.getElementById("adminOverview");
 const adminAnalytics = document.getElementById("adminAnalytics");
+const adminUsers = document.getElementById("adminUsers");
 const adminNavLinks = document.querySelectorAll(".admin-nav-link[data-admin-destination]");
 const adminLogoutBtn = document.getElementById("adminLogoutBtn");
+const adminUsersSearchForm = document.getElementById("adminUsersSearchForm");
+const adminUsersSearchInput = document.getElementById("adminUsersSearchInput");
+const adminUsersRoleFilter = document.getElementById("adminUsersRoleFilter");
+const adminUsersResetBtn = document.getElementById("adminUsersResetBtn");
+const adminUsersStatus = document.getElementById("adminUsersStatus");
+const adminUsersResults = document.getElementById("adminUsersResults");
+const adminUsersBody = document.getElementById("adminUsersBody");
+const adminUsersPrevBtn = document.getElementById("adminUsersPrevBtn");
+const adminUsersNextBtn = document.getElementById("adminUsersNextBtn");
+const adminUsersPageContext = document.getElementById("adminUsersPageContext");
+const adminRoleDialog = document.getElementById("adminRoleDialog");
+const adminRoleDialogCloseBtn = document.getElementById("adminRoleDialogCloseBtn");
+const adminRoleDialogDescription = document.getElementById("adminRoleDialogDescription");
+const adminRoleDialogMessage = document.getElementById("adminRoleDialogMessage");
+const adminRoleCancelBtn = document.getElementById("adminRoleCancelBtn");
+const adminRoleConfirmBtn = document.getElementById("adminRoleConfirmBtn");
 
 const authDialog = document.getElementById("authDialog");
 const authDialogCloseBtn = document.getElementById("authDialogCloseBtn");
 const authDialogTitle = document.getElementById("authDialogTitle");
 const authForm = document.getElementById("authForm");
 const authFormMessage = document.getElementById("authFormMessage");
+const authEmailGroup = document.getElementById("authEmailGroup");
 const authEmailInput = document.getElementById("authEmailInput");
+const authPasswordGroup = document.getElementById("authPasswordGroup");
+const authPasswordLabel = document.getElementById("authPasswordLabel");
 const authPasswordInput = document.getElementById("authPasswordInput");
+const authPasswordVisibilityBtn = document.getElementById("authPasswordVisibilityBtn");
+const authConfirmPasswordGroup = document.getElementById("authConfirmPasswordGroup");
+const authConfirmPasswordInput = document.getElementById("authConfirmPasswordInput");
+const authConfirmPasswordVisibilityBtn = document.getElementById("authConfirmPasswordVisibilityBtn");
+const authPasswordRequirements = document.getElementById("authPasswordRequirements");
 const authSubmitBtn = document.getElementById("authSubmitBtn");
+const authForgotPasswordBtn = document.getElementById("authForgotPasswordBtn");
+const authSwitchRow = document.getElementById("authSwitchRow");
 const authSwitchText = document.getElementById("authSwitchText");
 const authSwitchModeBtn = document.getElementById("authSwitchModeBtn");
+const authRecoveryActions = document.getElementById("authRecoveryActions");
+const authBackToLoginBtn = document.getElementById("authBackToLoginBtn");
+const authRequestNewResetBtn = document.getElementById("authRequestNewResetBtn");
 const authStatus = document.getElementById("authStatus");
 
 const adminMenuActions = document.getElementById("adminMenuActions");
@@ -2031,9 +2158,10 @@ const productSubmitBtn = document.getElementById("productSubmitBtn");
 // semua pengguna, bukan cuma diumumkan ke screen reader.
 function showFormMessage(el, text, type = "error", key = null) {
   el.textContent = text;
-  el.classList.remove("hide", "error", "success");
+  el.classList.remove("hide", "error", "success", "info");
   el.classList.add(type);
   el.setAttribute("role", type === "error" ? "alert" : "status");
+  el.setAttribute("aria-live", type === "error" ? "assertive" : "polite");
   if (key) el.dataset.i18n = key;
   else el.removeAttribute("data-i18n");
 }
@@ -2043,6 +2171,7 @@ function hideFormMessage(el) {
   el.textContent = "";
   el.removeAttribute("data-i18n");
   el.removeAttribute("role");
+  el.setAttribute("aria-live", "polite");
 }
 
 function showAuthStatus(key) {
@@ -3123,6 +3252,199 @@ adminSalesTrendFormEl.addEventListener("submit", (event) => {
 // yang kena class "hide" - pola toggle yang sama seperti .cart-hint.hide,
 // bukan mekanisme show/hide baru. Juga menampilkan/menyembunyikan tombol
 // "+ Tambah Produk" (#adminMenuActions) dan dashboard tergantung role.
+const ADMIN_USERS_LIMIT = 25;
+let adminUsersGeneration = 0;
+let adminUsersAdminId = null;
+let adminUsersState = { status: "idle", users: [], search: "", role: "", offset: 0, total: 0 };
+let pendingRoleChange = null;
+
+function adminUsersText(key, values = {}) {
+  let text = translations[document.documentElement.lang][key] || key;
+  Object.entries(values).forEach(([name, value]) => { text = text.replace(`{${name}}`, String(value)); });
+  return text;
+}
+
+function setAdminUsersStatus(key, type = "info", values = {}) {
+  const hasValues = Object.keys(values).length > 0;
+  showFormMessage(adminUsersStatus, adminUsersText(key, values), type, hasValues ? null : key);
+}
+
+function clearAdminUsersDom() {
+  adminUsersBody.innerHTML = "";
+  adminUsersResults.hidden = true;
+  adminUsersResults.removeAttribute("aria-busy");
+  adminUsersPageContext.textContent = "";
+  hideFormMessage(adminUsersStatus);
+  pendingRoleChange = null;
+  if (adminRoleDialog.open) adminRoleDialog.close();
+}
+
+function isValidAdminUsersResponse(data) {
+  return data && data.status === "success" && Array.isArray(data.users) && data.pagination &&
+    Number.isInteger(data.pagination.limit) && data.pagination.limit > 0 &&
+    Number.isInteger(data.pagination.offset) && data.pagination.offset >= 0 &&
+    Number.isInteger(data.pagination.total) && data.pagination.total >= 0 &&
+    data.users.every((user) => user && Number.isInteger(user.id) && user.id > 0 && typeof user.email === "string" &&
+      (user.role === "user" || user.role === "admin") && typeof user.isCurrent === "boolean" &&
+      typeof user.isLastActiveAdmin === "boolean" && typeof user.canChangeRole === "boolean");
+}
+
+function renderAdminUsers() {
+  adminUsersBody.innerHTML = "";
+  if (adminUsersState.status !== "success" || adminUsersState.users.length === 0) {
+    adminUsersResults.hidden = true;
+    if (adminUsersState.status === "empty") setAdminUsersStatus("admin.usersEmpty", "info");
+    return;
+  }
+  hideFormMessage(adminUsersStatus);
+  const lang = document.documentElement.lang;
+  adminUsersState.users.forEach((user) => {
+    const isCurrentAccount = !!currentUser && currentUser.id === user.id;
+    const row = document.createElement("tr");
+    const emailCell = document.createElement("td");
+    emailCell.textContent = user.email;
+    if (isCurrentAccount) {
+      const current = document.createElement("span");
+      current.className = "admin-users-current";
+      current.textContent = adminUsersText("admin.usersCurrent");
+      emailCell.appendChild(current);
+    }
+    const roleCell = document.createElement("td");
+    roleCell.textContent = translations[lang][`admin.role${user.role === "admin" ? "Admin" : "User"}`];
+    const actionCell = document.createElement("td");
+    const button = document.createElement("button");
+    const roleAction = user.role === "admin" ? "demote" : "promote";
+    button.type = "button";
+    button.className = `btn admin-users-role-btn admin-users-role-btn--${roleAction}`;
+    button.textContent = adminUsersText(`admin.users${roleAction === "demote" ? "Demote" : "Promote"}`);
+    button.disabled = !user.canChangeRole || (isCurrentAccount && user.role === "admin");
+    button.dataset.userId = String(user.id);
+    const protectionKey = isCurrentAccount && user.role === "admin" ? "admin.usersSelfProtected" : user.isLastActiveAdmin ? "admin.usersLastAdminProtected" : null;
+    if (protectionKey) button.setAttribute("title", adminUsersText(protectionKey));
+    button.addEventListener("click", () => openAdminRoleDialog(user));
+    actionCell.appendChild(button);
+    if (protectionKey) {
+      const explanation = document.createElement("span");
+      explanation.className = "admin-users-protection";
+      explanation.textContent = adminUsersText(protectionKey);
+      actionCell.appendChild(explanation);
+    }
+    row.append(emailCell, roleCell, actionCell);
+    adminUsersBody.appendChild(row);
+  });
+  const { offset, total } = adminUsersState;
+  adminUsersPageContext.textContent = adminUsersText("admin.usersPage", { start: offset + 1, end: Math.min(offset + adminUsersState.users.length, total), total });
+  adminUsersPrevBtn.disabled = offset === 0;
+  adminUsersNextBtn.disabled = offset + adminUsersState.users.length >= total;
+  adminUsersResults.hidden = false;
+}
+
+async function loadAdminUsers({ offset = adminUsersState.offset } = {}) {
+  if (!currentUser || currentUser.role !== "admin") return;
+  const actorId = currentUser.id;
+  const generation = ++adminUsersGeneration;
+  const search = adminUsersState.search.trim();
+  const role = adminUsersState.role;
+  adminUsersState = { ...adminUsersState, status: "loading", offset };
+  adminUsersResults.setAttribute("aria-busy", "true");
+  adminUsersPrevBtn.disabled = true;
+  adminUsersNextBtn.disabled = true;
+  adminUsersBody.querySelectorAll(".admin-users-role-btn").forEach((button) => { button.disabled = true; });
+  setAdminUsersStatus("admin.usersLoading", "info");
+  const query = new URLSearchParams({ limit: String(ADMIN_USERS_LIMIT), offset: String(offset) });
+  if (search) query.set("search", search);
+  if (role) query.set("role", role);
+  let receivedResponse = false;
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/admin/users?${query}`, { credentials: "include" });
+    receivedResponse = true;
+    if (generation !== adminUsersGeneration || !currentUser || currentUser.id !== actorId || currentUser.role !== "admin") return;
+    adminUsersResults.removeAttribute("aria-busy");
+    if (handleAdminAuthError(response, (message, key) => setAdminUsersStatus(key, "error"))) return;
+    if (!response.ok) throw new Error("admin users response failed");
+    const data = await response.json();
+    if (generation !== adminUsersGeneration || !currentUser || currentUser.id !== actorId || currentUser.role !== "admin") return;
+    if (!isValidAdminUsersResponse(data)) throw new Error("invalid admin users response");
+    adminUsersState = { ...adminUsersState, status: data.users.length ? "success" : "empty", users: data.users, offset: data.pagination.offset, total: data.pagination.total };
+    renderAdminUsers();
+  } catch (error) {
+    if (generation !== adminUsersGeneration || !currentUser || currentUser.id !== actorId || currentUser.role !== "admin") return;
+    adminUsersState = { ...adminUsersState, status: "error", users: [] };
+    adminUsersResults.hidden = true;
+    setAdminUsersStatus(receivedResponse ? "admin.usersLoadError" : "admin.networkError", "error");
+  }
+}
+
+function openAdminRoleDialog(user) {
+  if (!user.canChangeRole || pendingRoleChange) return;
+  pendingRoleChange = { user, targetRole: user.role === "admin" ? "user" : "admin", actorId: currentUser.id, generation: adminUsersGeneration };
+  hideFormMessage(adminRoleDialogMessage);
+  adminRoleDialogDescription.textContent = adminUsersText("admin.roleDialogDescription", {
+    email: user.email,
+    from: adminUsersText(user.role === "admin" ? "admin.roleAdmin" : "admin.roleUser"),
+    to: adminUsersText(user.role === "admin" ? "admin.roleUser" : "admin.roleAdmin"),
+  });
+  adminRoleDialog.showModal();
+  adminRoleConfirmBtn.focus();
+}
+
+function closeAdminRoleDialog() {
+  if (adminRoleConfirmBtn.disabled) return;
+  const userId = pendingRoleChange && pendingRoleChange.user.id;
+  pendingRoleChange = null;
+  adminRoleDialog.close();
+  const button = Array.from(adminUsersBody.querySelectorAll(".admin-users-role-btn")).find((item) => item.dataset.userId === String(userId));
+  if (button) button.focus();
+}
+
+function adminRoleErrorKey(code) {
+  return ({ USER_NOT_FOUND: "admin.userNotFound", SELF_DEMOTION_NOT_ALLOWED: "admin.selfDemotionError", LAST_ADMIN_PROTECTED: "admin.lastAdminError", VALIDATION_ERROR: "admin.roleValidationError", DATABASE_BUSY: "admin.databaseBusy", ACTOR_NOT_ADMIN: "admin.permissionDenied" })[code] || "admin.genericError";
+}
+
+async function confirmAdminRoleChange() {
+  if (!pendingRoleChange || adminRoleConfirmBtn.disabled) return;
+  const operation = pendingRoleChange;
+  adminRoleConfirmBtn.disabled = true;
+  adminRoleCancelBtn.disabled = true;
+  adminRoleDialogCloseBtn.disabled = true;
+  adminRoleDialog.setAttribute("aria-busy", "true");
+  showFormMessage(adminRoleDialogMessage, adminUsersText("admin.roleChanging"), "info", "admin.roleChanging");
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/admin/users/${operation.user.id}/role`, {
+      method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role: operation.targetRole }),
+    });
+    if (!currentUser || currentUser.id !== operation.actorId || currentUser.role !== "admin" || adminUsersAdminId !== operation.actorId) return;
+    if (handleAdminAuthError(response, (message, key) => showFormMessage(adminRoleDialogMessage, message, "error", key))) return;
+    const data = await response.json();
+    if (!currentUser || currentUser.id !== operation.actorId || currentUser.role !== "admin" || adminUsersAdminId !== operation.actorId) return;
+    if (!response.ok) {
+      const errorKey = adminRoleErrorKey(data && data.code);
+      await loadAdminUsers();
+      if (currentUser && currentUser.id === operation.actorId && currentUser.role === "admin") {
+        adminRoleDialog.close();
+        pendingRoleChange = null;
+        setAdminUsersStatus(errorKey, "error");
+        adminUsersStatus.focus();
+      }
+      return;
+    }
+    adminRoleDialog.close();
+    pendingRoleChange = null;
+    await loadAdminUsers();
+    if (currentUser && currentUser.id === operation.actorId && currentUser.role === "admin" && adminUsersState.status === "success") {
+      setAdminUsersStatus("admin.roleChanged", "success", { email: operation.user.email, role: adminUsersText(operation.targetRole === "admin" ? "admin.roleAdmin" : "admin.roleUser") });
+      adminUsersStatus.focus();
+    }
+  } catch (error) {
+    if (currentUser && currentUser.id === operation.actorId && currentUser.role === "admin") showFormMessage(adminRoleDialogMessage, adminUsersText("admin.networkError"), "error", "admin.networkError");
+  } finally {
+    adminRoleConfirmBtn.disabled = false;
+    adminRoleCancelBtn.disabled = false;
+    adminRoleDialogCloseBtn.disabled = false;
+    adminRoleDialog.removeAttribute("aria-busy");
+  }
+}
+
 function updateAdminProductTotal() {
   const lang = document.documentElement.lang;
   if (productsLoadState === "success" || productsLoadState === "empty") {
@@ -3154,6 +3476,12 @@ function renderAuthUI() {
     resetAnalyticsDom();
     analyticsAdminUserId = effectiveAdminUserId;
   }
+  if (effectiveAdminUserId !== adminUsersAdminId) {
+    adminUsersGeneration += 1;
+    adminUsersAdminId = effectiveAdminUserId;
+    adminUsersState = { status: "idle", users: [], search: "", role: "", offset: 0, total: 0 };
+    clearAdminUsersDom();
+  }
 
   // Kontrol Edit/Hapus dibuat langsung di dalam kartu saat role admin aktif.
   // Cabut segera ketika role efektif bukan admin; jangan menunggu loadMenu()
@@ -3167,6 +3495,7 @@ function renderAuthUI() {
     adminCurrentRole.textContent = currentUser.role;
     adminLoggedInEmail.textContent = currentUser.email;
     updateAdminProductTotal();
+    syncAdminNavigationWithHash();
   } else {
     adminHeaderEmail.textContent = "";
     adminCurrentRole.textContent = "";
@@ -3188,6 +3517,9 @@ function setActiveAdminNavigation(activeLink) {
 function syncAdminNavigationWithHash() {
   const activeLink = Array.from(adminNavLinks).find((link) => link.hash === window.location.hash) || null;
   setActiveAdminNavigation(activeLink);
+  if (window.location.hash === "#adminUsers" && currentUser && currentUser.role === "admin" && adminUsersState.status === "idle") {
+    void loadAdminUsers({ offset: 0 });
+  }
 }
 
 adminNavLinks.forEach((link) => {
@@ -3197,6 +3529,9 @@ adminNavLinks.forEach((link) => {
     } else if (link.dataset.adminDestination === "analytics") {
       requestAnimationFrame(() => adminAnalytics.focus());
       ensureAnalyticsLoaded();
+    } else if (link.dataset.adminDestination === "users") {
+      requestAnimationFrame(() => adminUsers.focus());
+      if (adminUsersState.status === "idle") void loadAdminUsers({ offset: 0 });
     }
   });
 });
@@ -3207,6 +3542,32 @@ adminDashboardEntry.addEventListener("click", () => {
 
 window.addEventListener("hashchange", syncAdminNavigationWithHash);
 syncAdminNavigationWithHash();
+
+adminUsersSearchForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  adminUsersState.search = adminUsersSearchInput.value.trim();
+  adminUsersState.role = adminUsersRoleFilter.value;
+  void loadAdminUsers({ offset: 0 });
+});
+adminUsersRoleFilter.addEventListener("change", () => {
+  adminUsersState.search = adminUsersSearchInput.value.trim();
+  adminUsersState.role = adminUsersRoleFilter.value;
+  void loadAdminUsers({ offset: 0 });
+});
+adminUsersResetBtn.addEventListener("click", () => {
+  adminUsersSearchInput.value = "";
+  adminUsersRoleFilter.value = "";
+  adminUsersState.search = "";
+  adminUsersState.role = "";
+  void loadAdminUsers({ offset: 0 });
+});
+adminUsersPrevBtn.addEventListener("click", () => void loadAdminUsers({ offset: Math.max(0, adminUsersState.offset - ADMIN_USERS_LIMIT) }));
+adminUsersNextBtn.addEventListener("click", () => void loadAdminUsers({ offset: adminUsersState.offset + ADMIN_USERS_LIMIT }));
+adminRoleDialogCloseBtn.addEventListener("click", closeAdminRoleDialog);
+adminRoleCancelBtn.addEventListener("click", closeAdminRoleDialog);
+adminRoleConfirmBtn.addEventListener("click", confirmAdminRoleChange);
+adminRoleDialog.addEventListener("cancel", (event) => { if (adminRoleConfirmBtn.disabled) event.preventDefault(); else pendingRoleChange = null; });
+adminRoleDialog.addEventListener("click", (event) => { if (isBackdropClick(adminRoleDialog, event)) closeAdminRoleDialog(); });
 
 // ----------------------------------------------------------
 // 9c. CEK STATUS LOGIN SAAT HALAMAN DIMUAT
@@ -3363,13 +3724,41 @@ async function checkAuthState(options = {}) {
 // teks ajakan pindah mode, sesuai mode aktif. Dipanggil langsung lewat
 // translations[lang][key] (bukan data-i18n) karena isinya berubah tergantung
 // mode, bukan teks statis yang cukup diisi sekali oleh applyLanguage().
-function setAuthMode(mode) {
+function setPasswordVisibility(input, button, visible) {
+  const labelKey = visible ? "auth.hidePassword" : "auth.showPassword";
+  input.setAttribute("type", visible ? "text" : "password");
+  button.setAttribute("aria-pressed", String(visible));
+  button.setAttribute("data-i18n-aria", labelKey);
+  button.setAttribute("aria-label", translations[document.documentElement.lang][labelKey]);
+}
+
+function resetPasswordVisibility() {
+  setPasswordVisibility(authPasswordInput, authPasswordVisibilityBtn, false);
+  setPasswordVisibility(authConfirmPasswordInput, authConfirmPasswordVisibilityBtn, false);
+}
+
+function bindPasswordVisibility(input, button) {
+  button.addEventListener("click", () => {
+    setPasswordVisibility(input, button, input.getAttribute("type") === "password");
+  });
+}
+
+bindPasswordVisibility(authPasswordInput, authPasswordVisibilityBtn);
+bindPasswordVisibility(authConfirmPasswordInput, authConfirmPasswordVisibilityBtn);
+resetPasswordVisibility();
+
+function setAuthMode(mode, options = {}) {
+  authFlowGeneration += 1;
   authMode = mode;
+  resetPasswordVisibility();
   const lang = document.documentElement.lang;
   const isLogin = mode === "login";
+  const isRegister = mode === "register";
+  const isForgot = mode === "forgot";
+  const isReset = mode === "reset";
 
-  const titleKey = isLogin ? "auth.loginTitle" : "auth.registerTitle";
-  const submitKey = isLogin ? "auth.loginSubmit" : "auth.registerSubmit";
+  const titleKey = isLogin ? "auth.loginTitle" : isRegister ? "auth.registerTitle" : isForgot ? "recovery.forgotTitle" : "recovery.resetTitle";
+  const submitKey = isLogin ? "auth.loginSubmit" : isRegister ? "auth.registerSubmit" : isForgot ? "recovery.forgotSubmit" : "recovery.resetSubmit";
   const switchTextKey = isLogin ? "auth.noAccount" : "auth.haveAccount";
   const switchButtonKey = isLogin ? "auth.switchToRegister" : "auth.switchToLogin";
   authDialogTitle.dataset.i18n = titleKey;
@@ -3380,24 +3769,90 @@ function setAuthMode(mode) {
   authSubmitBtn.textContent = translations[lang][submitKey];
   authSwitchText.textContent = translations[lang][switchTextKey];
   authSwitchModeBtn.textContent = translations[lang][switchButtonKey];
+  authEmailGroup.classList.toggle("hide", isReset);
+  authPasswordGroup.classList.toggle("hide", isForgot);
+  authConfirmPasswordGroup.classList.toggle("hide", !isReset);
+  authPasswordRequirements.classList.toggle("hide", !isReset);
+  authForgotPasswordBtn.classList.toggle("hide", !isLogin);
+  authSwitchRow.classList.toggle("hide", !isLogin && !isRegister);
+  authRecoveryActions.classList.toggle("hide", !isForgot && !isReset);
+  authRequestNewResetBtn.classList.toggle("hide", !isReset);
+  authSubmitBtn.classList.remove("hide");
+  authSubmitBtn.disabled = false;
+  authSwitchModeBtn.disabled = false;
+  authForgotPasswordBtn.disabled = false;
+  authBackToLoginBtn.disabled = false;
+  authRequestNewResetBtn.disabled = false;
+  authEmailInput.disabled = false;
+  authPasswordInput.disabled = false;
+  authConfirmPasswordInput.disabled = false;
+  authEmailInput.required = !isReset;
+  authPasswordInput.required = !isForgot;
+  authConfirmPasswordInput.required = isReset;
+  authPasswordInput.setAttribute("autocomplete", isReset ? "new-password" : "current-password");
+  authPasswordLabel.dataset.i18n = isReset ? "recovery.newPasswordLabel" : "auth.passwordLabel";
+  authPasswordLabel.textContent = translations[lang][authPasswordLabel.dataset.i18n];
+  authPasswordInput.setAttribute("aria-describedby", isReset ? "authPasswordRequirements authFormMessage" : "authFormMessage");
+  authEmailInput.setAttribute("aria-describedby", "authFormMessage");
+  authConfirmPasswordInput.setAttribute("aria-describedby", "authPasswordRequirements authFormMessage");
   hideFormMessage(authFormMessage);
+  if (options.instructions && isForgot) {
+    showFormMessage(authFormMessage, translations[lang]["recovery.forgotInstructions"], "info", "recovery.forgotInstructions");
+  }
 }
 
 authLoginBtn.addEventListener("click", () => {
+  closeMobileMenu();
   setAuthMode("login");
   authForm.reset();
   authDialog.showModal();
+  authEmailInput.focus();
 });
 
 authSwitchModeBtn.addEventListener("click", () => {
   setAuthMode(authMode === "login" ? "register" : "login");
   authForm.reset();
+  authEmailInput.focus();
 });
 
-authDialogCloseBtn.addEventListener("click", () => authDialog.close());
+authForgotPasswordBtn.addEventListener("click", () => {
+  setAuthMode("forgot", { instructions: true });
+  authPasswordInput.value = "";
+  authEmailInput.focus();
+});
+
+function leaveRecoveryForLogin() {
+  recoveryToken = null;
+  authForm.reset();
+  setAuthMode("login");
+  authEmailInput.focus();
+}
+
+authBackToLoginBtn.addEventListener("click", leaveRecoveryForLogin);
+authRequestNewResetBtn.addEventListener("click", () => {
+  recoveryToken = null;
+  authForm.reset();
+  setAuthMode("forgot", { instructions: true });
+  authEmailInput.focus();
+});
+
+function closeAuthDialog() {
+  authFlowGeneration += 1;
+  if (authMode === "reset") recoveryToken = null;
+  authPasswordInput.value = "";
+  authConfirmPasswordInput.value = "";
+  authDialog.close();
+}
+
+authDialogCloseBtn.addEventListener("click", closeAuthDialog);
 
 authDialog.addEventListener("click", (event) => {
-  if (isBackdropClick(authDialog, event)) authDialog.close();
+  if (isBackdropClick(authDialog, event)) closeAuthDialog();
+});
+
+authDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeAuthDialog();
 });
 
 // Submit form login/daftar - endpoint dan penanganan sukses beda tergantung
@@ -3406,35 +3861,106 @@ authDialog.addEventListener("click", (event) => {
 // catch untuk error koneksi), bukan pola error-handling yang baru.
 authForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (authSubmissionGenerations.has(authFlowGeneration)) return;
   hideFormMessage(authFormMessage);
 
   const lang = document.documentElement.lang;
   const email = authEmailInput.value.trim();
   const password = authPasswordInput.value;
+  const confirmation = authConfirmPasswordInput.value;
   const submittedMode = authMode;
-  const endpoint = submittedMode === "login" ? "/api/auth/login" : "/api/auth/register";
+  const submittedToken = submittedMode === "reset" ? recoveryToken : null;
+  const requestGeneration = authFlowGeneration;
+  const isRecovery = submittedMode === "forgot" || submittedMode === "reset";
+  const endpoint = submittedMode === "login" ? "/api/auth/login"
+    : submittedMode === "register" ? "/api/auth/register"
+      : submittedMode === "forgot" ? "/api/auth/forgot-password" : "/api/auth/reset-password";
   const loginMergeId = submittedMode === "login" && cartAuthority === "guest" ? createCartMergeId() : null;
 
+  if (submittedMode === "forgot" && (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+    showFormMessage(authFormMessage, translations[lang]["recovery.invalidEmail"], "error", "recovery.invalidEmail");
+    authEmailInput.focus();
+    return;
+  }
+  if (submittedMode === "reset") {
+    const passwordBytes = new TextEncoder().encode(password).length;
+    let errorKey = null;
+    if (!password) errorKey = "recovery.passwordEmpty";
+    else if (password.length < 8 || !password.trim() || passwordBytes > 72) errorKey = "recovery.passwordInvalid";
+    else if (password !== confirmation) errorKey = "recovery.passwordMismatch";
+    else if (!submittedToken) errorKey = "recovery.invalidLink";
+    if (errorKey) {
+      showFormMessage(authFormMessage, translations[lang][errorKey], "error", errorKey);
+      (errorKey === "recovery.passwordMismatch" ? authConfirmPasswordInput : authPasswordInput).focus();
+      return;
+    }
+  }
+
+  authSubmissionGenerations.add(requestGeneration);
   authSubmitBtn.disabled = true;
   authSwitchModeBtn.disabled = true;
+  authForgotPasswordBtn.disabled = true;
   authForm.setAttribute("aria-busy", "true");
-  const loadingKey = submittedMode === "login" ? "auth.loginLoading" : "auth.registerLoading";
+  const loadingKey = submittedMode === "login" ? "auth.loginLoading" : submittedMode === "register" ? "auth.registerLoading" : submittedMode === "forgot" ? "recovery.forgotLoading" : "recovery.resetLoading";
   authSubmitBtn.dataset.i18n = loadingKey;
   authSubmitBtn.textContent = translations[lang][loadingKey];
+  showFormMessage(authFormMessage, translations[lang][loadingKey], "info", loadingKey);
   try {
+    const body = submittedMode === "reset" ? { token: submittedToken, password }
+      : submittedMode === "forgot" ? { email } : { email, password };
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(body),
     });
+    if (requestGeneration !== authFlowGeneration || submittedMode !== authMode) return;
     if (!response.ok) {
       let errorKey = "auth.genericError";
-      if (response.status === 429) errorKey = "auth.rateLimited";
+      if (isRecovery && response.status === 429) errorKey = "recovery.rateLimited";
+      else if (submittedMode === "reset" && response.status === 400) {
+        let data = null;
+        try { data = await response.json(); } catch (parseError) {}
+        if (requestGeneration !== authFlowGeneration || submittedMode !== authMode) return;
+        errorKey = data && data.code === "VALIDATION_ERROR" ? "recovery.passwordInvalid" : "recovery.invalidLink";
+      }
+      else if (isRecovery && response.status === 503) errorKey = "recovery.databaseBusy";
+      else if (isRecovery && response.status >= 500) errorKey = "recovery.serverError";
+      else if (response.status === 429) errorKey = "auth.rateLimited";
       else if (submittedMode === "login" && response.status === 401) errorKey = "auth.invalidCredentials";
       else if (submittedMode === "register" && response.status === 409) errorKey = "auth.emailExists";
+      else if (submittedMode === "forgot" && response.status === 400) errorKey = "recovery.invalidEmail";
       else if (response.status === 400) errorKey = "auth.invalidInput";
       showFormMessage(authFormMessage, translations[lang][errorKey], "error", errorKey);
+      if (errorKey === "recovery.invalidLink") {
+        recoveryToken = null;
+        authSubmitBtn.classList.add("hide");
+        authPasswordInput.value = "";
+        authConfirmPasswordInput.value = "";
+        authFormMessage.focus();
+      }
+      return;
+    }
+
+    if (submittedMode === "forgot") {
+      showFormMessage(authFormMessage, translations[lang]["recovery.forgotSuccess"], "success", "recovery.forgotSuccess");
+      authEmailInput.disabled = true;
+      authSubmitBtn.classList.add("hide");
+      authFormMessage.focus();
+      return;
+    }
+
+    if (submittedMode === "reset") {
+      recoveryToken = null;
+      authForm.reset();
+      authPasswordInput.value = "";
+      authConfirmPasswordInput.value = "";
+      setAuthMode("login");
+      showFormMessage(authFormMessage, translations[lang]["recovery.resetSuccess"], "success", "recovery.resetSuccess");
+      authEmailInput.focus();
+      currentUser = null;
+      renderAuthUI();
+      void checkAuthState({ reason: "operation-401" });
       return;
     }
 
@@ -3479,17 +4005,49 @@ authForm.addEventListener("submit", async (event) => {
     if (authResult !== "authenticated") showAuthStatus("auth.verifyError");
     else hideAuthStatus();
   } catch (error) {
-    console.error("Gagal menghubungi server saat login/daftar:", error);
-    showFormMessage(authFormMessage, translations[lang]["auth.genericError"], "error", "auth.genericError");
+    if (requestGeneration !== authFlowGeneration || submittedMode !== authMode) return;
+    const errorKey = isRecovery ? "recovery.networkError" : "auth.genericError";
+    if (!isRecovery) console.error("Gagal menghubungi server saat login/daftar.");
+    showFormMessage(authFormMessage, translations[lang][errorKey], "error", errorKey);
   } finally {
-    authSubmitBtn.disabled = false;
-    authSwitchModeBtn.disabled = false;
-    authForm.setAttribute("aria-busy", "false");
-    const submitKey = authMode === "login" ? "auth.loginSubmit" : "auth.registerSubmit";
-    authSubmitBtn.dataset.i18n = submitKey;
-    authSubmitBtn.textContent = translations[document.documentElement.lang][submitKey];
+    authSubmissionGenerations.delete(requestGeneration);
+    if (requestGeneration === authFlowGeneration && submittedMode === authMode) {
+      authSubmitBtn.disabled = false;
+      authSwitchModeBtn.disabled = false;
+      authForgotPasswordBtn.disabled = false;
+      authBackToLoginBtn.disabled = false;
+      authRequestNewResetBtn.disabled = false;
+      authForm.setAttribute("aria-busy", "false");
+      const submitKey = authMode === "login" ? "auth.loginSubmit" : authMode === "register" ? "auth.registerSubmit" : authMode === "forgot" ? "recovery.forgotSubmit" : "recovery.resetSubmit";
+      authSubmitBtn.dataset.i18n = submitKey;
+      authSubmitBtn.textContent = translations[document.documentElement.lang][submitKey];
+    }
   }
 });
+
+function initializePasswordRecoveryFromLocation() {
+  const params = new URLSearchParams(window.location.search || "");
+  if (!params.has("reset_token")) return;
+  const candidates = params.getAll("reset_token");
+  const candidate = candidates.length === 1 ? candidates[0] : "";
+  const cleanUrl = `${window.location.pathname || "/"}${window.location.hash || ""}`;
+  if (window.history && typeof window.history.replaceState === "function") {
+    window.history.replaceState(null, "", cleanUrl);
+  }
+  authForm.reset();
+  setAuthMode("reset");
+  authDialog.showModal();
+  if (/^[A-Za-z0-9_-]{43}$/.test(candidate)) {
+    recoveryToken = candidate;
+    authPasswordInput.focus();
+  } else {
+    recoveryToken = null;
+    authSubmitBtn.classList.add("hide");
+    showFormMessage(authFormMessage, translations[document.documentElement.lang]["recovery.invalidLink"], "error", "recovery.invalidLink");
+    authFormMessage.setAttribute("tabindex", "-1");
+    authFormMessage.focus();
+  }
+}
 
 // ----------------------------------------------------------
 // 9e. LOGOUT
@@ -3725,7 +4283,14 @@ function handleAdminAuthError(response, showMessage) {
     return true;
   }
   if (response.status === 403) {
+    // Fail closed immediately: a remote demotion must remove cached privileged
+    // controls/content before the follow-up auth check completes. If the 403
+    // came from another policy (for example origin rejection), /auth/me may
+    // authoritatively restore the still-valid admin state.
+    currentUser = null;
+    renderAuthUI();
     showMessage(translations[lang]["admin.permissionDenied"], "admin.permissionDenied");
+    void checkAuthState({ reason: "operation-403" });
     return true;
   }
   if (response.status === 429) {
@@ -3734,6 +4299,18 @@ function handleAdminAuthError(response, showMessage) {
   }
   return false;
 }
+
+function revalidateAuthAfterHiddenPage() {
+  if (!pageWasHidden || document.visibilityState === "hidden") return;
+  pageWasHidden = false;
+  void checkAuthState({ reason: "page-return" });
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") pageWasHidden = true;
+  else revalidateAuthAfterHiddenPage();
+});
+window.addEventListener("focus", revalidateAuthAfterHiddenPage);
 
 productForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -3873,5 +4450,6 @@ async function handleDeleteProduct(productId, deleteButton) {
 // loadMenu() di bagian 3c. Diletakkan di baris paling akhir file supaya
 // SEMUA fungsi & elemen yang dipakainya di atas (renderAuthUI, loadMenu,
 // dst) sudah pasti selesai didefinisikan lebih dulu.
+initializePasswordRecoveryFromLocation();
 loadMenu();
 checkAuthState();
