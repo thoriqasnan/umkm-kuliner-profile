@@ -7,3 +7,4 @@ httpx
 scikit-learn
 joblib
 torch
+sentence-transformers

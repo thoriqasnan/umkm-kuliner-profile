@@ -34,6 +34,7 @@ python/data/transactions_large.csv
 # checked-in generator and must remain separate from the canonical fixture.
 python/data/transactions_ml.csv
 python/data/transactions_ml_v2.csv
+python/data/sari_rasa_vectors.db
 
 # Trusted generated Phase 5E sklearn/joblib model artifacts.
 python/models/

@@ -159,6 +159,12 @@ Python is not needed for authentication, admin management, password recovery, em
 | `SARI_RASA_ML_DATASET_PATH` | No | Trusted V2 forecast/inference CSV path. Defaults to `python/data/transactions_ml_v2.csv`. |
 | `SARI_RASA_MODEL_ARTIFACT_PATH` | No | Trusted production HGB joblib path. Defaults to the generated V2 artifact. |
 | `SARI_RASA_DL_MODEL_ARTIFACT_PATH` | No | Trusted experimental MLP artifact path. Defaults to ignored `python/models/next_day_quantity_mlp_v1.pt`. |
+| `SARI_RASA_LLM_PROVIDER` | Only for explicit Gemini calls | Must currently be `gemini`; normal website startup does not load it. |
+| `SARI_RASA_LLM_MODEL` | Only for explicit Gemini calls | Environment-configurable Gemini text model; Phase 7A live acceptance verified `gemini-3.1-flash-lite`, with intentionally no code default. |
+| `SARI_RASA_LLM_API_KEY` | Only for explicit Gemini calls | Server-side Gemini credential; never commit, paste into chat, or log it. |
+| `SARI_RASA_LLM_TIMEOUT_SECONDS` | No | Bounded Gemini request timeout; defaults to 10 seconds and accepts 0.1–60. |
+
+Phase 7D embeddings are local-first and use no API key or paid embedding API. The verified configurable model is `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` on CPU; loading is lazy, and the offline acceptance uses its provisioned local cache.
 
 The backend port is configurable, but the current frontend API base URL is fixed to `http://localhost:3000`. Changing `PORT` alone therefore breaks frontend API communication unless the frontend implementation is changed too.
 
@@ -186,7 +192,7 @@ Current verified baseline:
 | Backend and database | 72 | 72 passed |
 | Frontend VM and contracts | 95 | 95 passed |
 | Combined Node suites | 167 | 167 passed |
-| Python data/service | 341 | 341 passed |
+| Python data/service/LLM foundation | 458 | 458 passed |
 
 The backend suite uses Node's built-in test runner, temporary SQLite databases, and ephemeral HTTP ports. It covers authentication, authorization, products, carts, merge idempotency, constraints, cascades, schema evolution, and development-database protection.
 
@@ -286,7 +292,15 @@ These controls are appropriate to the current learning project; they are not a c
 - Phase 6-EXT-G — Security + Integration: verified complete (automated and core manual integration acceptance passed)
 - Phase 6-EXT-H — Documentation + Final Quality Gate: verified complete
 - Phase 6-EXT overall — verified complete
-- Phase 7 — AI Engineering: not started; follows Phase 6-EXT
+- Phase 7A — LLM API Fundamentals: ✅ verified complete after automated verification and real Gemini Developer API live acceptance with `gemini-3.1-flash-lite`.
+- Phase 7B — Prompt Engineering: ✅ verified complete. Its deterministic offline contract verification is supplemented by successful downstream controlled Gemini acceptance through Phases 7C, 7F, 7G, and 7H.
+- Phase 7C — Structured Output / Tools: ✅ verified complete after offline regression and real Gemini acceptance with `gemini-3.1-flash-lite`.
+- Phase 7D — Embeddings: ✅ verified complete after automated regression and real local Indonesian/English acceptance with the configurable 384-dimensional `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` model. It provides deterministic catalog text/hash contracts, an offline fake, deterministic batching, and a lazy CPU-first adapter, with no storage or retrieval.
+- Phase 7E — Vector DB: ✅ verified complete after automated verification and real local acceptance with cached 384-dimensional sentence-transformer vectors. Its derived SQLite/NumPy index provides compatible vector-space isolation, deterministic synchronization, and exact bounded cosine retrieval while canonical product data remains authoritative.
+- Phase 7F — RAG: ✅ verified complete after automated verification and controlled live acceptance with the cached multilingual embedding model and `gemini-3.1-flash-lite`. The read-only pipeline embeds a query, retrieves from the derived 7E index, re-resolves and freshness-checks current canonical `PublicMenuItem` facts, supplies at most five request-local `menu:N` evidence items to the zero-tool structured LLM path, and validates exact citations.
+- Phase 7G — AI Agents: ✅ verified complete after automated verification and three-scenario controlled Gemini acceptance. The bounded read-only recommendation agent may search, make one distinct refinement search, finish, or safely report that it cannot complete. It has one semantic `search_menu` tool, at most three decisions, two tool calls, and five request-local evidence items, with immutable request-local state, no persistent memory, and no exposed chain of thought.
+- Phase 7H — AI Evaluation: ✅ verified complete. The fixed 12-case benchmark progressed from V1 MiniLM (`50.0%` Hit@1) through V2 and hybrid experiments to the user-verified E5 + V2 + hybrid result: Hit@1 `100.0%`, Hit@3 `100.0%`, Recall@5 `100.0%`, MRR `1.0000`, and bilingual both-Hit@1 `100.0%`. Controlled Gemini passed `8/8`, all hard safety gates passed, and human faithfulness/relevance review scored `16/16` each. This is a small controlled benchmark, not a universal accuracy claim.
+- Phase 7 — AI Engineering: ✅ verified complete. E5 + V2 + hybrid is the preferred verified Phase 8 retrieval handoff; existing MiniLM runtime/default behavior remains unchanged and reproducible.
 
 See the [Project Roadmap](ROADMAP.md) for the approved phase sequence and current source of truth.
 

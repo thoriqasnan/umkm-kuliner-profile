@@ -287,7 +287,212 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
 
    `PYTHONPATH=python/src` lets pytest import `sari_rasa_data` directly from `python/src` without adding packaging tooling at this early stage. This runs every test file under `python/tests`, including the Phase 4A foundation tests, complete Phase 4B pipeline tests, Phase 4C DataFrame/filtering/grouping/NumPy-statistics tests, the Phase 4C-4 synthetic-generator/integrated-analysis tests, and FastAPI service contract/error tests. Service tests use FastAPI's in-process `TestClient`; Uvicorn does not need to be started manually. The Phase 4C-4 tests generate their own temporary large dataset (they do not depend on `python/data/transactions_large.csv` existing on disk).
 
-   Current verified Python data/service result: `341 passed`.
+### Phase 7A Gemini live acceptance
+
+Phase 7A is ✅ **VERIFIED COMPLETE**. Its real Gemini Developer API live acceptance passed with the environment-configured `gemini-3.1-flash-lite` model: `finish_reason: stop`, 37 input / 34 output / 71 total normalized tokens, and 1032 ms latency. The response was successfully normalized through the provider-neutral LLM contract. The focused Gemini adapter tests passed (`24 passed`), as did the complete Phase 7A targeted suite (`47 passed`) and its then-current full Python regression (`388 passed`). At that checkpoint, Phase 7B was automated/technically verified and Phase 7C was verified complete; later downstream evidence and final reconciliation completed Phase 7.
+
+Normal website, analytics, forecast, and the full automated Python suite require no Gemini configuration. The verified model remains environment-configurable through `SARI_RASA_LLM_MODEL`; `gemini-3.1-flash-lite` is the acceptance record, not a code default. For an explicitly authorized future smoke check, select a currently supported Free Tier text model in Google AI Studio, set the four `SARI_RASA_LLM_*` variables in the local environment (never commit or paste the key), then run from the repository root:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.llm_live_acceptance
+```
+
+The command sends one fixed harmless fictional-menu prompt with a 48-token output bound and prints only the normalized provider/model, response, finish reason, usage, latency, and correlation ID. The completed acceptance used only this fictional/public-safe menu content. The Free-Tier, zero-cost-first policy remains in effect, and no billing setup was required for Phase 7A. Do not modify the command to send passwords, API/session/reset credentials, cookies, personal email, private account/admin records, sensitive database rows, or confidential business data. Gemini Free Tier data-use terms differ from paid service terms.
+
+The latest Phase 7A+7B+7C targeted regression result is `130 passed`.
+
+### Phase 7B offline prompt verification
+
+Phase 7B is ✅ **AUTOMATED/TECHNICALLY VERIFIED**. It has no live-provider or manual acceptance step. Run its deterministic public-menu domain, ID/EN prompt, trust-boundary, grounding, privacy/authority, injection, recommendation, versioning, and Phase 7A compatibility tests from the repository root:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m pytest python/tests/test_menu_prompts.py -q
+```
+
+The focused result is `23 passed`. The Phase 7A+7B offline regression at that checkpoint was `70 passed`. Neither command needs `.env`, an API key, Node, SQLite, FastAPI, a browser, or network access. Fixtures must construct explicit `PublicMenuItem` values; do not substitute the Python `application_catalog` or add a database read. Prompt versions are `phase-7b.customer-menu.v1` and `phase-7b.menu-recommendation.v1`.
+
+### Phase 7C structured/tool verification and live acceptance
+
+Phase 7C is ✅ **VERIFIED COMPLETE**. Its focused structured/Gemini/live-acceptance/prompt tests passed, the latest Phase 7A+7B+7C regression passed (`130 passed`), and `git diff --check` passed. Offline tests cover the strict response/source contract, deterministic read-only tool, bounded loop, zero-tool requests, final tool-disabled turn, and mocked Gemini mapping without credentials or network.
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m pytest python/tests/test_llm_structured.py python/tests/test_menu_tools.py python/tests/test_llm_gemini_structured.py python/tests/test_llm_structured_live_acceptance.py python/tests/test_menu_prompts.py -q
+```
+
+The latest focused result is `83 passed`. Tests use synthetic `PublicMenuItem` catalogs and `httpx.MockTransport`, so no provider call, `.env`, key, database, Node process, or browser is required. The response schema version is `phase-7c.public-menu-response.v1`. A structured request has zero tools or exactly one registered `search_menu`; its result limit is 1–5, and one request permits at most two sequential calls with repeated-call detection and a final tool-disabled provider turn.
+
+The real Gemini live gate passed with `gemini-3.1-flash-lite` using only fictional/public-safe menu fixtures:
+
+- `structured_response`: PASS; Indonesian; `sources: ["product:7101"]`; zero tool calls; `insufficient_information: false`; strict parsing and source validation passed.
+- `tool_calling`: PASS; Indonesian; `sources: ["product:7102"]`; one real `search_menu` execution; `insufficient_information: false`; the final strict response parsed and source-validated successfully.
+
+This satisfies the real structured-response, strict validation, real function-call, bounded-call, trusted source-ID, and public-safe-data gates. No credentials, API keys, session/reset tokens, private customer data, or raw provider responses are acceptance fixtures or output.
+
+For an explicitly authorized future recheck, this command performs the structured-only and required `search_menu` scenarios and prints only sanitized acceptance fields:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.llm_structured_live_acceptance
+```
+
+### Phase 7D embedding verification and local acceptance
+
+Phase 7D is ✅ **VERIFIED COMPLETE**. Normal tests use the deterministic fake or mocked model objects and require no network or model:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m pytest python/tests/test_embeddings.py python/tests/test_embedding_sentence_transformers.py -q
+```
+
+The focused result is `34 passed`; the Phase 7A–7D regression result is `164 passed`.
+
+The real adapter uses the `sentence-transformers` dependency declared in `python/requirements.txt`, CPU by default, lazy model loading, and offline loading by default. Initial provisioning installed the declared dependency into the project virtual environment and downloaded/cached the public configurable model `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` once from Hugging Face. The model is not bundled with the repository, and no authentication token or paid embedding API is required. Provisioning and offline runtime are separate: provision the dependency and public model cache once while network access is explicitly authorized, then run the acceptance from that local cache.
+
+The first offline acceptance attempt correctly failed because `local_files_only=True` and the model was not yet cached. This was expected safe/offline behavior, not an embedding-contract failure. After one-time provisioning, the exact offline acceptance command succeeded:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.embedding_local_acceptance --model sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+```
+
+The command forces `local_files_only=True`, so a missing cache fails safely rather than downloading. The verified sanitized result was:
+
+```text
+phase_7d_local_embedding: PASS
+provider: sentence-transformers
+model: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+languages: id,en
+dimensions: 384
+```
+
+Acceptance proved that the real local model loads from cache, Indonesian and English embedding both succeed, vectors pass finite/dimension validation with consistent dimensions, the provider-neutral adapter works against a real model, and no paid external embedding API is required. Verification history: focused Phase 7D tests `34 passed`; Phase 7A–7D regression `164 passed`; `git diff --check` passed; real local embedding acceptance PASS.
+
+If a future offline run reports that model files are unavailable, confirm that the dependency and exact configured model were provisioned into the local environment/cache before retrying; do not weaken `local_files_only=True` as a troubleshooting shortcut. Phase 7D contains no SQLite vector persistence, BLOB serialization, cosine similarity search, nearest-neighbor retrieval, ranking, thresholds, RAG, chunking, or agent behavior. Phase 7E owns vector persistence/search.
+
+### Phase 7E vector-store verification and local acceptance
+
+Phase 7E is ✅ **VERIFIED COMPLETE**. Its SQLite/NumPy unit path uses temporary databases, deterministic synthetic vectors, no model load, and no network:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m pytest python/tests/test_vector_contracts.py python/tests/test_vector_store.py -q
+```
+
+The focused Phase 7E result is `34 passed`; the Phase 7A–7E regression result is `198 passed`; and the final full Python regression is `539 passed` with one known joblib/loky warning that physical-core detection fell back to logical cores. Tests cover vector-space incompatibility, little-endian float32 round trips, schema/integrity behavior, transactional sync and rollback, reuse without vector rewrite, replacement/metadata/prune outcomes, bilingual identities, exact cosine ranking and filters, deterministic ties, bounded input, corruption failures, and import boundaries.
+
+The default `python/data/sari_rasa_vectors.db` is ignored derived runtime data, not the canonical catalog. Tests and acceptance use temporary paths. The store never calls an embedding model itself: Phase 7D supplies records, and Phase 7E synchronizes/searches them. Phase 7F resolves current canonical products before using retrieval metadata as LLM context.
+
+The controlled real local acceptance passed using the already provisioned Phase 7D public model cache. Its command was:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.vector_local_acceptance --model sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+```
+
+The observed sanitized result was:
+
+```text
+phase_7e_local_vector_store: PASS
+provider: sentence-transformers
+model: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+dimensions: 384
+languages: id,en
+stored_records: 4
+top_product_ids: 7501,7501
+```
+
+The command uses `local_files_only=True`, CPU, fictional/public menu fixtures, and a temporary SQLite database. It proved real local model loading, bilingual 384-dimensional persistence and round-trip, compatible vector-space checks, real query embedding, and repeated bounded deterministic exact cosine retrieval with validated finite results. It made no Gemini, paid embedding API, external vector database, or default-database call. This smoke does not measure retrieval quality, set a similarity threshold, establish production readiness, or complete RAG. A future missing-cache failure should be handled through the Phase 7D provisioning procedure rather than by weakening offline mode.
+
+Verification history: focused Phase 7E tests `34 passed`; Phase 7A–7E regression `198 passed`; full Python regression `539 passed`; `git diff --check` passed; real local Phase 7E acceptance PASS. The known non-blocking joblib/loky warning fell back from physical-core detection to logical cores. A focused review previously found connection-closure and persisted-metadata-validation issues; both were fixed and retested before final verification.
+
+Phase 7E does not implement persistence of canonical product truth, RAG orchestration, prompts/citations, final product resolution, chunking, or agents.
+
+### Phase 7F RAG verification and controlled live acceptance
+
+Phase 7F is ✅ **VERIFIED COMPLETE**. Run its offline contract, canonical-resolution, freshness, bilingual fallback, evidence/source, insufficiency, security, and live-harness tests from the repository root:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m pytest python/tests/test_rag_contracts.py python/tests/test_rag.py python/tests/test_rag_live_acceptance.py -q
+```
+
+The earlier full Python regression passed (`570 passed`) with the known non-blocking joblib/loky physical-core fallback warning. After the final allergen-grounding fix, focused affected tests passed (`24 passed`), the Phase 7A–7F targeted regression passed (`232 passed`), and `git diff --check` passed. Offline tests use fake embeddings, temporary SQLite stores, in-memory canonical catalogs, and fake structured clients; they make no network or model call.
+
+The successful controlled acceptance used the verified Phase 7D model from its local cache and the existing Phase 7A Gemini configuration. Its command was:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.rag_live_acceptance --embedding-model sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+```
+
+The command uses `local_files_only=True`, a temporary Phase 7E database, and three fictional/public-safe products. It builds real bilingual catalog embeddings, then runs two Indonesian scenarios through real exact retrieval, current-catalog resolution, bounded trusted evidence, and Gemini strict zero-tool structured generation. Acceptance passed with embedding model `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` and Gemini model `gemini-3.1-flash-lite`:
+
+- `grounded_factual_retrieval`: PASS; Indonesian, no language fallback, `insufficient_information=false`, source `menu:1`, evidence product IDs `7601,7602,7603`, and no limitations.
+- `unsupported_allergen_guarantee`: PASS; Indonesian, no language fallback, `insufficient_information=true`, empty sources, evidence product IDs `7601,7602,7603`, and limitation `Informasi mengenai alergen tidak tersedia dalam katalog.`
+
+Output is sanitized to scenario status, language, source IDs, evidence product IDs, insufficiency/fallback flags, limitations, and provider/model names; it does not print prompts, raw provider responses, API keys, or private data. Any failed scenario exits nonzero. The initial allergen scenario failed because nearby product evidence was not explicitly distinguished from support for an allergen-free guarantee, while the harness reduced the observed valid structured response to a coarse contract error. The final principled fix made `insufficient_information=true` and `sources=[]` explicit for unsupported allergen facts and added sanitized field-level diagnostics. It did not bypass the LLM, weaken source validation, or change the normal retrieval plus zero-tool LLM path. The subsequent run passed both scenarios.
+
+This gate proves integration and grounding-contract correctness, not retrieval quality or a similarity threshold, and it does not constitute Phase 7H evaluation. It required no paid embedding API or external vector database and used only fictional/public-safe catalog data; vector values were not exposed to Gemini.
+
+RAG queries are read-only: they do not synchronize/prune the vector store, rebuild embeddings, or mutate canonical catalog, account, admin, cart, order, or payment state, and they have no SQL, shell, or browser authority.
+
+### Phase 7G agent verification and controlled live acceptance
+
+Phase 7G is ✅ **VERIFIED COMPLETE**. The agent has one read-only semantic `search_menu` tool; `get_menu_details` is intentionally absent because fresh search results already contain complete canonical public evidence. Each request has immutable local state, at most three decisions, two distinct sequential searches, and five evidence products, with no persistent memory or chain-of-thought field.
+
+Run the offline agent contracts, controller, acceptance-harness, Gemini mapping, and Phase 7F preservation tests from the repository root:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m pytest python/tests/test_agent_contracts.py python/tests/test_menu_agent.py python/tests/test_agent_live_acceptance.py python/tests/test_llm_gemini_structured.py python/tests/test_rag_contracts.py python/tests/test_rag.py python/tests/test_rag_live_acceptance.py -q
+```
+
+Pre-refactor Phase 7F characterization passed (`30 passed`), and focused Phase 7F passed after retrieval extraction (`35 passed`). The final affected focused suite passed (`99 passed`), the Phase 7A–7G targeted regression passed (`279 passed`), and the full Python regression passed (`620 passed`) with the known non-blocking joblib/loky physical-core fallback warning. Focused review findings for bilingual evidence precedence, scope-gate escapes, and over-strict acceptance call counts were fixed and retested.
+
+The controlled acceptance passed using the already cached Phase 7D model and environment-configured Gemini setup. It uses a temporary Phase 7E database and fictional/public-safe products and prints only sanitized action/count/source/result metadata. Its command was:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.agent_live_acceptance --embedding-model sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+```
+
+The acceptance history records two resolved failures:
+
+- Attempt 1: both menu scenarios returned `cannot_complete` before search because the empty pre-search projection was interpreted as an empty catalog. Explicit `NOT_SEARCHED`/`SEARCH_COMPLETED` state, a search-only initial schema, and rejection of premature terminal actions fixed the ambiguity. Post-fix verification: `68` focused agent/Gemini, `3` harness, `35` Phase 7F, and `283` Phase 7A–7G tests passed; `git diff --check` passed.
+- Attempt 2: recommendation and mutation passed, but the allergen scenario returned insufficiency-shaped content under `finish`; strict validation rejected it with `AgentActionValidationError`. Explicit finish-versus-cannot-complete guidance fixed the discriminator without weakening validation or converting invalid output. Post-fix verification: `73` focused affected agent/contract/Gemini, `3` harness, and `288` Phase 7A–7G tests passed; `git diff --check` passed.
+
+Final acceptance passed all three scenarios with Gemini `gemini-3.1-flash-lite` and embeddings from `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`:
+
+- `simple_recommendation`: PASS; two decisions, one search, `finish`, Indonesian, sufficient, observed product `7701`, source `menu:1`, and no limitations.
+- `unsupported_allergen_guarantee`: PASS; two decisions, one search, `cannot_complete`, Indonesian, insufficient, observed product `7701`, empty sources, and limitation `Informasi mengenai alergen tidak tersedia dalam katalog.`
+- `unsupported_mutation`: PASS; deterministic pre-model `cannot_complete`, zero decisions and calls, Indonesian, insufficient, no observed products or sources, and the read-only-access limitation.
+
+This 3/3 gate proves bounded decisions, application-owned search, canonical grounding, strict terminal semantics, and deterministic mutation refusal. No prompt, vector, provider body, key, secret, private record, or chain of thought is printed. Phase 7H now has accepted V1/V2 retrieval, controlled Gemini, hard-gate, and human-review results; retrieval Experiment #2 remains in progress.
+
+### Phase 7H deterministic evaluation Stage 1
+
+Phase 7H is ✅ **VERIFIED COMPLETE**. Its offline path needs no `.env`, secret, network, Gemini call, or sentence-transformer model load. Run the focused foundation tests from the repository root:
+
+```bash
+cd python && PYTHONPATH=src python -m pytest -q tests/test_eval_contracts.py tests/test_eval_dataset.py tests/test_eval_metrics.py tests/test_eval_runner.py
+```
+
+The dataset is `python/data/phase_7h_eval_v1.json` (`7h-eval-v1`, schema `v1`) and contains exactly 12 retrieval, 14 RAG, 10 agent cases, and four boundary probes. Offline fake embeddings verify contracts, indexing, temporary-SQLite search, and orchestration only; the result deliberately reports semantic retrieval quality as `null`/not run. JSON is written only when a new explicit output path is supplied, and an existing file is never silently overwritten. Quality thresholds, a composite score, controlled Gemini execution, and human rubric scoring are absent.
+
+The exact next gate is a user-authorized local semantic baseline using the already cached `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` with `local_files_only=True`, measuring Hit@1, Hit@3, Recall@5, MRR, and bilingual retrieval agreement over the 12 manually labeled retrieval cases:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.eval_runner --mode local-model --dataset python/data/phase_7h_eval_v1.json --embedding-model sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+```
+
+The runner creates only a temporary Phase 7E database and prints aggregate plus per-case sanitized retrieval results. Add `--output <new-path.json>` only when a machine-readable result is wanted; existing files are not overwritten. The user-run V1 baseline is accepted: Hit@1 `50.0%`, Hit@3 `66.7%`, Recall@5 `88.9%`, MRR `0.6458`, and bilingual both-Hit@1 `16.7%`. English was materially stronger than Indonesian, all English gold products appeared within Top-5, and `ret-paraphrase-id` was the clearest miss. Labels were reviewed as reasonable; do not tune queries, gold labels, projection, model, or retrieval until the initial Phase 7H cycle completes.
+
+The controlled Gemini harness selects exactly eight stable dataset cases (four RAG and four agent, balanced ID/EN), loads the same embedding model cache-only, creates a temporary vector store, then reuses Phase 7F and 7G. It prints only sanitized evaluation and human-review fields and never raw provider payloads or credentials. Its completed historical command was:
+
+```sh
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.eval_live_acceptance --dataset python/data/phase_7h_eval_v1.json --embedding-model sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+```
+
+Provider/auth/network/rate-limit/timeout/malformed-envelope failures are reported as infrastructure/provider failures rather than quality failures. The completed controlled run passed `8/8` (`4/4` RAG and `4/4` agent), all hard gates passed, and manual faithfulness and relevance review each scored `16/16`.
+
+Pre-live automated verification passed: `30` focused Phase 7H tests, `317` Phase 7A–7H targeted tests, and the final full Python regression `659 passed` with the known non-blocking joblib/loky physical-core detection warning and logical-core fallback.
+
+The controlled evaluation subsequently passed `8/8`, all hard gates passed, and human faithfulness and relevance review each scored `16/16`. Retrieval Experiment #1's verified V2 metrics are Hit@1 `83.3%`, Hit@3 `91.7%`, Recall@5 `97.2%`, MRR `0.8917`, and bilingual both-Hit@1 `66.7%`; V1 remains the stable projection default and its historical numbers are unchanged.
+
+Retrieval Experiment #2's verified MiniLM V2 hybrid result is Hit@1 `83.3%`, Hit@3 `100.0%`, Recall@5 `97.2%`, MRR `0.9167`, and bilingual both-Hit@1 `66.7%`. Its `7h-retrieval-hybrid-v1` formula and `0.05` maximum lexical bonus remain unchanged.
+
+Retrieval Experiment #3 is ✅ **SUCCESSFUL / VERIFIED COMPLETE**. The user manually downloaded and evaluated `intfloat/multilingual-e5-base` with `7h-embedding-profile-e5-v1`, 768 dimensions, `7d-catalog-text-v2`, and unchanged `7h-retrieval-hybrid-v1`. The fixed 12-case result was Hit@1 `100.0%`, Hit@3 `100.0%`, Recall@5 `100.0%`, MRR `1.0000`, and bilingual both-Hit@1 `100.0%`. Every case had a gold product at rank one; category recall was complete. E5 + V2 + hybrid is the preferred verified Phase 8 handoff, while MiniLM defaults remain unchanged and reproducible. E5 is materially heavier and doubles vector dimensions from 384 to 768. These scores describe only the small controlled benchmark and do not guarantee arbitrary-query or system-wide accuracy. Phase 7H and aggregate Phase 7 are ✅ **VERIFIED COMPLETE**; Phase 8 has not started.
 
 ### Start and check the Python service
 
