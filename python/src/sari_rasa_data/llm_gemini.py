@@ -2,14 +2,13 @@
 
 import asyncio
 from dataclasses import dataclass
-import re
 import time
 from collections.abc import Callable
 from typing import Any
 
 import httpx
 
-from .llm_client import LLMConfig
+from .llm_client import LLMConfig, LLM_MODEL_PATTERN
 from .llm_contracts import (
     LLMAuthenticationError,
     LLMCancelledError,
@@ -49,7 +48,6 @@ from .agent_contracts import (
 )
 
 
-_MODEL_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 _FINISH_REASONS = {"STOP": "stop", "MAX_TOKENS": "length"}
 _SAFETY_REASONS = {"SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "IMAGE_SAFETY"}
 _TOOL_REASONS = {"MALFORMED_FUNCTION_CALL", "UNEXPECTED_TOOL_CALL"}
@@ -74,7 +72,7 @@ class GeminiLLMClient:
     ) -> None:
         if config.provider != self.provider:
             raise LLMConfigError("Gemini adapter requires provider 'gemini'")
-        if not _MODEL_PATTERN.fullmatch(config.model):
+        if not LLM_MODEL_PATTERN.fullmatch(config.model):
             raise LLMConfigError("invalid Gemini model identifier")
         self._model = config.model
         self._api_key = config.api_key
@@ -235,7 +233,7 @@ class GeminiLLMClient:
                 ),
             },
         }
-        body = self._post_structured_payload(payload)
+        body = self._post_structured_payload(payload, timeout_seconds=request.timeout_seconds)
         text, call = self._parse_structured_turn(body)
         if call is not None:
             raise LLMUnexpectedToolResponseError(
@@ -251,10 +249,13 @@ class GeminiLLMClient:
             search_required=request.search_required,
         )
 
-    def _post_structured_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def _post_structured_payload(
+        self, payload: dict[str, Any], *, timeout_seconds: float | None = None
+    ) -> dict[str, Any]:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self._model}:generateContent"
+        timeout = self._timeout if timeout_seconds is None else min(self._timeout, timeout_seconds)
         try:
-            with httpx.Client(transport=self._transport, timeout=self._timeout) as client:
+            with httpx.Client(transport=self._transport, timeout=timeout) as client:
                 response = client.post(url, headers={"x-goog-api-key": self._api_key}, json=payload)
         except httpx.TimeoutException:
             raise LLMTimeoutError("LLM provider request timed out") from None

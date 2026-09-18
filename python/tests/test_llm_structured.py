@@ -41,6 +41,14 @@ def test_valid_bilingual_response_is_immutable(language, answer):
         result.answer = "changed"
 
 
+def test_response_schema_and_parser_enforce_shared_output_bounds():
+    assert PUBLIC_MENU_RESPONSE_SCHEMA["properties"]["answer"]["maxLength"] == 4000
+    assert PUBLIC_MENU_RESPONSE_SCHEMA["properties"]["sources"]["maxItems"] == 5
+    assert PUBLIC_MENU_RESPONSE_SCHEMA["properties"]["limitations"]["maxItems"] == 10
+    with pytest.raises(LLMStructuredContractError):
+        parse_structured_menu_response(payload(answer="x" * 4001), ALLOWED)
+
+
 def test_valid_insufficient_response_and_limitations():
     result = parse_structured_menu_response(
         payload(

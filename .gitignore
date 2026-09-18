@@ -35,6 +35,7 @@ python/data/transactions_large.csv
 python/data/transactions_ml.csv
 python/data/transactions_ml_v2.csv
 python/data/sari_rasa_vectors.db
+python/data/sari_rasa_phase8_e5_vectors.db
 
 # Trusted generated Phase 5E sklearn/joblib model artifacts.
 python/models/

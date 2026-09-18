@@ -10,18 +10,33 @@ import numpy as np
 
 from .vector_contracts import (
     VectorRecord,
+    VectorMetadataRecord,
     VectorSearchRequest,
     VectorSearchResult,
     VectorSpace,
     VectorStoreCorruptionError,
     VectorStoreIncompatibleSpaceError,
     VectorStoreInvalidInputError,
+    VectorStoreStorageError,
     VectorSyncSummary,
 )
 
 
 DEFAULT_VECTOR_DB_PATH = Path("python/data/sari_rasa_vectors.db")
 _SCHEMA_VERSION = 1
+
+
+def _raise_sqlite_store_error(message: str, exc: sqlite3.Error) -> None:
+    code = getattr(exc, "sqlite_errorcode", None)
+    primary_code = code & 0xFF if isinstance(code, int) else None
+    detail = str(exc).casefold()
+    known_corruption = primary_code in {sqlite3.SQLITE_CORRUPT, sqlite3.SQLITE_NOTADB, sqlite3.SQLITE_SCHEMA}
+    known_schema_damage = any(token in detail for token in (
+        "database disk image is malformed", "file is not a database",
+        "malformed database schema", "no such table", "no such column",
+    ))
+    error_type = VectorStoreCorruptionError if known_corruption or known_schema_damage else VectorStoreStorageError
+    raise error_type(message) from exc
 
 
 def encode_vector(vector: tuple[float, ...], dimensions: int) -> bytes:
@@ -76,9 +91,7 @@ class SQLiteVectorStore:
             connection.execute("PRAGMA foreign_keys = ON")
             return connection
         except sqlite3.Error as exc:
-            raise VectorStoreCorruptionError(
-                "vector database could not be opened"
-            ) from exc
+            _raise_sqlite_store_error("vector database could not be opened", exc)
 
     @contextmanager
     def _transaction(self) -> Iterator[sqlite3.Connection]:
@@ -145,9 +158,7 @@ class SQLiteVectorStore:
         except VectorStoreIncompatibleSpaceError:
             raise
         except sqlite3.Error as exc:
-            raise VectorStoreCorruptionError(
-                "vector database schema or metadata is invalid"
-            ) from exc
+            _raise_sqlite_store_error("vector database schema or metadata is invalid", exc)
 
     def sync(
         self, records: Iterable[VectorRecord], *, prune: bool = False
@@ -248,7 +259,98 @@ class SQLiteVectorStore:
         except (VectorStoreInvalidInputError, VectorStoreIncompatibleSpaceError):
             raise
         except sqlite3.Error as exc:
-            raise VectorStoreCorruptionError("vector synchronization failed") from exc
+            _raise_sqlite_store_error("vector synchronization failed", exc)
+
+    def metadata_manifest(self) -> tuple[VectorMetadataRecord, ...]:
+        """Return validated non-vector metadata for lifecycle reconciliation."""
+        try:
+            with self._transaction() as connection:
+                rows = connection.execute(
+                    "SELECT product_id, slug, language, content_hash, category, price_rupiah "
+                    "FROM product_embeddings WHERE space_key = ? "
+                    "ORDER BY product_id, language, slug",
+                    (self.vector_space.key,),
+                ).fetchall()
+        except sqlite3.Error as exc:
+            _raise_sqlite_store_error("vector metadata could not be read", exc)
+        try:
+            return tuple(VectorMetadataRecord(*row) for row in rows)
+        except VectorStoreInvalidInputError as exc:
+            raise VectorStoreCorruptionError("stored vector metadata is invalid") from exc
+
+    def validate_integrity(self) -> None:
+        """Validate SQLite structure plus every stored vector before reuse."""
+        try:
+            with self._transaction() as connection:
+                result = connection.execute("PRAGMA quick_check").fetchone()
+                if result != ("ok",):
+                    raise VectorStoreCorruptionError("vector database integrity check failed")
+                rows = connection.execute(
+                    "SELECT vector FROM product_embeddings WHERE space_key = ?",
+                    (self.vector_space.key,),
+                ).fetchall()
+        except VectorStoreCorruptionError:
+            raise
+        except sqlite3.Error as exc:
+            _raise_sqlite_store_error("vector database integrity check failed", exc)
+        for (blob,) in rows:
+            decode_vector(blob, self.vector_space.dimensions)
+
+    def sync_metadata(
+        self, records: Iterable[VectorMetadataRecord], *, prune: bool = False
+    ) -> VectorSyncSummary:
+        """Refresh canonical metadata without rewriting compatible vectors."""
+        values = tuple(records)
+        if any(not isinstance(record, VectorMetadataRecord) for record in values):
+            raise VectorStoreInvalidInputError("metadata records are invalid")
+        identities = [(item.product_id, item.language) for item in values]
+        if len(identities) != len(set(identities)):
+            raise VectorStoreInvalidInputError("metadata identities must be unique")
+        updated = reused = 0
+        try:
+            with self._transaction() as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                for item in sorted(values, key=lambda value: (value.product_id, value.language, value.slug)):
+                    stored = connection.execute(
+                        "SELECT content_hash, slug, category, price_rupiah FROM product_embeddings "
+                        "WHERE product_id = ? AND language = ? AND space_key = ?",
+                        (item.product_id, item.language, self.vector_space.key),
+                    ).fetchone()
+                    if stored is None or stored[0] != item.content_hash:
+                        raise VectorStoreIncompatibleSpaceError(
+                            "stored vector metadata does not match canonical semantic content"
+                        )
+                    current = (stored[1], stored[2], stored[3])
+                    expected = (item.slug, item.category.strip(), item.price_rupiah)
+                    if current == expected:
+                        reused += 1
+                    else:
+                        connection.execute(
+                            "UPDATE product_embeddings SET slug = ?, category = ?, price_rupiah = ? "
+                            "WHERE product_id = ? AND language = ? AND space_key = ?",
+                            (*expected, item.product_id, item.language, self.vector_space.key),
+                        )
+                        updated += 1
+                pruned = 0
+                if prune:
+                    keep = set(identities)
+                    stored_identities = connection.execute(
+                        "SELECT product_id, language FROM product_embeddings WHERE space_key = ?",
+                        (self.vector_space.key,),
+                    ).fetchall()
+                    remove = sorted(set(stored_identities) - keep)
+                    for identity in remove:
+                        connection.execute(
+                            "DELETE FROM product_embeddings WHERE product_id = ? AND language = ? "
+                            "AND space_key = ?",
+                            (*identity, self.vector_space.key),
+                        )
+                    pruned = len(remove)
+                return VectorSyncSummary(reused=reused, metadata_updated=updated, pruned=pruned)
+        except (VectorStoreInvalidInputError, VectorStoreIncompatibleSpaceError):
+            raise
+        except sqlite3.Error as exc:
+            _raise_sqlite_store_error("vector metadata synchronization failed", exc)
 
     def search(self, request: VectorSearchRequest) -> tuple[VectorSearchResult, ...]:
         if not isinstance(request, VectorSearchRequest):
@@ -277,7 +379,7 @@ class SQLiteVectorStore:
             with self._transaction() as connection:
                 rows = connection.execute(sql, parameters).fetchall()
         except sqlite3.Error as exc:
-            raise VectorStoreCorruptionError("vector search failed") from exc
+            _raise_sqlite_store_error("vector search failed", exc)
         query_norm = float(np.linalg.norm(query))
         results = []
         for row in rows:

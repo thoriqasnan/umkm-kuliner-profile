@@ -2,7 +2,7 @@
 
 Sari Rasa is a full-stack learning and portfolio application for a local Indonesian culinary business. Customers can browse a bilingual menu, maintain a guest or account-backed cart, and hand an order off to WhatsApp. Authenticated administrators can manage the product catalog.
 
-The currently implemented system uses a vanilla browser frontend, an Express API, and SQLite persistence. A separate local Python workspace contains the analytics pipeline and deterministic next-day quantity forecasting. The dashboard derives compact cached aggregates from the same 750,000-row V2 history used by ML; its 11 products exactly match the application catalog, and raw rows never leave Python. That source spans 693 days and produces only 664 supervised forecasting observations—not 750,000 ML training examples. The Admin Analytics dashboard presents the production HGB next-day forecast and a separate experimental MLP comparison through strictly validated FastAPI → Node gateways. All synthetic data is fictional.
+The currently implemented system uses a vanilla browser frontend, an Express API, and SQLite persistence. A separate local Python workspace contains the analytics pipeline, deterministic next-day quantity forecasting, and the read-only AI menu-assistant runtime reached through Node. The dashboard derives compact cached aggregates from the same 750,000-row V2 history used by ML; its 11 products exactly match the application catalog, and raw rows never leave Python. That source spans 693 days and produces only 664 supervised forecasting observations—not 750,000 ML training examples. The Admin Analytics dashboard presents the production HGB next-day forecast and a separate experimental MLP comparison through strictly validated FastAPI → Node gateways. All synthetic data is fictional.
 
 ## Implemented features
 
@@ -43,6 +43,14 @@ The currently implemented system uses a vanilla browser frontend, an Express API
 - Independent loading/error/retry behavior, effective-admin lifecycle caching, stale-response protection, responsive layout, accessibility, and Indonesian/English presentation
 - Experimental model comparison over the common frozen TEST period: production HGB, experimental PyTorch MLP, and previous-week benchmark
 
+### AI menu assistant
+
+- Responsive bilingual menu assistant using the native modal dialog and the Node → FastAPI AI boundary
+- Panel chrome follows the website language, while each AI answer follows the current message's clear Indonesian/English language and uses the website language only as an ambiguity fallback
+- Desktop, narrow/mobile, short-height, keyboard, touch-sized viewport, and reduced-motion behavior verified through Phase 8G manual acceptance
+- Keyboard-operable citations close the assistant and focus/highlight the referenced menu item without incorrectly restoring focus to the launcher
+- One polite/atomic status live region announces loading and a concise localized response-ready message; it does not automatically read the full AI response or move focus
+
 ### Engineering quality
 
 - Permanent backend, database, and frontend regression suites
@@ -58,7 +66,7 @@ The currently implemented system uses a vanilla browser frontend, an Express API
 |---|---|
 | Frontend | Semantic HTML, CSS, vanilla browser JavaScript, browser `localStorage` and `<dialog>` APIs |
 | Backend | Node.js 22+, Express 5, CommonJS |
-| Python data service | FastAPI and Uvicorn (health, analytics, production forecast, and experimental comparison endpoints) |
+| Python data/AI service | FastAPI and Uvicorn (health, analytics, forecasting, model comparison, and menu-assistant endpoints) |
 | ML/DL development | Pandas/NumPy feature preparation, scikit-learn HGB, and a small CPU PyTorch MLP |
 | Database | SQLite through `better-sqlite3` |
 | Authentication and security | bcrypt password hashing, HMAC-signed cookies, HttpOnly/SameSite/Secure cookie controls, CORS, role middleware, in-memory rate limiting |
@@ -71,7 +79,7 @@ flowchart LR
     Browser[Browser<br/>HTML, CSS, JavaScript]
     API[Express API<br/>Node.js]
     DB[(SQLite)]
-    PY[Python FastAPI<br/>Analytics]
+    PY[Python FastAPI<br/>Analytics and AI]
     CSV[(Canonical CSV)]
     WA[WhatsApp]
 
@@ -90,8 +98,9 @@ See [Architecture](docs/ARCHITECTURE.md) for component boundaries, security deci
 
 | What are you running? | Required processes |
 |---|---|
-| **Normal website** | Frontend + Node/Express ✅ — Python is not required |
-| **Analytics / Forecast** | Frontend + Node/Express + Python FastAPI ✅ |
+| **Normal website** | Frontend + Node/Express — Python is not required |
+| **Analytics / Forecast** | Frontend + Node/Express + Python FastAPI |
+| **AI menu assistant** | Frontend + Node/Express + Python FastAPI and configured AI runtime |
 
 One-time Node setup from the repository root requires Node.js 22+, npm, and VS Code Live Server:
 
@@ -124,13 +133,13 @@ VS Code → Live Server → Go Live (port 5500)
 
 - Website: `http://localhost:5500`
 
-### Terminal 3 — Python FastAPI (Analytics / Forecast only)
+### Terminal 3 — Python FastAPI (Analytics / Forecast / AI)
 
 Working directory: `python/`. Activate the existing repository-level virtual environment, then start FastAPI:
 
 ```sh
 source ../.venv/bin/activate
-uvicorn sari_rasa_data.service:app --reload --app-dir src
+(set -a && source ../.env && exec uvicorn sari_rasa_data.service:app --reload --app-dir src)
 ```
 
 - Service: `http://127.0.0.1:8000`
@@ -159,9 +168,9 @@ Python is not needed for authentication, admin management, password recovery, em
 | `SARI_RASA_ML_DATASET_PATH` | No | Trusted V2 forecast/inference CSV path. Defaults to `python/data/transactions_ml_v2.csv`. |
 | `SARI_RASA_MODEL_ARTIFACT_PATH` | No | Trusted production HGB joblib path. Defaults to the generated V2 artifact. |
 | `SARI_RASA_DL_MODEL_ARTIFACT_PATH` | No | Trusted experimental MLP artifact path. Defaults to ignored `python/models/next_day_quantity_mlp_v1.pt`. |
-| `SARI_RASA_LLM_PROVIDER` | Only for explicit Gemini calls | Must currently be `gemini`; normal website startup does not load it. |
-| `SARI_RASA_LLM_MODEL` | Only for explicit Gemini calls | Environment-configurable Gemini text model; Phase 7A live acceptance verified `gemini-3.1-flash-lite`, with intentionally no code default. |
-| `SARI_RASA_LLM_API_KEY` | Only for explicit Gemini calls | Server-side Gemini credential; never commit, paste into chat, or log it. |
+| `SARI_RASA_LLM_PROVIDER` | For live AI assistant | Must currently be `gemini`; basic website and non-AI features do not require it. |
+| `SARI_RASA_LLM_MODEL` | For live AI assistant | Environment-configurable Gemini text model; Phase 7A live acceptance verified `gemini-3.1-flash-lite`, with intentionally no code default. |
+| `SARI_RASA_LLM_API_KEY` | For live AI assistant | Server-side Gemini credential; never commit, paste into chat, or log it. |
 | `SARI_RASA_LLM_TIMEOUT_SECONDS` | No | Bounded Gemini request timeout; defaults to 10 seconds and accepts 0.1–60. |
 
 Phase 7D embeddings are local-first and use no API key or paid embedding API. The verified configurable model is `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` on CPU; loading is lazy, and the offline acceptance uses its provisioned local cache.
@@ -292,15 +301,18 @@ These controls are appropriate to the current learning project; they are not a c
 - Phase 6-EXT-G — Security + Integration: verified complete (automated and core manual integration acceptance passed)
 - Phase 6-EXT-H — Documentation + Final Quality Gate: verified complete
 - Phase 6-EXT overall — verified complete
-- Phase 7A — LLM API Fundamentals: ✅ verified complete after automated verification and real Gemini Developer API live acceptance with `gemini-3.1-flash-lite`.
-- Phase 7B — Prompt Engineering: ✅ verified complete. Its deterministic offline contract verification is supplemented by successful downstream controlled Gemini acceptance through Phases 7C, 7F, 7G, and 7H.
-- Phase 7C — Structured Output / Tools: ✅ verified complete after offline regression and real Gemini acceptance with `gemini-3.1-flash-lite`.
-- Phase 7D — Embeddings: ✅ verified complete after automated regression and real local Indonesian/English acceptance with the configurable 384-dimensional `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` model. It provides deterministic catalog text/hash contracts, an offline fake, deterministic batching, and a lazy CPU-first adapter, with no storage or retrieval.
-- Phase 7E — Vector DB: ✅ verified complete after automated verification and real local acceptance with cached 384-dimensional sentence-transformer vectors. Its derived SQLite/NumPy index provides compatible vector-space isolation, deterministic synchronization, and exact bounded cosine retrieval while canonical product data remains authoritative.
-- Phase 7F — RAG: ✅ verified complete after automated verification and controlled live acceptance with the cached multilingual embedding model and `gemini-3.1-flash-lite`. The read-only pipeline embeds a query, retrieves from the derived 7E index, re-resolves and freshness-checks current canonical `PublicMenuItem` facts, supplies at most five request-local `menu:N` evidence items to the zero-tool structured LLM path, and validates exact citations.
-- Phase 7G — AI Agents: ✅ verified complete after automated verification and three-scenario controlled Gemini acceptance. The bounded read-only recommendation agent may search, make one distinct refinement search, finish, or safely report that it cannot complete. It has one semantic `search_menu` tool, at most three decisions, two tool calls, and five request-local evidence items, with immutable request-local state, no persistent memory, and no exposed chain of thought.
-- Phase 7H — AI Evaluation: ✅ verified complete. The fixed 12-case benchmark progressed from V1 MiniLM (`50.0%` Hit@1) through V2 and hybrid experiments to the user-verified E5 + V2 + hybrid result: Hit@1 `100.0%`, Hit@3 `100.0%`, Recall@5 `100.0%`, MRR `1.0000`, and bilingual both-Hit@1 `100.0%`. Controlled Gemini passed `8/8`, all hard safety gates passed, and human faithfulness/relevance review scored `16/16` each. This is a small controlled benchmark, not a universal accuracy claim.
-- Phase 7 — AI Engineering: ✅ verified complete. E5 + V2 + hybrid is the preferred verified Phase 8 retrieval handoff; existing MiniLM runtime/default behavior remains unchanged and reproducible.
+- Phase 7A — LLM API Fundamentals: verified complete after automated verification and real Gemini Developer API live acceptance with `gemini-3.1-flash-lite`.
+- Phase 7B — Prompt Engineering: verified complete. Its deterministic offline contract verification is supplemented by successful downstream controlled Gemini acceptance through Phases 7C, 7F, 7G, and 7H.
+- Phase 7C — Structured Output / Tools: verified complete after offline regression and real Gemini acceptance with `gemini-3.1-flash-lite`.
+- Phase 7D — Embeddings: verified complete after automated regression and real local Indonesian/English acceptance with the configurable 384-dimensional `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` model. It provides deterministic catalog text/hash contracts, an offline fake, deterministic batching, and a lazy CPU-first adapter, with no storage or retrieval.
+- Phase 7E — Vector DB: verified complete after automated verification and real local acceptance with cached 384-dimensional sentence-transformer vectors. Its derived SQLite/NumPy index provides compatible vector-space isolation, deterministic synchronization, and exact bounded cosine retrieval while canonical product data remains authoritative.
+- Phase 7F — RAG: verified complete after automated verification and controlled live acceptance with the cached multilingual embedding model and `gemini-3.1-flash-lite`. The read-only pipeline embeds a query, retrieves from the derived 7E index, re-resolves and freshness-checks current canonical `PublicMenuItem` facts, supplies at most five request-local `menu:N` evidence items to the zero-tool structured LLM path, and validates exact citations.
+- Phase 7G — AI Agents: verified complete after automated verification and three-scenario controlled Gemini acceptance. The bounded read-only recommendation agent may search, make one distinct refinement search, finish, or safely report that it cannot complete. It has one semantic `search_menu` tool, at most three decisions, two tool calls, and five request-local evidence items, with immutable request-local state, no persistent memory, and no exposed chain of thought.
+- Phase 7H — AI Evaluation: verified complete. The fixed 12-case benchmark progressed from V1 MiniLM (`50.0%` Hit@1) through V2 and hybrid experiments to the user-verified E5 + V2 + hybrid result: Hit@1 `100.0%`, Hit@3 `100.0%`, Recall@5 `100.0%`, MRR `1.0000`, and bilingual both-Hit@1 `100.0%`. Controlled Gemini passed `8/8`, all hard safety gates passed, and human faithfulness/relevance review scored `16/16` each. This is a small controlled benchmark, not a universal accuracy claim.
+- Phase 7 — AI Engineering: verified complete. E5 + V2 + hybrid is the preferred verified Phase 8 retrieval handoff; existing MiniLM runtime/default behavior remains unchanged and reproducible.
+- Phase 8A–8H: verified complete. Phase 8H reconciles verified deadline/admission, diagnostics/readiness, generated-index recovery, abuse/response bounds, per-message ID/EN answer selection independent of website-language chrome, and a cwd-independent generated E5 index at `<repo>/python/data/sari_rasa_phase8_e5_vectors.db`.
+- Phase 8I: **verified complete**. Deterministic integrated evaluation reuses the Phase 7H dataset/metrics and Phase 8 suites, adds a real loopback Node → FastAPI HTTP-contract seam, and repeats the local-only E5 + V2 + hybrid benchmark at 100% Hit@1/Hit@3/Recall@5/bilingual both-Hit@1 and MRR 1.0000. Automated evaluation made no Gemini or external network calls; required live/manual acceptance subsequently passed grounded bilingual and ambiguous-fallback behavior, citation navigation, public-data/read-only boundaries, unsupported-allergen handling, cart/auth smoke, and final health/readiness. These controlled results are not universal accuracy or reliability claims.
+- Phase 8J and aggregate Phase 8: **verified complete**. A pre-8J browser finding showed that short Indonesian conversational text could tie the bounded language selector and incorrectly use English UI fallback. The selector now recognizes a small set of general ID/EN conversational markers; focused and complete regressions passed. User-performed browser acceptance confirmed Indonesian response under English UI, English response under Indonesian UI, ambiguous `Soto?` fallback in both UI languages, preserved historical answer text and canonical product names, and functional source navigation/highlighting. The repository is ready for the separately approved Phase-8 Git checkpoint.
 
 See the [Project Roadmap](ROADMAP.md) for the approved phase sequence and current source of truth.
 

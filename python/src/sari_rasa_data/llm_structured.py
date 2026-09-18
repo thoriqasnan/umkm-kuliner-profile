@@ -11,6 +11,12 @@ from .llm_contracts import (
     LLMStructuredOutputParseError,
 )
 from .menu_prompts import PublicMenuItem
+from .ai_contracts import (
+    MAX_AI_ANSWER_LENGTH,
+    MAX_AI_LIMITATION_LENGTH,
+    MAX_AI_LIMITATIONS,
+    MAX_AI_SOURCES,
+)
 
 
 STRUCTURED_MENU_SCHEMA_VERSION = "phase-7c.public-menu-response.v1"
@@ -19,10 +25,13 @@ MAX_TOOL_CALLS = 2
 PUBLIC_MENU_RESPONSE_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
-        "answer": {"type": "string"},
-        "sources": {"type": "array", "items": {"type": "string"}},
+        "answer": {"type": "string", "maxLength": MAX_AI_ANSWER_LENGTH},
+        "sources": {"type": "array", "maxItems": MAX_AI_SOURCES, "items": {"type": "string"}},
         "insufficient_information": {"type": "boolean"},
-        "limitations": {"type": "array", "items": {"type": "string"}},
+        "limitations": {
+            "type": "array", "maxItems": MAX_AI_LIMITATIONS,
+            "items": {"type": "string", "maxLength": MAX_AI_LIMITATION_LENGTH},
+        },
         "language": {"type": "string", "enum": ["id", "en"]},
     },
     "required": [
@@ -131,7 +140,11 @@ def parse_structured_menu_response(
     insufficient = value["insufficient_information"]
     limitations = value["limitations"]
     language = value["language"]
-    if not isinstance(answer, str) or not answer.strip():
+    if (
+        not isinstance(answer, str)
+        or not answer.strip()
+        or len(answer.strip()) > MAX_AI_ANSWER_LENGTH
+    ):
         raise LLMStructuredContractError("answer must be a non-blank string")
     if not isinstance(sources, list) or any(
         not isinstance(source, str) or not source.strip() for source in sources
@@ -139,6 +152,8 @@ def parse_structured_menu_response(
         raise LLMStructuredContractError("sources must be a list of non-blank strings")
     if len(sources) != len(set(sources)):
         raise LLMStructuredContractError("sources must not contain duplicates")
+    if len(sources) > MAX_AI_SOURCES:
+        raise LLMStructuredContractError("sources exceed the bounded contract")
     unknown = set(sources) - allowed_source_ids
     if unknown:
         raise LLMSourceValidationError("structured response contains an unknown source ID")
@@ -148,7 +163,9 @@ def parse_structured_menu_response(
         not isinstance(item, str) or not item.strip() for item in limitations
     ):
         raise LLMStructuredContractError("limitations must be a list of non-blank strings")
-    if len(limitations) > 10 or any(len(item) > 256 for item in limitations):
+    if len(limitations) > MAX_AI_LIMITATIONS or any(
+        len(item) > MAX_AI_LIMITATION_LENGTH for item in limitations
+    ):
         raise LLMStructuredContractError("limitations exceed the bounded contract")
     if language not in ("id", "en"):
         raise LLMStructuredContractError("language must be 'id' or 'en'")

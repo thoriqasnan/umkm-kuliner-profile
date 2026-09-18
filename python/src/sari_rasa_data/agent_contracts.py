@@ -149,6 +149,7 @@ class AgentDecisionRequest:
     allowed_source_ids: frozenset[str]
     terminal_only: bool
     search_required: bool = False
+    timeout_seconds: float | None = None
     schema_version: str = AGENT_ACTION_SCHEMA_VERSION
 
     def __post_init__(self) -> None:
@@ -160,6 +161,12 @@ class AgentDecisionRequest:
             raise AgentInvalidRequestError("terminal_only must be a boolean")
         if not isinstance(self.search_required, bool):
             raise AgentInvalidRequestError("search_required must be a boolean")
+        if self.timeout_seconds is not None and (
+            isinstance(self.timeout_seconds, bool)
+            or not isinstance(self.timeout_seconds, (int, float))
+            or self.timeout_seconds <= 0
+        ):
+            raise AgentInvalidRequestError("timeout_seconds must be positive when supplied")
         if self.search_required and self.terminal_only:
             raise AgentInvalidRequestError(
                 "a decision cannot require search and be terminal-only"

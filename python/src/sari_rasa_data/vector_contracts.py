@@ -33,6 +33,10 @@ class VectorStoreCorruptionError(VectorStoreError):
     pass
 
 
+class VectorStoreStorageError(VectorStoreError):
+    """Non-rebuildable or transient storage failure."""
+
+
 @dataclass(frozen=True)
 class VectorSpace:
     provider: str
@@ -123,6 +127,38 @@ class VectorSyncSummary:
     replaced: int = 0
     metadata_updated: int = 0
     pruned: int = 0
+
+
+@dataclass(frozen=True)
+class VectorMetadataRecord:
+    product_id: int
+    slug: str
+    language: VectorLanguage
+    content_hash: str
+    category: str
+    price_rupiah: int
+
+    def __post_init__(self) -> None:
+        if isinstance(self.product_id, bool) or not isinstance(self.product_id, int) or self.product_id <= 0:
+            raise VectorStoreInvalidInputError("metadata product identity is invalid")
+        if not isinstance(self.slug, str) or not self.slug.strip():
+            raise VectorStoreInvalidInputError("metadata slug is invalid")
+        if self.language not in ("id", "en"):
+            raise VectorStoreInvalidInputError("metadata language is invalid")
+        if (
+            not isinstance(self.content_hash, str)
+            or len(self.content_hash) != 64
+            or any(character not in "0123456789abcdef" for character in self.content_hash)
+        ):
+            raise VectorStoreInvalidInputError("metadata content hash is invalid")
+        if not isinstance(self.category, str) or not self.category.strip():
+            raise VectorStoreInvalidInputError("metadata category is invalid")
+        if (
+            isinstance(self.price_rupiah, bool)
+            or not isinstance(self.price_rupiah, int)
+            or self.price_rupiah < 0
+        ):
+            raise VectorStoreInvalidInputError("metadata price is invalid")
 
 
 @dataclass(frozen=True)

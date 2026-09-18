@@ -9,86 +9,74 @@ Frontend → Backend/API → Full-Stack Engineering → Engineering Quality → 
 
 ## Roadmap Status Legend
 
-- ✅ **VERIFIED COMPLETE** — implementation, automated/static verification, serta required manual acceptance/integration testing selesai.
-- 🟡 **PROVISIONALLY COMPLETE** — implementation, automated/static checks, dan review selesai, tetapi feature-group/manual acceptance checkpoint belum dilakukan.
-- 🔄 **IN PROGRESS** — pekerjaan fase sedang berlangsung.
-- ⏭️ **NEXT** — fase terdekat setelah pekerjaan aktif.
-- ⏳ **PLANNED** — arah disetujui tetapi belum diimplementasikan.
+- **VERIFIED COMPLETE** — implementation, automated/static verification, serta required manual acceptance/integration testing selesai.
+- **PROVISIONALLY COMPLETE** — implementation, automated/static checks, dan review selesai, tetapi feature-group/manual acceptance checkpoint belum dilakukan.
+- **IN PROGRESS** — pekerjaan fase sedang berlangsung.
+- **NEXT** — fase terdekat setelah pekerjaan aktif.
+- **PLANNED** — arah disetujui tetapi belum diimplementasikan.
 
 ## Phase 1 — Frontend Foundation
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Fondasi mencakup semantic HTML, CSS dan responsive UI, JavaScript DOM interaction, rendering menu/product, filtering, internationalization, cart/UI fundamentals, serta WhatsApp checkout flow.
 
 ## Phase 2 — Backend & API
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Fondasi mencakup Node.js, Express, REST-style API, komunikasi frontend/backend, CORS, API error handling, dan product data yang disajikan backend.
 
 ## Phase 3 — Full-Stack Application
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Kemampuan terverifikasi mencakup SQLite persistence, database-backed products/users, authentication, session handling, authorization dan role-aware behavior, admin product management, UX/error handling, serta persistent cart.
 
 Verified Phase 3D sequence:
 
 ```text
-Phase 3D — Admin & User Experience                         ✅
-├── 3D-1 Frontend Authentication UI                       ✅
-├── 3D-2 Authentication State                             ✅
-├── 3D-3 Admin Dashboard Foundation                       ✅
-├── 3D-4 Admin Product Management UI                      ✅
-├── 3D-5 Role-Based UI                                    ✅
-├── 3D-6 UX & Error Handling                              ✅
-└── 3D-7 Persistent Cart                                  ✅
-    ├── 3D-7A Cart State Foundation                       ✅
-    ├── 3D-7B Authenticated Cart DB/API                   ✅
-    ├── 3D-7C Guest/Auth Integration                      ✅
-    └── 3D-7D Integration + Regression                    ✅
-```
+Phase 3D — Admin & User Experience                         ├── 3D-1 Frontend Authentication UI                       ├── 3D-2 Authentication State                             ├── 3D-3 Admin Dashboard Foundation                       ├── 3D-4 Admin Product Management UI                      ├── 3D-5 Role-Based UI                                    ├── 3D-6 UX & Error Handling                              └── 3D-7 Persistent Cart                                      ├── 3D-7A Cart State Foundation                           ├── 3D-7B Authenticated Cart DB/API                       ├── 3D-7C Guest/Auth Integration                          └── 3D-7D Integration + Regression                    ```
 
 Exact historical names for Phase 3A/3B/3C are intentionally not reconstructed without repository evidence.
 
 ## Quality Gate — Engineering Foundation
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 This Quality Gate is intentionally **not Phase 4**. Its purpose is to stabilize the JavaScript full-stack application before Python, data, ML, and AI complexity is added.
 
 ### Automated Regression Foundation
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 ```text
-A — Safe Testability Seam                                 ✅ VERIFIED COMPLETE
-B — Backend & Database Regression Suite                   ✅ VERIFIED COMPLETE
-C — Frontend VM Regression Suite                          ✅ VERIFIED COMPLETE
-D — Combined Runner, Safety Audit & Final Integration     ✅ VERIFIED COMPLETE
-    Automated verification                                ✅ COMPLETE
-    User-performed Safari acceptance                       ✅ COMPLETE
+A — Safe Testability Seam                                 VERIFIED COMPLETE
+B — Backend & Database Regression Suite                   VERIFIED COMPLETE
+C — Frontend VM Regression Suite                          VERIFIED COMPLETE
+D — Combined Runner, Safety Audit & Final Integration     VERIFIED COMPLETE
+    Automated verification                                COMPLETE
+    User-performed Safari acceptance                       COMPLETE
 ```
 
-The Automated Regression Foundation is ✅ **VERIFIED COMPLETE** after implementation, repeated automated/static verification, specialist and independent review, and explicit user-performed Safari acceptance. Together with the verified Project Documentation / Runbook, it completes the Engineering Foundation Quality Gate.
+The Automated Regression Foundation is **VERIFIED COMPLETE** after implementation, repeated automated/static verification, specialist and independent review, and explicit user-performed Safari acceptance. Together with the verified Project Documentation / Runbook, it completes the Engineering Foundation Quality Gate.
 
 ### Project Documentation / Runbook
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 ```text
-A — Documentation Audit & Plan                         ✅ COMPLETE
-B — README & Architecture                              ✅ VERIFIED COMPLETE
-C — Setup / Operations Runbook                         ✅ VERIFIED COMPLETE
-D — Final Documentation Verification                   ✅ VERIFIED COMPLETE
+A — Documentation Audit & Plan                         COMPLETE
+B — README & Architecture                              VERIFIED COMPLETE
+C — Setup / Operations Runbook                         VERIFIED COMPLETE
+D — Final Documentation Verification                   VERIFIED COMPLETE
 ```
 
 The completed documentation covers local setup, environment variables, frontend/backend startup, test commands, architecture overview, troubleshooting, manual verification, and project learning summary. Final static checks, the 56-test regression suite, independent review, and user-performed manual acceptance have passed.
 
 ## Phase 4 — Python & Data
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Phase 4 is the bridge between the verified full-stack engineering foundation and the later Machine Learning and AI Engineering phases. Python will be introduced through application-relevant data problems rather than isolated syntax exercises.
 
@@ -117,14 +105,14 @@ This is an approved planning boundary, not a description of currently implemente
 
 ### 4A — Python Foundation & Environment
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Verified subphases:
 
 ```text
-4A-1 Python Foundation Scaffold                          ✅ VERIFIED COMPLETE
-4A-2 Core Python Fundamentals & Error Handling            ✅ VERIFIED COMPLETE
-4A-3 Python Foundation Finalization                       ✅ VERIFIED COMPLETE
+4A-1 Python Foundation Scaffold                          VERIFIED COMPLETE
+4A-2 Core Python Fundamentals & Error Handling            VERIFIED COMPLETE
+4A-3 Python Foundation Finalization                       VERIFIED COMPLETE
 ```
 
 4A-1 established a repository-local `.venv`, the minimal `python/` workspace, a small foundation module (`sari_rasa_data.foundation`), and a passing pytest suite. 4A-2 extended `sari_rasa_data.foundation` with list/dict/loop processing, conditions, and function composition over UMKM-style order data, and added a new `sari_rasa_data.io_utils` module for pathlib-based JSON read/write. 4A-3 added a small `__main__.py` entry point so the package can be executed with `python -m sari_rasa_data`, added tests for that entry point, and consolidated documentation for the finished foundation. Independent final verification confirmed deterministic package execution and 36 passing Python tests. At the 4A checkpoint, no Phase 4B data handling, FastAPI, ML, or AI work had started.
@@ -175,15 +163,15 @@ At the Phase 4A checkpoint, `pytest` was the only external Python dependency. Ph
 
 ### 4B — Data Handling & Transformation
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Approved subphases:
 
 ```text
-4B-1 Dataset Foundation & Schema                         ✅ VERIFIED COMPLETE
-4B-2 CSV/JSON Loading & Validation                       ✅ VERIFIED COMPLETE
-4B-3 Cleaning & Transformation                           ✅ VERIFIED COMPLETE
-4B-4 Aggregation & Final Verification                    ✅ VERIFIED COMPLETE
+4B-1 Dataset Foundation & Schema                         VERIFIED COMPLETE
+4B-2 CSV/JSON Loading & Validation                       VERIFIED COMPLETE
+4B-3 Cleaning & Transformation                           VERIFIED COMPLETE
+4B-4 Aggregation & Final Verification                    VERIFIED COMPLETE
 ```
 
 4B-1 introduces a small canonical synthetic transaction dataset at `python/data/transactions.csv` and a beginner-readable schema module at `sari_rasa_data.transactions`. The canonical dataset and schema contract passed the complete Python suite and independent read-only review. It does not implement whole-dataset loading, cleaning, transformation, aggregation, analytics, a service, ML, or AI.
@@ -220,15 +208,15 @@ The planned dataset is a synthetic UMKM transaction dataset relevant to the exis
 
 ### 4C — Data Analysis with Pandas & NumPy
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Approved subphases:
 
 ```text
-4C-1 Pandas Foundation & DataFrame                       ✅ VERIFIED COMPLETE
-4C-2 Filtering, Grouping & Aggregation                   ✅ VERIFIED COMPLETE
-4C-3 NumPy & Basic Statistics                            ✅ VERIFIED COMPLETE
-4C-4 Analysis Pipeline & Final Review                    ✅ VERIFIED COMPLETE
+4C-1 Pandas Foundation & DataFrame                       VERIFIED COMPLETE
+4C-2 Filtering, Grouping & Aggregation                   VERIFIED COMPLETE
+4C-3 NumPy & Basic Statistics                            VERIFIED COMPLETE
+4C-4 Analysis Pipeline & Final Review                    VERIFIED COMPLETE
 ```
 
 4C-1 introduces Pandas and NumPy as the only new dependencies and adds a small DataFrame bridge over the verified Phase 4B records. Canonical CSV loading still passes through Phase 4B validation, cleaning, and transformation before DataFrame construction. At the 4C-1 checkpoint, the complete Python suite, deterministic DataFrame smoke test, and independent read-only review passed; filtering, grouping, Pandas analytics, and explicit NumPy analysis had not started.
@@ -237,7 +225,7 @@ Approved subphases:
 
 4C-3 adds `sari_rasa_data.numpy_analysis`, a small function-based module that converts approved numeric DataFrame columns (`quantity`, `unit_price`, `line_total`) into NumPy arrays without mutating the DataFrame, and computes mean, median, min, max, population standard deviation, and percentiles as plain JSON-compatible Python scalars. Statistics on an empty array raise `ValueError` rather than returning NumPy's silent NaN. The complete Python suite, deterministic canonical smoke analysis, and independent read-only review passed.
 
-4C-4 adds `sari_rasa_data.synthetic_data`, a deterministic (fixed-seed) large synthetic transaction generator producing a separate 10,000-line dataset at `python/data/transactions_large.csv`, and `sari_rasa_data.analysis_pipeline`, which composes the existing Phase 4B/4C-1/4C-2/4C-3 functions into one JSON-compatible summary (order-level average order value, category/product/time/payment breakdowns, and NumPy statistics). The small 30-row canonical fixture remains untouched. Implementation, the complete Python test suite, deterministic-regeneration verification, the large-dataset smoke analysis, and independent read-only review all passed. The user then personally performed the manual acceptance walkthrough — inspecting the generated dataset, confirming 10,000 transaction lines, running the integrated analysis pipeline, and verifying both dataset checksums — and it passed. 4C-4 and Phase 4C as a whole are therefore ✅ **VERIFIED COMPLETE**.
+4C-4 adds `sari_rasa_data.synthetic_data`, a deterministic (fixed-seed) large synthetic transaction generator producing a separate 10,000-line dataset at `python/data/transactions_large.csv`, and `sari_rasa_data.analysis_pipeline`, which composes the existing Phase 4B/4C-1/4C-2/4C-3 functions into one JSON-compatible summary (order-level average order value, category/product/time/payment breakdowns, and NumPy statistics). The small 30-row canonical fixture remains untouched. Implementation, the complete Python test suite, deterministic-regeneration verification, the large-dataset smoke analysis, and independent read-only review all passed. The user then personally performed the manual acceptance walkthrough — inspecting the generated dataset, confirming 10,000 transaction lines, running the integrated analysis pipeline, and verifying both dataset checksums — and it passed. 4C-4 and Phase 4C as a whole are therefore **VERIFIED COMPLETE**.
 
 Learning objectives:
 
@@ -257,24 +245,24 @@ The Phase 4 dataset should be designed so it can potentially continue into Phase
 
 ### 4D — Python Data Service
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Approved subphases:
 
 ```text
-4D-1 FastAPI Foundation & Health Endpoint                ✅ VERIFIED COMPLETE
-4D-2 Analytics Summary API                               ✅ VERIFIED COMPLETE
-4D-3 Products & Categories API                           ✅ VERIFIED COMPLETE
-4D-4 Error Handling & Final Verification                 ✅ VERIFIED COMPLETE
+4D-1 FastAPI Foundation & Health Endpoint                VERIFIED COMPLETE
+4D-2 Analytics Summary API                               VERIFIED COMPLETE
+4D-3 Products & Categories API                           VERIFIED COMPLETE
+4D-4 Error Handling & Final Verification                 VERIFIED COMPLETE
 ```
 
-4D-1 adds an importable `sari_rasa_data.service:app` FastAPI boundary and the intentionally small `GET /health` contract. Health returns `{"status":"ok"}` without reading datasets, running analytics, accessing SQLite, or depending on Node.js. Implementation, 3 targeted service tests, the complete 196-test Python regression suite, documentation, independent review, and user-performed manual API acceptance all passed. Manual acceptance confirmed that Uvicorn started successfully and `GET /health` returned HTTP 200, an `application/json` content type, and the expected response body. 4D-1 is therefore ✅ **VERIFIED COMPLETE**. No analytics endpoint or Node-to-Python integration is implemented at this checkpoint; 4D-2 is the next engineering task.
+4D-1 adds an importable `sari_rasa_data.service:app` FastAPI boundary and the intentionally small `GET /health` contract. Health returns `{"status":"ok"}` without reading datasets, running analytics, accessing SQLite, or depending on Node.js. Implementation, 3 targeted service tests, the complete 196-test Python regression suite, documentation, independent review, and user-performed manual API acceptance all passed. Manual acceptance confirmed that Uvicorn started successfully and `GET /health` returned HTTP 200, an `application/json` content type, and the expected response body. 4D-1 is therefore **VERIFIED COMPLETE**. No analytics endpoint or Node-to-Python integration is implemented at this checkpoint; 4D-2 is the next engineering task.
 
-4D-2 adds `GET /analytics/summary`, a compact JSON contract over the canonical `python/data/transactions.csv` dataset. The thin FastAPI route composes the verified Phase 4B/4C loading and analytics functions at request time and returns total revenue, distinct-order count, total quantity, and order-level average order value as plain numeric JSON values. Its deterministic source-relative path does not depend on the shell working directory or the generated large dataset. Implementation, 7 targeted service tests, the complete 200-test Python suite, documentation, independent review, and user-performed manual API acceptance all passed. Manual acceptance confirmed that `GET /health` returned HTTP 200 with `{"status":"ok"}` and `GET /analytics/summary` returned HTTP 200 with total revenue 745000, 20 unique orders, total quantity 53, and average order value 37250.0. 4D-2 is therefore ✅ **VERIFIED COMPLETE**. Product/category endpoints and Node-to-Python integration are not implemented; 4D-3 is the next engineering task.
+4D-2 adds `GET /analytics/summary`, a compact JSON contract over the canonical `python/data/transactions.csv` dataset. The thin FastAPI route composes the verified Phase 4B/4C loading and analytics functions at request time and returns total revenue, distinct-order count, total quantity, and order-level average order value as plain numeric JSON values. Its deterministic source-relative path does not depend on the shell working directory or the generated large dataset. Implementation, 7 targeted service tests, the complete 200-test Python suite, documentation, independent review, and user-performed manual API acceptance all passed. Manual acceptance confirmed that `GET /health` returned HTTP 200 with `{"status":"ok"}` and `GET /analytics/summary` returned HTTP 200 with total revenue 745000, 20 unique orders, total quantity 53, and average order value 37250.0. 4D-2 is therefore **VERIFIED COMPLETE**. Product/category endpoints and Node-to-Python integration are not implemented; 4D-3 is the next engineering task.
 
-4D-3 adds `GET /analytics/products` and `GET /analytics/categories` over the same canonical dataset. Product results contain name, total quantity, and total revenue, ordered by quantity descending and then name ascending; category results contain category and total revenue in alphabetical category order. The service composes the verified loading, product-ranking, and grouped aggregation functions without putting Pandas grouping in the routes. Implementation, 15 targeted service tests, the complete 208-test Python suite, documentation, independent review, and user-performed manual API acceptance all passed. Manual acceptance confirmed that `GET /health`, `GET /analytics/summary`, `GET /analytics/products`, and `GET /analytics/categories` returned HTTP 200 with their expected contracts, including the documented canonical product and category values in deterministic order. 4D-3 is therefore ✅ **VERIFIED COMPLETE**. Broader error handling and final verification remain 4D-4 work, and Node-to-Python integration is not implemented.
+4D-3 adds `GET /analytics/products` and `GET /analytics/categories` over the same canonical dataset. Product results contain name, total quantity, and total revenue, ordered by quantity descending and then name ascending; category results contain category and total revenue in alphabetical category order. The service composes the verified loading, product-ranking, and grouped aggregation functions without putting Pandas grouping in the routes. Implementation, 15 targeted service tests, the complete 208-test Python suite, documentation, independent review, and user-performed manual API acceptance all passed. Manual acceptance confirmed that `GET /health`, `GET /analytics/summary`, `GET /analytics/products`, and `GET /analytics/categories` returned HTTP 200 with their expected contracts, including the documented canonical product and category values in deterministic order. 4D-3 is therefore **VERIFIED COMPLETE**. Broader error handling and final verification remain 4D-4 work, and Node-to-Python integration is not implemented.
 
-4D-4 hardens and verifies the existing service without adding endpoints. Expected dataset, CSV parsing, validation, and analytics failures retain small endpoint-specific public HTTP 500 details while internal exception text and paths remain redacted. Final regression coverage verifies exact success contracts, deterministic ordering, canonical source-relative dataset use, independence from `transactions_large.csv` and the shell working directory, no import-time analytics/data access, and in-process service testing without Uvicorn. The service test dependency declaration was corrected, documentation was finalized, and the complete Python suite and independent cumulative Phase 4D review passed. Final user manual acceptance then confirmed that Uvicorn started successfully, all four endpoints returned their expected canonical responses and deterministic ordering, and the service stopped safely. 4D-4 and Phase 4D are therefore ✅ **VERIFIED COMPLETE**.
+4D-4 hardens and verifies the existing service without adding endpoints. Expected dataset, CSV parsing, validation, and analytics failures retain small endpoint-specific public HTTP 500 details while internal exception text and paths remain redacted. Final regression coverage verifies exact success contracts, deterministic ordering, canonical source-relative dataset use, independence from `transactions_large.csv` and the shell working directory, no import-time analytics/data access, and in-process service testing without Uvicorn. The service test dependency declaration was corrected, documentation was finalized, and the complete Python suite and independent cumulative Phase 4D review passed. Final user manual acceptance then confirmed that Uvicorn started successfully, all four endpoints returned their expected canonical responses and deterministic ordering, and the service stopped safely. 4D-4 and Phase 4D are therefore **VERIFIED COMPLETE**.
 
 Planned minimal service technology:
 
@@ -300,7 +288,7 @@ All four routes above are implemented Python-service contracts. Phase 4E now con
 
 ### 4E — Node.js ↔ Python Integration
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Target request flow:
 
@@ -330,11 +318,11 @@ Learning objectives:
 
 The frontend should not directly depend on the Python service unless a later explicitly approved architecture decision changes this boundary. Existing Node.js `fetch` capabilities are the approved minimal direction for Node-to-Python HTTP communication.
 
-Phase 4E adds three application-facing Node routes — `GET /api/analytics/summary`, `GET /api/analytics/products`, and `GET /api/analytics/categories` — backed by a small shared client using Node's built-in `fetch`. `PYTHON_SERVICE_URL` defaults to `http://127.0.0.1:8000`. Successful FastAPI JSON is explicitly validated and forwarded without chart-specific transformation. Requests have a three-second timeout and no retries; timeouts return a controlled HTTP 504, while connection, upstream status, JSON parsing, and response-contract failures return controlled HTTP 502 responses without exposing upstream details. Deterministic mock-upstream integration coverage and the complete 31-test backend plus 26-test frontend regression suites passed. Final user manual integration acceptance then proved the live Node → HTTP → FastAPI success path for summary, products, and categories, plus the controlled failure path: with FastAPI stopped, Node returned the expected HTTP 502 response and remained healthy at `GET /api/health`. Phase 4E is therefore ✅ **VERIFIED COMPLETE**. No frontend analytics UI or direct browser-to-FastAPI dependency was added.
+Phase 4E adds three application-facing Node routes — `GET /api/analytics/summary`, `GET /api/analytics/products`, and `GET /api/analytics/categories` — backed by a small shared client using Node's built-in `fetch`. `PYTHON_SERVICE_URL` defaults to `http://127.0.0.1:8000`. Successful FastAPI JSON is explicitly validated and forwarded without chart-specific transformation. Requests have a three-second timeout and no retries; timeouts return a controlled HTTP 504, while connection, upstream status, JSON parsing, and response-contract failures return controlled HTTP 502 responses without exposing upstream details. Deterministic mock-upstream integration coverage and the complete 31-test backend plus 26-test frontend regression suites passed. Final user manual integration acceptance then proved the live Node → HTTP → FastAPI success path for summary, products, and categories, plus the controlled failure path: with FastAPI stopped, Node returned the expected HTTP 502 response and remained healthy at `GET /api/health`. Phase 4E is therefore **VERIFIED COMPLETE**. No frontend analytics UI or direct browser-to-FastAPI dependency was added.
 
 ### 4F — Integration & Quality Gate
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Expected verification categories:
 
@@ -350,7 +338,7 @@ Expected verification categories:
 
 Exact test counts must come from implementation evidence and are intentionally not defined during planning.
 
-Phase 4F verifies the complete canonical-data → Python analytics → FastAPI → HTTP/JSON → Node gateway chain. The canonical checksum, 213-test Python suite, Python compilation/import checks, exact FastAPI routes, deterministic contracts, 31-test backend suite, 26-test frontend suite, failure behavior, security boundary, dependencies, and documentation all passed focused review. The deterministic mock-upstream suite remains the permanent Node integration test; a spawned-Uvicorn test was not added because it would couple `npm test` to a platform-specific `.venv`, introduce process/port lifecycle races, and duplicate the already-passed live Phase 4E manual acceptance. Final user acceptance then confirmed that the Node analytics summary returned HTTP 200 with the canonical result and Node health remained HTTP 200. Phase 4F and Phase 4 are therefore ✅ **VERIFIED COMPLETE**.
+Phase 4F verifies the complete canonical-data → Python analytics → FastAPI → HTTP/JSON → Node gateway chain. The canonical checksum, 213-test Python suite, Python compilation/import checks, exact FastAPI routes, deterministic contracts, 31-test backend suite, 26-test frontend suite, failure behavior, security boundary, dependencies, and documentation all passed focused review. The deterministic mock-upstream suite remains the permanent Node integration test; a spawned-Uvicorn test was not added because it would couple `npm test` to a platform-specific `.venv`, introduce process/port lifecycle races, and duplicate the already-passed live Phase 4E manual acceptance. Final user acceptance then confirmed that the Node analytics summary returned HTTP 200 with the canonical result and Node health remained HTTP 200. Phase 4F and Phase 4 are therefore **VERIFIED COMPLETE**.
 
 ### Phase 4 Technology and Scope Boundaries
 
@@ -382,40 +370,40 @@ Avoid premature infrastructure. Phase 4 must not introduce the following unless 
 
 ## Phase 4G — Analytics Dashboard UI
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Phase 4G visualizes the verified Phase 4 analytics contracts inside the existing Admin Dashboard. The approved 4G-6 extension added date-range sales trends through the same Browser → Node/Express → FastAPI → Pandas boundary. The user-reviewed 4G-6R revision makes that selected period a coherent dashboard-wide filter for Summary, Sales Trend, Product Performance, and Revenue by Category while preserving independent endpoint failure states. The frontend continues to talk only to Node/Express; direct frontend-to-FastAPI calls remain explicitly out of scope.
 
 Approved subphases:
 
 ```text
-4G-1 Analytics Dashboard Foundation        ✅ VERIFIED COMPLETE
-4G-2 Analytics API Integration             ✅ VERIFIED COMPLETE
-4G-3 Product & Category Visualization      ✅ VERIFIED COMPLETE
-4G-4 Responsive & Accessibility            ✅ VERIFIED COMPLETE
-4G-5 Regression & Existing Dashboard Acceptance ✅ VERIFIED COMPLETE
-4G-6 Sales Trend & Date Range Analytics     ✅ VERIFIED COMPLETE
-4G-6R Sales Analytics UX & Global Date Filter Revision ✅ VERIFIED COMPLETE
-4G-7 Final Dashboard Acceptance             ✅ MANUAL ACCEPTANCE PASSED
+4G-1 Analytics Dashboard Foundation        VERIFIED COMPLETE
+4G-2 Analytics API Integration             VERIFIED COMPLETE
+4G-3 Product & Category Visualization      VERIFIED COMPLETE
+4G-4 Responsive & Accessibility            VERIFIED COMPLETE
+4G-5 Regression & Existing Dashboard Acceptance VERIFIED COMPLETE
+4G-6 Sales Trend & Date Range Analytics     VERIFIED COMPLETE
+4G-6R Sales Analytics UX & Global Date Filter Revision VERIFIED COMPLETE
+4G-7 Final Dashboard Acceptance             MANUAL ACCEPTANCE PASSED
 ```
 
 The detailed descriptions below preserve the provisional status recorded at each implementation checkpoint. Those provisional statuses are now resolved by the successful 4G-7 user-performed browser acceptance and final engineering verification.
 
-4G-1 adds the static structural foundation only: a new `#adminAnalytics` section inside the existing Admin Dashboard with a dedicated "Analitik" navigation entry, four KPI placeholder cards (neutral `—` values, no fetched or fabricated data), a semantic product-performance `<table>` with an empty `<tbody>`, and an empty category container reserved for a future CSS proportional-bar visualization. No API integration, no chart library, and no backend change were introduced. 4G-1 is 🟡 **PROVISIONALLY COMPLETE**: implementation and automated verification passed, but user-performed manual/browser acceptance has not yet occurred.
+4G-1 adds the static structural foundation only: a new `#adminAnalytics` section inside the existing Admin Dashboard with a dedicated "Analitik" navigation entry, four KPI placeholder cards (neutral `—` values, no fetched or fabricated data), a semantic product-performance `<table>` with an empty `<tbody>`, and an empty category container reserved for a future CSS proportional-bar visualization. No API integration, no chart library, and no backend change were introduced. At its implementation checkpoint, 4G-1 was **PROVISIONALLY COMPLETE**: implementation and automated verification had passed, while user-performed manual/browser acceptance was still pending at that time.
 
-4G-2 wires the 4G-1 foundation to the three existing, already-verified Node routes (`GET /api/analytics/summary`, `/api/analytics/products`, `/api/analytics/categories`) — the frontend still calls only Node, never FastAPI directly. It adds a small independent per-section analytics state (`summary`/`products`/`categories`, each with its own `idle`/`loading`/`success`/`empty`/`error` status), lazy-loaded once per admin session on first "Analitik" nav open via `Promise.allSettled` so one section's failure never blanks out another section's success, defensive response validation before rendering (no `NaN`/`undefined` ever shown), a generation/epoch guard in `renderAuthUI()` so a slow response arriving after logout/role-loss/admin-switch is discarded rather than rendered, caching so a succeeded section is not refetched on renavigate while a failed one retries, and reuse of the existing `formatRupiah()`/`.menu-status` conventions. Category data renders as a plain semantic `<ul>/<li>` text list only — no proportional bars, no chart library; that visualization work remains 4G-3. No backend file was modified. The frontend suite grew from 28 to 35 tests (7 new deterministic tests in `tests/frontend/admin-analytics.test.js` covering routing-to-Node-only, partial-failure isolation, empty/malformed-response handling, no-refetch/retry caching, and stale-response discard after logout), and the 31-test backend suite passes unchanged. 4G-2 is 🟡 **PROVISIONALLY COMPLETE**: implementation and automated verification passed, but user-performed manual/browser acceptance has not yet occurred.
+4G-2 wires the 4G-1 foundation to the three existing, already-verified Node routes (`GET /api/analytics/summary`, `/api/analytics/products`, `/api/analytics/categories`) — the frontend still calls only Node, never FastAPI directly. It adds a small independent per-section analytics state (`summary`/`products`/`categories`, each with its own `idle`/`loading`/`success`/`empty`/`error` status), lazy-loaded once per admin session on first "Analitik" nav open via `Promise.allSettled` so one section's failure never blanks out another section's success, defensive response validation before rendering (no `NaN`/`undefined` ever shown), a generation/epoch guard in `renderAuthUI()` so a slow response arriving after logout/role-loss/admin-switch is discarded rather than rendered, caching so a succeeded section is not refetched on renavigate while a failed one retries, and reuse of the existing `formatRupiah()`/`.menu-status` conventions. Category data renders as a plain semantic `<ul>/<li>` text list only — no proportional bars, no chart library; that visualization work remains 4G-3. No backend file was modified. The frontend suite grew from 28 to 35 tests (7 new deterministic tests in `tests/frontend/admin-analytics.test.js` covering routing-to-Node-only, partial-failure isolation, empty/malformed-response handling, no-refetch/retry caching, and stale-response discard after logout), and the 31-test backend suite passes unchanged. At its implementation checkpoint, 4G-2 was **PROVISIONALLY COMPLETE**: implementation and automated verification had passed, while user-performed manual/browser acceptance was still pending at that time.
 
-4G-3 replaces the temporary category text list with accessible proportional HTML/CSS bars, and polishes product-table readability — both purely presentational over data already loaded by 4G-2, with no new API calls, no chart library, no SVG/canvas, and no backend change. A new pure function `computeCategoryBarWidth(revenue, maxRevenue)` derives a deterministic 0-100 integer bar width from each category's revenue relative to the largest category revenue in the current dataset, guarded against divide-by-zero (all-zero data renders 0%-width bars, never `NaN`/`Infinity`) and clamped to `[0,100]`; the absolute Rupiah revenue remains the displayed business value, with the bar as a purely visual, `aria-hidden` proportion indicator alongside real visible category-name and revenue text. The product table gained numeric alignment/wrapping polish (`text-align:right`, `font-variant-numeric:tabular-nums`, wrapping long names) with no sorting/filtering/pagination and no change to API ordering. All new/changed CSS reuses existing design tokens (`--color-accent`, `--color-bg-soft`, `--color-border`, `--radius`) — no new hardcoded colors. The frontend suite grew from 35 to 38 tests (3 new deterministic tests covering bar-width correctness, all-zero-revenue safety, and product-table order/formatting), and the 31-test backend suite passes unchanged. 4G-3 is 🟡 **PROVISIONALLY COMPLETE**: implementation and automated verification passed, but user-performed manual/browser acceptance has not yet occurred.
+4G-3 replaces the temporary category text list with accessible proportional HTML/CSS bars, and polishes product-table readability — both purely presentational over data already loaded by 4G-2, with no new API calls, no chart library, no SVG/canvas, and no backend change. A new pure function `computeCategoryBarWidth(revenue, maxRevenue)` derives a deterministic 0-100 integer bar width from each category's revenue relative to the largest category revenue in the current dataset, guarded against divide-by-zero (all-zero data renders 0%-width bars, never `NaN`/`Infinity`) and clamped to `[0,100]`; the absolute Rupiah revenue remains the displayed business value, with the bar as a purely visual, `aria-hidden` proportion indicator alongside real visible category-name and revenue text. The product table gained numeric alignment/wrapping polish (`text-align:right`, `font-variant-numeric:tabular-nums`, wrapping long names) with no sorting/filtering/pagination and no change to API ordering. All new/changed CSS reuses existing design tokens (`--color-accent`, `--color-bg-soft`, `--color-border`, `--radius`) — no new hardcoded colors. The frontend suite grew from 35 to 38 tests (3 new deterministic tests covering bar-width correctness, all-zero-revenue safety, and product-table order/formatting), and the 31-test backend suite passes unchanged. At its implementation checkpoint, 4G-3 was **PROVISIONALLY COMPLETE**: implementation and automated verification had passed, while user-performed manual/browser acceptance was still pending at that time.
 
-4G-4 is a focused responsive/accessibility audit-and-fix pass over the analytics work already built in 4G-1 through 4G-3 — no new analytics features, no new API calls, no new backend/Python change. A read-only accessibility audit of the actual cumulative implementation confirmed heading hierarchy, focus-stealing frequency, renavigate announcement behavior, decorative category-bar markup, KPI card structure, reduced motion, and responsive grid overflow were all already correct, and found three genuine, actionable gaps that were fixed: (1) the scrollable product-table wrapper (`.admin-analytics-table-wrap`) had no keyboard focusability or accessible name distinguishing it from the table it wraps — fixed with `tabindex="0"`, `role="region"`, and `aria-labelledby` pointing at the existing "Performa Produk" heading; (2) `#adminAnalytics` and the table wrapper, both newly/already keyboard-focusable, were missing from the shared `:focus-visible` outline selector list used by every other focusable element on the page — added; (3) the three analytics status regions hardcoded a static `aria-live="polite"` in HTML while JS toggled `role` between `"status"` and `"alert"`, so an explicit (but stale) `aria-live` attribute could override the assertive announcement implied by `role="alert"` — fixed by removing the static attribute and having `showAnalyticsSectionStatus`/`hideAnalyticsSectionStatus` set `aria-live` dynamically in lock-step with `role`. No table-to-cards conversion, no new animation, no new color tokens. The frontend suite grew from 38 to 41 tests (3 new deterministic tests covering the table-wrap accessible-name contract and aria-live/role consistency across error, empty, and success states), and the 31-test backend suite passes unchanged. 4G-4 is 🟡 **PROVISIONALLY COMPLETE**: implementation, the accessibility audit, and automated verification passed, but user-performed manual/browser acceptance (including actual screen-reader and viewport testing) has not yet occurred — that belongs to 4G-5.
+4G-4 is a focused responsive/accessibility audit-and-fix pass over the analytics work already built in 4G-1 through 4G-3 — no new analytics features, no new API calls, no new backend/Python change. A read-only accessibility audit of the actual cumulative implementation confirmed heading hierarchy, focus-stealing frequency, renavigate announcement behavior, decorative category-bar markup, KPI card structure, reduced motion, and responsive grid overflow were all already correct, and found three genuine, actionable gaps that were fixed: (1) the scrollable product-table wrapper (`.admin-analytics-table-wrap`) had no keyboard focusability or accessible name distinguishing it from the table it wraps — fixed with `tabindex="0"`, `role="region"`, and `aria-labelledby` pointing at the existing "Performa Produk" heading; (2) `#adminAnalytics` and the table wrapper, both newly/already keyboard-focusable, were missing from the shared `:focus-visible` outline selector list used by every other focusable element on the page — added; (3) the three analytics status regions hardcoded a static `aria-live="polite"` in HTML while JS toggled `role` between `"status"` and `"alert"`, so an explicit (but stale) `aria-live` attribute could override the assertive announcement implied by `role="alert"` — fixed by removing the static attribute and having `showAnalyticsSectionStatus`/`hideAnalyticsSectionStatus` set `aria-live` dynamically in lock-step with `role`. No table-to-cards conversion, no new animation, no new color tokens. The frontend suite grew from 38 to 41 tests (3 new deterministic tests covering the table-wrap accessible-name contract and aria-live/role consistency across error, empty, and success states), and the 31-test backend suite passes unchanged. At its implementation checkpoint, 4G-4 was **PROVISIONALLY COMPLETE**: implementation, the accessibility audit, and automated verification had passed, while user-performed manual/browser acceptance—including screen-reader and viewport testing—was still pending and assigned to 4G-5.
 
-4G-5's manual acceptance remains valid evidence for the existing dashboard. The user then approved an additive chart extension before Phase 4G finalization, so Phase 4G remains open.
+4G-5's manual acceptance remains valid evidence for the dashboard state at that time. The user then approved an additive chart extension before Phase 4G finalization, so Phase 4G was reopened and extended through 4G-6, 4G-6R, and 4G-7. Final closure therefore rests on 4G-7 rather than 4G-5.
 
-4G-6 adds `GET /analytics/sales-trend` and the Node gateway route `GET /api/analytics/sales-trend`, with optional inclusive `start_date`/`end_date` query parameters, strict date and response validation, zero/null empty-range results, and redacted service failures. The existing dashboard gains an independently loaded Sales Trend panel with selected-range totals, high/low sales days, native responsive SVG revenue line, keyboard/touch date details, and a visually hidden daily-data table. Successful selected ranges are cached for the current admin identity, overlapping/stale responses are guarded, and failures do not affect Summary, Products, or the preserved Revenue by Category proportional bars. Automated suites and read-only final review passed; browser/manual chart acceptance remains required, so 4G-6 is 🟡 **PROVISIONALLY COMPLETE** and 4G-7 is next.
+4G-6 adds `GET /analytics/sales-trend` and the Node gateway route `GET /api/analytics/sales-trend`, with optional inclusive `start_date`/`end_date` query parameters, strict date and response validation, zero/null empty-range results, and redacted service failures. The existing dashboard gains an independently loaded Sales Trend panel with selected-range totals, high/low sales days, native responsive SVG revenue line, keyboard/touch date details, and a visually hidden daily-data table. Successful selected ranges are cached for the current admin identity, overlapping/stale responses are guarded, and failures do not affect Summary, Products, or the preserved Revenue by Category proportional bars. At the 4G-6 checkpoint, automated suites and read-only final review had passed, while browser/manual chart acceptance remained pending and was scheduled for 4G-7; 4G-6 was therefore **PROVISIONALLY COMPLETE** at that time.
 
-4G-6R implements the user's manual-review revisions without rewriting the dashboard: the SVG line is marker-free until interaction, a single active marker and clamped tooltip follow the nearest pointer/keyboard-selected date, and a short reduced-motion-aware reveal smooths successful range changes. A dependency-free accessible calendar provides direct month/year selection, day-grid keyboard interaction, Escape/outside close behavior, and mobile containment. Its minimum and maximum dates are derived at request time from the actual transaction dataset through `available_period` metadata in the Sales Trend response; no canonical dates are embedded in frontend production code. Summary, Products, Categories, and Sales Trend all accept the same optional inclusive range and are requested together after Apply. Draft calendar changes do not mutate analytics, caches are range-keyed, each section clears stale data and fails independently, and request/identity guards prevent older ranges from overwriting newer ones. Automated verification passes with 228 Python, 32 backend, and 57 frontend tests plus independent read-only review; 4G-6R is 🟡 **PROVISIONALLY COMPLETE** pending 4G-7 manual acceptance.
+4G-6R implements the user's manual-review revisions without rewriting the dashboard: the SVG line is marker-free until interaction, a single active marker and clamped tooltip follow the nearest pointer/keyboard-selected date, and a short reduced-motion-aware reveal smooths successful range changes. A dependency-free accessible calendar provides direct month/year selection, day-grid keyboard interaction, Escape/outside close behavior, and mobile containment. Its minimum and maximum dates are derived at request time from the actual transaction dataset through `available_period` metadata in the Sales Trend response; no canonical dates are embedded in frontend production code. Summary, Products, Categories, and Sales Trend all accept the same optional inclusive range and are requested together after Apply. Draft calendar changes do not mutate analytics, caches are range-keyed, each section clears stale data and fails independently, and request/identity guards prevent older ranges from overwriting newer ones. At the 4G-6R checkpoint, automated verification had passed with 228 Python, 32 backend, and 57 frontend tests plus independent read-only review; 4G-7 manual acceptance was still pending, so 4G-6R was **PROVISIONALLY COMPLETE** at that time.
 
-4G-7 manual acceptance ✅ **PASSED**. User-performed browser verification covered the Sales Trend marker/tooltip and repeated Apply behavior; desktop, mobile, and short-height calendar placement between the sticky navbar and cart bar; dataset boundary selection; one inclusive applied range across all four analytics sections; keyboard access; bilingual UI; responsive containment; and FastAPI failure/recovery without fabricated data. Final automated verification passed with 228 Python, 32 backend, and 57 frontend tests, plus syntax/import/compile and diff checks. The final focused engineering review found no blocking regression, so Phase 4G is ✅ **VERIFIED COMPLETE**.
+4G-7 manual acceptance **PASSED**. User-performed browser verification covered the Sales Trend marker/tooltip and repeated Apply behavior; desktop, mobile, and short-height calendar placement between the sticky navbar and cart bar; dataset boundary selection; one inclusive applied range across all four analytics sections; keyboard access; bilingual UI; responsive containment; and FastAPI failure/recovery without fabricated data. Final automated verification passed with 228 Python, 32 backend, and 57 frontend tests, plus syntax/import/compile and diff checks. The final focused engineering review found no blocking regression, resolving the earlier provisional gates. Phase 4G is currently **VERIFIED COMPLETE**.
 
 Approved minimal technology direction for Phase 4G (unchanged from Phase 4):
 
@@ -426,7 +414,7 @@ Approved minimal technology direction for Phase 4G (unchanged from Phase 4):
 
 ### Phase 4G-R2 — 750K Analytics Alignment & Performance
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 This approved refinement aligns the existing Phase 4 dashboard analytics with the generated V2 source `transactions_ml_v2.csv` (750,000 transaction rows, 2024-10-09 through 2026-09-01) without sending raw rows to Node or the browser. FastAPI now uses trusted server-side dataset configuration and a stat-invalidated in-process cache. Each revision is vector-validated once, compacted into daily, daily-product, and daily-category aggregates, and the 750K raw DataFrame is released. Arbitrary supported date filters operate over these aggregates while existing FastAPI, Node, and frontend contracts remain unchanged.
 
@@ -434,7 +422,7 @@ The prior repeated-load benchmark was roughly seven seconds per calculation and 
 
 ## Phase 5 — Machine Learning
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Goal: learn practical ML using meaningful UMKM data. Expected concepts include problem formulation, dataset preparation, train/validation/test concepts, feature engineering, baseline models, training, metrics, overfitting/underfitting, inference, model persistence, and application integration.
 
@@ -442,7 +430,7 @@ The first approved ML problem is **next-day total quantity sold forecasting**. T
 
 ### 5A — ML Problem Definition & Dataset Readiness
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 The 10,000-line synthetic dataset is structurally clean and sufficient to exercise the future ML pipeline, but it requires generator improvement before meaningful model training. Its current nine-month generator deliberately contains weekend, month, and product-popularity effects, but samples transaction dates independently and has no sustained trend, autoregressive demand process, event/promotion signal, or price variation. Training on it unchanged would overstate the learning value of lag-based forecasting.
 
@@ -454,7 +442,7 @@ No ML dependency is installed in 5A. Scikit-learn is the preferred classical-ML 
 
 ### 5B — ML Dataset & Feature Engineering
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Phase 5B adds a separate, ignored `python/data/transactions_ml.csv` generated deterministically from a fixed seed over 2024-01-01 through 2025-12-31. The chronological generator includes product/category demand differences, weekly and monthly structure, gradual growth, autoregressive continuity, known promotion windows, modest product-mix evolution, and random noise. It preserves both the canonical analytics CSV and the Phase 4 large integration dataset.
 
@@ -464,7 +452,7 @@ Automated verification and focused independent review confirmed determinism, tem
 
 ### 5C — Baseline Forecast
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Phase 5C implements three deterministic next-day quantity baselines: previous day, previous week, and the mean of the seven actual calendar days immediately before the forecast date. Previous-day and previous-week forecasts reuse the verified `lag_1_quantity` and `lag_7_quantity` alignment. The trailing-seven baseline is calculated from the continuous daily series because Phase 5B's deliberately conservative `rolling_mean_7` feature excludes the origin day and therefore has different semantics.
 
@@ -480,7 +468,7 @@ Evaluation is restricted to the 105-row chronological validation period (2025-06
 
 ### 5D — Model Training & Evaluation
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Phase 5D adds a reproducible scikit-learn workflow over the approved ten-feature next-day quantity frame. Five scaled Ridge pipelines (`alpha` 0.01, 0.1, 1, 10, 100) and three conservative HistGradientBoosting configurations are fitted on TRAIN and ranked only on VALIDATION MAE, with RMSE as the secondary tie-breaker. Ridge preprocessing is encapsulated in a `Pipeline` and learns only from the training partition.
 
@@ -492,19 +480,19 @@ Permutation importance on VALIDATION identifies day of week and lag-1 quantity a
 
 ### 5E — Prediction Service
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Phase 5E adds a reproducible joblib export for the frozen Phase 5D winner, a versioned metadata contract and fail-closed trusted loader, shared training/serving feature construction, and `GET /analytics/forecast/next-day`. The serving artifact refits the unchanged model on all approved supervised history only after the unbiased Phase 5D evaluation. The generated ML dataset and artifact remain Git-ignored; the endpoint returns a controlled 503 when trusted resources are unavailable or incompatible. No Node or frontend prediction integration is included.
 
 ### 5F — Node.js ↔ ML Integration
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Phase 5F extends the existing trusted Node-to-Python client with a strict next-day forecast contract and exposes `GET /api/analytics/forecast/next-day`. Node calls only FastAPI's fixed forecast path using the operator-controlled `PYTHON_SERVICE_URL`, a three-second abort timeout, and no retries. It rejects all query parameters, exact-contract violations, malformed JSON, unsupported model metadata, and non-finite predictions. Timeouts become controlled HTTP 504 responses; network, upstream non-2xx, and invalid-response failures become controlled HTTP 502 responses without leaking Python details. Node performs no feature engineering or inference, and no frontend behavior is added.
 
 ### 5F-R — Large-Scale ML V2 Dataset, Retraining & Serving Verification
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 This approved refinement preserves the verified V1 experiment and adds a separate deterministic V2 iteration. V2 generates exactly 750,000 transaction rows—not 750,000 supervised examples—across 693 calendar days from 2024-10-09 through 2026-09-01. Daily aggregation and the unchanged ten-feature schema produce 664 supervised next-day observations: TRAIN 479, VALIDATION 92, and a recent TEST holdout of 93 rows.
 
@@ -514,7 +502,7 @@ The separate ignored `next_day_quantity_v2.joblib` retains artifact schema `1.0`
 
 ### 5F-R2 — 11-Product Domain Alignment & Full Pipeline Reverification
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 This approved refinement aligns the active V2 history with the authoritative 11-product application/database seed while preserving exactly 750,000 transaction rows, 693 continuous dates from 2024-10-09 through 2026-09-01, deterministic seed `20260902`, the approved feature semantics, chronological split boundaries, candidate set, and leakage protections. The regenerated CSV is the shared source for Phase 4 analytics and Phase 5 ML V2, with SHA-256 `9d87ac53771e5c4cd3eed39127fe50cb8bdbe749a885c2472cdacfb8e1cd8d3e`.
 
@@ -522,7 +510,7 @@ The regenerated dataset preserves the approved aggregate daily demand series and
 
 ### 5G — ML Dashboard UI
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Phase 5G presents the existing verified next-day total-demand forecast in the Admin Analytics dashboard after Sales Trend. FastAPI now returns the latest historical cutoff, inclusive trailing 7- and 28-calendar-day actual-demand averages, and finite percentage comparisons (or `null` when an average is zero). Missing transaction dates contribute zero and incomplete windows fail safely. Node strictly validates the exact nested contract and one-day date invariant while preserving its three-second timeout, no-retry policy, and generic 502/504 failures.
 
@@ -530,7 +518,7 @@ The responsive bilingual panel provides independent loading/error/retry state, l
 
 ### 5H — Final Integration & Quality Gate
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Phase 5H completed the cumulative Phase 5 quality gate without retraining, regenerating the V2 dataset, changing model parameters, or adding product features. The complete Python (`298` tests), backend (`35` tests), and frontend (`63` tests) suites pass, together with Python compile/import and dependency sanity, JavaScript syntax checks, Node dependency sanity, and repository checks.
 
@@ -538,7 +526,7 @@ Six focused read-only reviews found no unresolved Critical, High, or Medium bloc
 
 ## Phase 6 — Deep Learning Fundamentals
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Goal: learn practical deep-learning fundamentals without turning Project 1 into a research project. Expected concepts include neural networks, tensors, training loops, loss, optimization, validation, overfitting, inference, comparison with traditional ML, and deciding when deep learning is appropriate.
 
@@ -550,37 +538,37 @@ Phase 6F uses a separate validated DL artifact and inference path. Phase 6G adds
 
 ### 6A — Neural Network Foundations
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Learn and demonstrate tensors, neurons, weights and bias, layers, activation functions, forward propagation, loss, autograd/backpropagation, and optimizer steps through small PyTorch-based exercises.
 
 Phase 6A adds PyTorch as the only new deep-learning dependency and introduces `sari_rasa_data.deep_learning_foundations`, a small deterministic educational module over synthetic tensors only. Its examples connect scalar/vector/matrix tensors and their shapes/dtypes to a manual `z = x · w + b` neuron calculation, ReLU activation, an equivalently configured `nn.Linear`, a two-layer forward pass, MSE loss, autograd gradients, and one SGD optimizer step that changes trainable parameters. It does not access forecasting data, implement the Phase 6 MLP experiment, train a Phase 5 model, create an artifact, or change any service/frontend behavior.
 
-PyTorch environment compatibility is verified on the project environment (Python 3.14.7 on macOS ARM64 with PyTorch 2.14.0; CPU execution is sufficient). Focused verification passes with 9 foundation tests covering shapes, dtypes, affine arithmetic, activation behavior, manual/`nn.Linear` equivalence, output shape, finite loss and gradients, parameter updates, and deterministic results. The complete Python regression suite passes with 307 tests, together with Python compile/import, PyTorch import/version, and dependency-consistency checks. The user completed the conceptual review of the forward → prediction → loss → backward → gradient → optimizer → updated-weights mental model. No Phase 5 dataset, model, artifact, or production behavior changed, so Phase 6A is ✅ **VERIFIED COMPLETE**.
+PyTorch environment compatibility is verified on the project environment (Python 3.14.7 on macOS ARM64 with PyTorch 2.14.0; CPU execution is sufficient). Focused verification passes with 9 foundation tests covering shapes, dtypes, affine arithmetic, activation behavior, manual/`nn.Linear` equivalence, output shape, finite loss and gradients, parameter updates, and deterministic results. The complete Python regression suite passes with 307 tests, together with Python compile/import, PyTorch import/version, and dependency-consistency checks. The user completed the conceptual review of the forward → prediction → loss → backward → gradient → optimizer → updated-weights mental model. No Phase 5 dataset, model, artifact, or production behavior changed, so Phase 6A is **VERIFIED COMPLETE**.
 
 ### 6B — Deep Learning Dataset & Preprocessing
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Adapt the existing Phase 5 supervised dataset and frozen temporal split for PyTorch. Reuse the approved feature/target construction, fit feature scaling on TRAIN only, transform VALIDATION and TEST without refitting, prepare deterministic tensors/batches, and preserve the existing leakage protections and exact feature order.
 
 Phase 6B adds `sari_rasa_data.dl_experiment`, a preprocessing-only adapter over the verified Phase 5 V2 loader, next-day feature builder, authoritative ten-feature/target contract, and frozen date-based split. It validates the unchanged 664 supervised observations (479 TRAIN, 92 VALIDATION, 93 TEST), fits `StandardScaler` on TRAIN features only, transforms VALIDATION with that same fitted state, and returns deterministic finite `torch.float32` TRAIN/VALIDATION tensors with scalar-regression targets shaped `(n, 1)`. The normal public development-data API exposes no TEST features, targets, or tensors; TEST is inspected only to verify its frozen count and date-boundary metadata for later Phase 6E.
 
-Focused verification passes with 10 tests proving feature/target reuse, split counts and chronology, tensor shapes/dtypes/finiteness, exact TRAIN-derived scaler statistics, VALIDATION transformation with the TRAIN scaler, source-frame non-mutation, deterministic repeated preprocessing, and TEST-tensor isolation. Two independent read-only reviews found no blocker; one supported hardening changed the arbitrary-frame preparation seam to internal-only so verified provenance comes through the loader that hashes the dataset it actually reads. The complete Python suite passes with 317 tests, together with compile/import, PyTorch CPU, dependency-consistency, and diff checks. The user completed the conceptual review of chronological development partitions, TRAIN-only preprocessing, future-data leakage, `torch.float32` tensor preparation, unscaled targets, and deliberate TEST isolation. No dataset was regenerated, no model was trained or evaluated, and no artifact or production behavior changed, so Phase 6B is ✅ **VERIFIED COMPLETE**.
+Focused verification passes with 10 tests proving feature/target reuse, split counts and chronology, tensor shapes/dtypes/finiteness, exact TRAIN-derived scaler statistics, VALIDATION transformation with the TRAIN scaler, source-frame non-mutation, deterministic repeated preprocessing, and TEST-tensor isolation. Two independent read-only reviews found no blocker; one supported hardening changed the arbitrary-frame preparation seam to internal-only so verified provenance comes through the loader that hashes the dataset it actually reads. The complete Python suite passes with 317 tests, together with compile/import, PyTorch CPU, dependency-consistency, and diff checks. The user completed the conceptual review of chronological development partitions, TRAIN-only preprocessing, future-data leakage, `torch.float32` tensor preparation, unscaled targets, and deliberate TEST isolation. No dataset was regenerated, no model was trained or evaluated, and no artifact or production behavior changed, so Phase 6B is **VERIFIED COMPLETE**.
 
 ### 6C — Baseline Neural Network
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Implement one small feed-forward MLP using the existing ten inputs and next-day total quantity target. Keep the architecture intentionally small and educational, with no recurrent, attention-based, or unnecessarily complex model.
 
 Phase 6C extends `sari_rasa_data.dl_experiment` with the single approved `Linear(10, 16) → ReLU → Linear(16, 1)` baseline and a deterministic CPU training routine over the Phase 6B TRAIN/VALIDATION tensors only. The fixed baseline uses seed `20260903`, MSE loss, Adam with learning rate `0.001`, batch size `32`, and `40` epochs; it has no output clamp, early stopping, checkpoint restoration, scheduler, architecture search, or TEST path. Its epoch-zero through epoch-40 history records full-partition TRAIN and VALIDATION MSE, with Phase 5 metric helpers providing final VALIDATION MAE/RMSE.
 
-The controlled V2 run reduces TRAIN MSE from `5765754.0` to `5649151.0`; final VALIDATION MSE is `6026301.0`, MAE is `2432.8427`, and RMSE is `2454.8526`. These values demonstrate a functioning baseline loop rather than a selected or production-ready model; training/validation policy improvement remains Phase 6D. Focused verification passes with 15 tests covering the exact architecture, finite forward output, trainable and changed parameters, finite history/metrics, loss reduction, practical CPU repeatability, input non-mutation, and continued TEST isolation. The complete Python suite passes with 322 tests, together with compile/import, PyTorch CPU, dependency-consistency, and diff checks. No dataset, HGB model, artifact, service, or frontend behavior changed. The user completed the Phase 6C conceptual review, so Phase 6C is ✅ **VERIFIED COMPLETE**.
+The controlled V2 run reduces TRAIN MSE from `5765754.0` to `5649151.0`; final VALIDATION MSE is `6026301.0`, MAE is `2432.8427`, and RMSE is `2454.8526`. These values demonstrate a functioning baseline loop rather than a selected or production-ready model; training/validation policy improvement remains Phase 6D. Focused verification passes with 15 tests covering the exact architecture, finite forward output, trainable and changed parameters, finite history/metrics, loss reduction, practical CPU repeatability, input non-mutation, and continued TEST isolation. The complete Python suite passes with 322 tests, together with compile/import, PyTorch CPU, dependency-consistency, and diff checks. No dataset, HGB model, artifact, service, or frontend behavior changed. The user completed the Phase 6C conceptual review, so Phase 6C is **VERIFIED COMPLETE**.
 
 ### 6D — Training & Validation
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Implement explicit training and validation loops covering optimizer behavior, epochs, batches, validation monitoring, early stopping, best-weight restoration, and overfitting analysis. TEST remains unavailable for tuning, stopping, or model selection in this subphase.
 
@@ -588,11 +576,11 @@ Phase 6D extends the fixed Phase 6C MLP training workflow to at most `200` epoch
 
 The original fixed V2 development run at learning rate `0.001` reached its best VALIDATION MAE at epoch `200`, which was also the configured stopping epoch, so patience-based early stopping did not trigger. TRAIN MSE decreased from `5765754.0` to `3587780.25`; the restored best model produced VALIDATION MAE `2020.7530` and RMSE `2036.8799`. One validation-only alternative run changed only the learning rate to `0.01`. It remained finite and stable through epoch `200`, did not trigger early stopping, reached its best checkpoint at epoch `198`, reduced observed TRAIN MSE from `5765754.0` to `36189.6133`, and produced restored VALIDATION MAE `192.1377` and RMSE `244.0085`. Based solely on this materially better VALIDATION result, the Phase 6 training policy freezes learning rate `0.01`; no third configuration or hyperparameter search was run.
 
-Focused Phase 6D verification passes with `4` tests covering the exact architecture, finite forward behavior, the non-negative evaluation policy, and TEST-free training/result contracts. The existing Phase 6B development-data boundary exposed only TRAIN/VALIDATION tensors to training; TEST predictions and metrics were never produced or evaluated. No artifact, dataset, HGB model, service, Node, or frontend behavior changed. The frozen policy was carried unchanged into the single Phase 6E TEST evaluation, so Phase 6D is ✅ **VERIFIED COMPLETE**.
+Focused Phase 6D verification passes with `4` tests covering the exact architecture, finite forward behavior, the non-negative evaluation policy, and TEST-free training/result contracts. The existing Phase 6B development-data boundary exposed only TRAIN/VALIDATION tensors to training; TEST predictions and metrics were never produced or evaluated. No artifact, dataset, HGB model, service, Node, or frontend behavior changed. The frozen policy was carried unchanged into the single Phase 6E TEST evaluation, so Phase 6D is **VERIFIED COMPLETE**.
 
 ### 6E — Final Evaluation & ML-vs-DL Comparison
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Freeze the complete experiment policy before TEST access, evaluate the experimental MLP once on the unchanged final TEST partition, and compare the previous-week baseline, production HGB model, and experimental MLP honestly with MAE and RMSE. No post-TEST tuning or automatic model promotion is permitted.
 
@@ -600,41 +588,41 @@ Phase 6E adds a parameter-free, single-use final-evaluation entry point. It trai
 
 Over the common `2026-06-01` through `2026-09-01` TEST period, the frozen Phase 5 results remain previous-week baseline MAE/RMSE `178.3333`/`228.5035` and production HGB MAE/RMSE `135.5097`/`177.6172`; neither was retrained or retuned. The Phase 6 MLP produced MAE `147.2643` and RMSE `193.5776`. Ranking by MAE (then RMSE) is HGB first, MLP second, and previous-week baseline third. MLP MAE is `8.67%` higher than HGB, so it loses to HGB while still improving on the baseline. The engineering conclusion is to retain HGB as the production model and keep the MLP experimental; deep learning is not promoted merely because it was evaluated.
 
-This evaluation was methodologically frozen but not psychologically blind: Phase 5 TEST outcomes were already known before Phase 6 began. The complete Phase 6 policy was nevertheless frozen using TRAIN/VALIDATION only before its first TEST predictions were evaluated, and no post-TEST tuning occurred. Focused Phase 6D–6E verification passes with `6` tests covering the architecture, frozen training result, validation-best restoration, non-negative evaluation, TEST-free development API, finite frozen-split TEST metrics, frozen Phase 5 comparison values, ranking, and the one-time/no-configuration TEST boundary. The accepted evaluation and engineering decision carry unchanged into the additive service integration, so Phase 6E is ✅ **VERIFIED COMPLETE**.
+This evaluation was methodologically frozen but not psychologically blind: Phase 5 TEST outcomes were already known before Phase 6 began. The complete Phase 6 policy was nevertheless frozen using TRAIN/VALIDATION only before its first TEST predictions were evaluated, and no post-TEST tuning occurred. Focused Phase 6D–6E verification passes with `6` tests covering the architecture, frozen training result, validation-best restoration, non-negative evaluation, TEST-free development API, finite frozen-split TEST metrics, frozen Phase 5 comparison values, ranking, and the one-time/no-configuration TEST boundary. The accepted evaluation and engineering decision carry unchanged into the additive service integration, so Phase 6E is **VERIFIED COMPLETE**.
 
 ### 6F — Deep Learning Model Artifact & Inference
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Create a separate fail-closed DL artifact and inference path containing validated weights, allowlisted architecture configuration, preprocessing/scaler metadata, ordered features, artifact and framework versions, and dataset/catalog provenance. Do not weaken or replace the frozen HGB artifact contract.
 
 Phase 6F adds a separate PyTorch artifact and next-day inference path for the experimental MLP without changing the production HGB artifact or prediction service. Export retrains only the frozen TRAIN/VALIDATION policy and stores the restored validation-best CPU weights alongside an exact allowlisted `10 → 16 → 1`/ReLU architecture, ordered ten-feature contract, TRAIN-fitted scaler state, Adam/MSE/VALIDATION-MAE training policy, non-negative clamp policy, artifact/PyTorch/Python versions, validation evidence, and V2 dataset/catalog provenance. It does not perform another TEST evaluation.
 
-The trusted loader uses PyTorch's restricted weights-only loading and fails closed on missing, corrupt, structurally unexpected, non-finite, wrong-shaped, policy-incompatible, version-incompatible, or provenance-incompatible content before rebuilding the fixed CPU model. The separate inference function verifies the dataset hash, reuses the established V2 daily loader and next-day feature builder, applies the stored scaler in authoritative feature order, clamps predictions to zero minimum, and labels its result explicitly experimental. Generated artifacts remain under the already Git-ignored `python/models/` boundary. Focused Phase 6F verification passes with `12` tests covering frozen metadata and policy, safe round-trip loading, CPU/finite weights, metadata and weight tampering, corrupt artifacts, deterministic finite non-negative inference, experimental labeling, and dataset-provenance mismatch. No manual acceptance is required at this artifact/inference-only phase. Its validated loader and inference contract are reused unchanged by Phase 6G, so Phase 6F is ✅ **VERIFIED COMPLETE**.
+The trusted loader uses PyTorch's restricted weights-only loading and fails closed on missing, corrupt, structurally unexpected, non-finite, wrong-shaped, policy-incompatible, version-incompatible, or provenance-incompatible content before rebuilding the fixed CPU model. The separate inference function verifies the dataset hash, reuses the established V2 daily loader and next-day feature builder, applies the stored scaler in authoritative feature order, clamps predictions to zero minimum, and labels its result explicitly experimental. Generated artifacts remain under the already Git-ignored `python/models/` boundary. Focused Phase 6F verification passes with `12` tests covering frozen metadata and policy, safe round-trip loading, CPU/finite weights, metadata and weight tampering, corrupt artifacts, deterministic finite non-negative inference, experimental labeling, and dataset-provenance mismatch. No manual acceptance is required at this artifact/inference-only phase. Its validated loader and inference contract are reused unchanged by Phase 6G, so Phase 6F is **VERIFIED COMPLETE**.
 
 ### 6G — Deep Learning Service Integration
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Expose the experimental DL capability through additive FastAPI → Node contracts with strict response validation, bounded timeout/error behavior, and no direct frontend → FastAPI dependency. Preserve the existing production HGB endpoint unchanged.
 
 Phase 6G adds `GET /analytics/forecast/model-comparison` to FastAPI and the corresponding `GET /api/analytics/forecast/model-comparison` Node gateway without changing `GET /analytics/forecast/next-day` or its Node proxy. The response exposes the frozen common TEST period and dataset identity; fixed MAE/RMSE records label Phase 5 HGB as `production`, Phase 6 MLP as `experimental`, and the previous-week baseline as `benchmark`. It also includes one current next-day MLP inference from the existing Phase 6F path, labeled experimental with its artifact version and historical cutoff. No dataset, artifact, model, preprocessing, or evaluation is regenerated or retrained.
 
-FastAPI converts missing, corrupt, incompatible, or provenance-mismatched DL resources into a generic `503` without leaking internal paths. Node accepts no client override parameters, strictly validates the complete upstream JSON including model roles, finite non-negative metrics, evaluation dates, experimental identity, and one-day forecast invariant, and uses the existing bounded three-second/no-retry analytics client. Invalid/upstream failures become generic `502`; timeouts become generic `504`. Focused Phase 6G verification passes with `4` Python service tests and `4` Node contract/proxy tests, including the pre-existing production HGB endpoint contract and failure suite. The first sandboxed Node integration attempt could not bind loopback ports; the identical focused command passed when local ephemeral test servers were permitted. The accepted contract is consumed unchanged by Phase 6H, so Phase 6G is ✅ **VERIFIED COMPLETE**.
+FastAPI converts missing, corrupt, incompatible, or provenance-mismatched DL resources into a generic `503` without leaking internal paths. Node accepts no client override parameters, strictly validates the complete upstream JSON including model roles, finite non-negative metrics, evaluation dates, experimental identity, and one-day forecast invariant, and uses the existing bounded three-second/no-retry analytics client. Invalid/upstream failures become generic `502`; timeouts become generic `504`. Focused Phase 6G verification passes with `4` Python service tests and `4` Node contract/proxy tests, including the pre-existing production HGB endpoint contract and failure suite. The first sandboxed Node integration attempt could not bind loopback ports; the identical focused command passed when local ephemeral test servers were permitted. The accepted contract is consumed unchanged by Phase 6H, so Phase 6G is **VERIFIED COMPLETE**.
 
 ### 6H — Dashboard Model Comparison
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Provide an explicitly experimental dashboard comparison of the previous-week baseline, production HGB model, and MLP evaluation results over the same held-out TEST period. Explain MAE/RMSE semantics and distinguish production from experimental status clearly; do not present two competing production forecasts, fabricate confidence/probability, or promote a model automatically.
 
 Phase 6H adds one bilingual model-performance panel directly below the unchanged Next-Day Demand Forecast and before Product Performance/Revenue by Category. It follows the existing white panel, neutral border, rounded-corner, spacing, typography, and restrained orange-accent system without gradients or a competing hero forecast. Three semantic cards render in one desktop row, wrap to two columns at tablet width, and stack vertically on mobile: HGB is visibly `PRODUCTION` with the best result, MLP is `EXPERIMENTAL` with its honest `+8.67%` MAE difference, and Previous Week is the `BENCHMARK` reference. The shared TEST dates come from the API response rather than frontend constants.
 
-The panel fetches the Node comparison route independently from the global analytics date filter and has isolated loading, strict invalid-response rejection, generic error, retry, successful-session reuse, and stale-admin-response protections matching the established dashboard lifecycle. Its engineering conclusion retains HGB as production. A keyboard-accessible native disclosure explains MAE/RMSE and the production/experimental decision; the current MLP inference appears only inside this secondary detail and remains explicitly experimental. Focused frontend verification passes with `8` tests covering the six-route Node-only dashboard boundary, exact roles and metrics, conclusion and TEST period, bilingual rendering, loading/error/retry behavior, independent caching, semantic disclosure, non-table responsive structure, and the unchanged existing HGB production forecast behavior. User-performed browser acceptance passed for the bilingual desktop/mobile presentation, role clarity, metric rendering, disclosure, responsive stacking, loading/error recovery, and unchanged production forecast card. No backend, model, artifact, dataset, or evaluation changed, so Phase 6H is ✅ **VERIFIED COMPLETE**.
+The panel fetches the Node comparison route independently from the global analytics date filter and has isolated loading, strict invalid-response rejection, generic error, retry, successful-session reuse, and stale-admin-response protections matching the established dashboard lifecycle. Its engineering conclusion retains HGB as production. A keyboard-accessible native disclosure explains MAE/RMSE and the production/experimental decision; the current MLP inference appears only inside this secondary detail and remains explicitly experimental. Focused frontend verification passes with `8` tests covering the six-route Node-only dashboard boundary, exact roles and metrics, conclusion and TEST period, bilingual rendering, loading/error/retry behavior, independent caching, semantic disclosure, non-table responsive structure, and the unchanged existing HGB production forecast behavior. User-performed browser acceptance passed for the bilingual desktop/mobile presentation, role clarity, metric rendering, disclosure, responsive stacking, loading/error recovery, and unchanged production forecast card. No backend, model, artifact, dataset, or evaluation changed, so Phase 6H is **VERIFIED COMPLETE**.
 
 ### 6I — Final Integration & Quality Gate
 
-Status: ✅ **VERIFIED COMPLETE**
+Status: **VERIFIED COMPLETE**
 
 Run cumulative regression, provenance, architecture, documentation, and meaningful manual acceptance checks before Phase 6 can become verified complete. Manual acceptance should be required only where live service integration, browser behavior, accessibility, responsiveness, or production/experimental clarity cannot be established adequately through automated checks.
 
@@ -642,7 +630,7 @@ Phase 6I completes the cumulative quality gate without retraining HGB, regenerat
 
 Python compilation and Phase 6 imports pass on CPU with PyTorch `2.14.0`; dependency consistency reports no broken requirements. The complete Python regression passes `341` tests. The packaged `npm test` command passes `37` backend and `66` frontend tests (`103` total), including strict FastAPI/Node comparison contracts, bounded/redacted failures, unchanged HGB production behavior, model roles, responsive dashboard behavior, and the accepted browser-facing implementation. The only warning is joblib/loky's harmless fallback from unavailable physical-core discovery to logical cores.
 
-Cumulative review confirms the exact frozen feature/scaler/training policy, restricted weights-only artifact loading, finite CPU weight validation, dataset SHA/catalog provenance, operator-controlled paths, no fallback or internal-path disclosure, three-second/no-retry Node boundary, and browser-to-Node-only architecture. The ignored `python/models/next_day_quantity_mlp_v1.pt` exists locally for development, remains ignored and untracked, and no secrets, credentials, generated datasets, databases, or artifacts are staged/tracked by Phase 6. README, architecture, runbook, and roadmap now document setup, artifact export, endpoints, dashboard behavior, the `135.5097`/`177.6172` HGB, `147.2643`/`193.5776` MLP, and `178.3333`/`228.5035` previous-week TEST results, the `8.67%` MLP MAE disadvantage, production/experimental roles, and the psychological-blinding limitation. Phase 6I and Phase 6 are ✅ **VERIFIED COMPLETE**.
+Cumulative review confirms the exact frozen feature/scaler/training policy, restricted weights-only artifact loading, finite CPU weight validation, dataset SHA/catalog provenance, operator-controlled paths, no fallback or internal-path disclosure, three-second/no-retry Node boundary, and browser-to-Node-only architecture. The ignored `python/models/next_day_quantity_mlp_v1.pt` exists locally for development, remains ignored and untracked, and no secrets, credentials, generated datasets, databases, or artifacts are staged/tracked by Phase 6. README, architecture, runbook, and roadmap now document setup, artifact export, endpoints, dashboard behavior, the `135.5097`/`177.6172` HGB, `147.2643`/`193.5776` MLP, and `178.3333`/`228.5035` previous-week TEST results, the `8.67%` MLP MAE disadvantage, production/experimental roles, and the psychological-blinding limitation. Phase 6I and Phase 6 are **VERIFIED COMPLETE**.
 
 Implementation may proceed in four practical delivery groups without changing, merging, removing, or renumbering the approved subphases:
 
@@ -655,7 +643,7 @@ Group 4: 6H–6I
 
 ## Phase 6-EXT — Account & Admin Extension
 
-Status: ✅ **VERIFIED COMPLETE — DOCUMENTATION, FINAL REGRESSION, SECRET HYGIENE, MANUAL ACCEPTANCE, AND INDEPENDENT REVIEW PASSED**
+Status: **VERIFIED COMPLETE — DOCUMENTATION, FINAL REGRESSION, SECRET HYGIENE, MANUAL ACCEPTANCE, AND INDEPENDENT REVIEW PASSED**
 
 Approved production-oriented account extension after **Phase 6 — Deep Learning Fundamentals (VERIFIED COMPLETE)** and before **Phase 7 — AI Engineering**. The `6-EXT` convention preserves Phase 7 and all existing future numbering; it does not reopen Phase 6 or retroactively insert work into completed Phase 3.
 
@@ -665,49 +653,49 @@ Core requirements delivered: backend-enforced, concurrency-safe minimum-one-admi
 
 | Subphase | Goal / scope | Status |
 |---|---|---|
-| 6-EXT-A — Architecture & Data Contracts | Freeze contracts, transaction/security design, and provisioning prerequisites. | ✅ VERIFIED COMPLETE |
-| 6-EXT-B — Admin Backend & Business Rules | Admin-only account listing and concurrency-safe promotion/demotion. | ✅ VERIFIED COMPLETE |
-| 6-EXT-C — Admin Management UI/UX | Users & Admins, confirmations, protected states, responsive/accessibility checkpoint. | ✅ VERIFIED COMPLETE |
-| 6-EXT-D — Password Reset Backend & Token Lifecycle | Generic requests, secure token lifecycle, atomic password replacement/session revocation. | ✅ VERIFIED COMPLETE |
-| 6-EXT-E — Password Recovery UI/UX | Secondary login entry through reset success/expired-link screens. | ✅ VERIFIED COMPLETE |
-| 6-EXT-F — Email Delivery Integration | Finalize provider and environment-only delivery integration. | ✅ VERIFIED COMPLETE |
-| 6-EXT-G — Security, Integration & Manual Acceptance | Verify full account/email flows, concurrency, accessibility, and regressions. | ✅ VERIFIED COMPLETE |
-| 6-EXT-H — Documentation & Final Quality Gate | Reconcile delivered behavior and required evidence before completion. | ✅ VERIFIED COMPLETE |
+| 6-EXT-A — Architecture & Data Contracts | Freeze contracts, transaction/security design, and provisioning prerequisites. | VERIFIED COMPLETE |
+| 6-EXT-B — Admin Backend & Business Rules | Admin-only account listing and concurrency-safe promotion/demotion. | VERIFIED COMPLETE |
+| 6-EXT-C — Admin Management UI/UX | Users & Admins, confirmations, protected states, responsive/accessibility checkpoint. | VERIFIED COMPLETE |
+| 6-EXT-D — Password Reset Backend & Token Lifecycle | Generic requests, secure token lifecycle, atomic password replacement/session revocation. | VERIFIED COMPLETE |
+| 6-EXT-E — Password Recovery UI/UX | Secondary login entry through reset success/expired-link screens. | VERIFIED COMPLETE |
+| 6-EXT-F — Email Delivery Integration | Finalize provider and environment-only delivery integration. | VERIFIED COMPLETE |
+| 6-EXT-G — Security, Integration & Manual Acceptance | Verify full account/email flows, concurrency, accessibility, and regressions. | VERIFIED COMPLETE |
+| 6-EXT-H — Documentation & Final Quality Gate | Reconcile delivered behavior and required evidence before completion. | VERIFIED COMPLETE |
 
 Each slice's scope boundary, key acceptance criteria, and expected verification type are defined in the [implementation slices](docs/ACCOUNT_ADMIN_EXTENSION.md#planned-implementation-slices). Meaningful browser checkpoints are C and G; no implementation slice is complete merely because this design has been documented. Implementation is deferred to a later task.
 
 ## Phase 7 — AI Engineering
 
-Status: ✅ **VERIFIED COMPLETE — 7A–7H EVIDENCE RECONCILED**
+Status: **VERIFIED COMPLETE — 7A–7H EVIDENCE RECONCILED**
 
 Expected progression:
 
 ```text
-7A — LLM API Fundamentals                              ✅ VERIFIED COMPLETE
-7B — Prompt Engineering                                ✅ VERIFIED COMPLETE
-7C — Structured Output / Tool Calling                  ✅ VERIFIED COMPLETE
-7D — Embeddings                                        ✅ VERIFIED COMPLETE
-7E — Vector Database                                   ✅ VERIFIED COMPLETE
-7F — Retrieval-Augmented Generation (RAG)              ✅ VERIFIED COMPLETE
-7G — AI Agents                                         ✅ VERIFIED COMPLETE
-7H — AI Evaluation                                     ✅ VERIFIED COMPLETE
+7A — LLM API Fundamentals                              VERIFIED COMPLETE
+7B — Prompt Engineering                                VERIFIED COMPLETE
+7C — Structured Output / Tool Calling                  VERIFIED COMPLETE
+7D — Embeddings                                        VERIFIED COMPLETE
+7E — Vector Database                                   VERIFIED COMPLETE
+7F — Retrieval-Augmented Generation (RAG)              VERIFIED COMPLETE
+7G — AI Agents                                         VERIFIED COMPLETE
+7H — AI Evaluation                                     VERIFIED COMPLETE
 ```
 
 Goals include reliable LLM application design, prompt/system instruction boundaries, structured responses, tool use, retrieval, grounding, vector search, agent workflows, hallucination handling, evaluation, latency/cost awareness, safety, and failure behavior.
 
-Phase 7A adds a small Python-only, provider-neutral `LLMClient` contract, validated single-turn request/normalized response types, environment-only configuration, a direct Gemini REST adapter, safe normalized failures, and a deterministic offline fake. Automated contract/configuration/adapter/security tests pass without credentials or network. Real Gemini Developer API live acceptance passed with the environment-configured `gemini-3.1-flash-lite` model, `finish_reason: stop`, normalized usage of 37 input / 34 output / 71 total tokens, and 1032 ms latency. The request used only fictional/public-safe menu content under the Free-Tier, zero-cost-first policy; no billing setup was required. Phase 7A is therefore ✅ **VERIFIED COMPLETE**.
+Phase 7A adds a small Python-only, provider-neutral `LLMClient` contract, validated single-turn request/normalized response types, environment-only configuration, a direct Gemini REST adapter, safe normalized failures, and a deterministic offline fake. Automated contract/configuration/adapter/security tests pass without credentials or network. Real Gemini Developer API live acceptance passed with the environment-configured `gemini-3.1-flash-lite` model, `finish_reason: stop`, normalized usage of 37 input / 34 output / 71 total tokens, and 1032 ms latency. The request used only fictional/public-safe menu content under the Free-Tier, zero-cost-first policy; no billing setup was required. Phase 7A is therefore **VERIFIED COMPLETE**.
 
-Phase 7B adds a caller-supplied, provider-neutral public-menu prompt layer. Its frozen `PublicMenuItem` allowlist contains only product ID, slug, name, category, Rupiah price, and Indonesian/English descriptions. Deterministic language-projected JSON is clearly delimited as trusted reference data; raw user text remains separately delimited in `LLMRequest.user_input`. Versioned customer/menu and recommendation policies enforce catalog-only grounding, explicit insufficiency, ID/EN output, privacy and application-authority boundaries, prompt-injection resistance, and catalog-evidence-only recommendations. Tests are offline and require no provider, key, database, Node process, or network. Phase 7B is ✅ **AUTOMATED/TECHNICALLY VERIFIED**.
+Phase 7B adds a caller-supplied, provider-neutral public-menu prompt layer. Its frozen `PublicMenuItem` allowlist contains only product ID, slug, name, category, Rupiah price, and Indonesian/English descriptions. Deterministic language-projected JSON is clearly delimited as trusted reference data; raw user text remains separately delimited in `LLMRequest.user_input`. Versioned customer/menu and recommendation policies enforce catalog-only grounding, explicit insufficiency, ID/EN output, privacy and application-authority boundaries, prompt-injection resistance, and catalog-evidence-only recommendations. Tests are offline and require no provider, key, database, Node process, or network. Phase 7B is **AUTOMATED/TECHNICALLY VERIFIED**.
 
-Phase 7C adds a separate provider-neutral structured capability without changing `LLMClient.generate()`. The strict `phase-7c.public-menu-response.v1` contract validates answer, caller-allowed source IDs, insufficiency, limitations, and ID/EN language. Its only tool is deterministic read-only `search_menu`, with sequential bounded orchestration and adapter-internal Gemini mapping. Phase 7C is ✅ **VERIFIED COMPLETE**.
+Phase 7C adds a separate provider-neutral structured capability without changing `LLMClient.generate()`. The strict `phase-7c.public-menu-response.v1` contract validates answer, caller-allowed source IDs, insufficiency, limitations, and ID/EN language. Its only tool is deterministic read-only `search_menu`, with sequential bounded orchestration and adapter-internal Gemini mapping. Phase 7C is **VERIFIED COMPLETE**.
 
-Phase 7D adds immutable provider-neutral embedding request/vector/product-record contracts, sanitized typed failures, deterministic ID/EN `PublicMenuItem` projection, SHA-256 semantic identity, an offline fake, deterministic catalog batching, and one lazy CPU-first `sentence-transformers` adapter. Text version `7d-catalog-text-v1` includes only canonical name, category, and the selected-language description; product identity/storage metadata, price, media, availability, and private/account data are excluded from semantic text and its hash. The verified configurable local model is `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`. Focused tests passed (`34 passed`), the Phase 7A–7D regression passed (`164 passed`), `git diff --check` passed, and controlled local-cache acceptance passed for Indonesian and English with finite, consistent 384-dimensional vectors and no paid embedding API. Phase 7D is therefore ✅ **VERIFIED COMPLETE**. Persistence and search remain outside 7D and are owned by Phase 7E.
+Phase 7D adds immutable provider-neutral embedding request/vector/product-record contracts, sanitized typed failures, deterministic ID/EN `PublicMenuItem` projection, SHA-256 semantic identity, an offline fake, deterministic catalog batching, and one lazy CPU-first `sentence-transformers` adapter. Text version `7d-catalog-text-v1` includes only canonical name, category, and the selected-language description; product identity/storage metadata, price, media, availability, and private/account data are excluded from semantic text and its hash. The verified configurable local model is `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`. Focused tests passed (`34 passed`), the Phase 7A–7D regression passed (`164 passed`), `git diff --check` passed, and controlled local-cache acceptance passed for Indonesian and English with finite, consistent 384-dimensional vectors and no paid embedding API. Phase 7D is therefore **VERIFIED COMPLETE**. Persistence and search remain outside 7D and are owned by Phase 7E.
 
-Phase 7E implements an application-owned derived vector index using stdlib SQLite and NumPy. One database is bound to an explicit provider/model/dimensions/normalization/text-version vector-space identity. Phase 7D records are synchronized transactionally as new, reused, stale/replaced, metadata-only updated, or explicitly pruned rows; vectors use deterministic little-endian float32 BLOBs. Exact in-process cosine search is bounded and optionally filtered by ID/EN language or public category, with score-descending order and product ID/language/slug tie-breakers. Corrupt BLOBs/metadata and incompatible spaces fail closed. Focused Phase 7E tests passed (`34 passed`), the Phase 7A–7E regression passed (`198 passed`), the full Python regression passed (`539 passed`, one known core-detection fallback warning), and real local acceptance passed with the cached `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` model: four bilingual 384-dimensional records persisted and round-tripped, and bounded deterministic exact searches returned `7501,7501`. Phase 7E is therefore ✅ **VERIFIED COMPLETE**. This smoke validates the real local pipeline, not retrieval quality, a similarity threshold, production readiness, or RAG. Canonical catalog data remains authoritative, so Phase 7F re-resolves current products before using retrieval metadata as evidence.
+Phase 7E implements an application-owned derived vector index using stdlib SQLite and NumPy. One database is bound to an explicit provider/model/dimensions/normalization/text-version vector-space identity. Phase 7D records are synchronized transactionally as new, reused, stale/replaced, metadata-only updated, or explicitly pruned rows; vectors use deterministic little-endian float32 BLOBs. Exact in-process cosine search is bounded and optionally filtered by ID/EN language or public category, with score-descending order and product ID/language/slug tie-breakers. Corrupt BLOBs/metadata and incompatible spaces fail closed. Focused Phase 7E tests passed (`34 passed`), the Phase 7A–7E regression passed (`198 passed`), the full Python regression passed (`539 passed`, one known core-detection fallback warning), and real local acceptance passed with the cached `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` model: four bilingual 384-dimensional records persisted and round-tripped, and bounded deterministic exact searches returned `7501,7501`. Phase 7E is therefore **VERIFIED COMPLETE**. This smoke validates the real local pipeline, not retrieval quality, a similarity threshold, production readiness, or RAG. Canonical catalog data remains authoritative, so Phase 7F re-resolves current products before using retrieval metadata as evidence.
 
 Phase 7F implements a read-only application-managed RAG pipeline over the completed 7D/7E foundations. It embeds the unmodified query in the requested language, performs bounded exact retrieval, resolves stable product identities against caller-supplied current `PublicMenuItem` authority, rejects missing/slug-mismatched/content-hash-stale rows, and falls back deterministically to the other language only when no fresh requested-language evidence exists. Fresh products are deduplicated and bounded to five evidence items with request-local `menu:1` through `menu:5` IDs. A reused Phase 7B prompt plus deterministic trusted evidence is sent through Phase 7C's zero-tool structured path; the exact evidence IDs become the allowed source set, and the existing parser remains authoritative for language, duplicate, and unknown-source rejection. Vector values are never exposed to Gemini. Zero usable evidence and clear non-menu mutation requests return deterministic structured insufficiency without an LLM call; unsupported factual guarantees such as allergen-free claims require `insufficient_information=true` and `sources=[]` even when nearby product evidence exists. The pipeline has no mutation or account/admin/cart/order/payment/SQL/shell/browser authority.
 
-Automated verification includes the earlier full Python regression (`570 passed`) and, after the final allergen-grounding fix, focused affected tests (`24 passed`) plus the Phase 7A–7F targeted regression (`232 passed`); `git diff --check` passed. In the initial live attempt, the allergen scenario failed because its rule was too implicit and the harness diagnostics were too coarse. The principled fix made the unsupported-allergen behavior explicit and added sanitized structured-field diagnostics without bypassing the LLM or weakening source validation. Subsequent controlled acceptance passed both Indonesian scenarios with the cached `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` embedding model and Gemini `gemini-3.1-flash-lite`: grounded factual retrieval cited `menu:1`, while the unsupported allergen guarantee returned insufficiency with empty sources. Only fictional/public-safe data was used; no paid embedding API or external vector database was required. Phase 7F is therefore ✅ **VERIFIED COMPLETE**.
+Automated verification includes the earlier full Python regression (`570 passed`) and, after the final allergen-grounding fix, focused affected tests (`24 passed`) plus the Phase 7A–7F targeted regression (`232 passed`); `git diff --check` passed. In the initial live attempt, the allergen scenario failed because its rule was too implicit and the harness diagnostics were too coarse. The principled fix made the unsupported-allergen behavior explicit and added sanitized structured-field diagnostics without bypassing the LLM or weakening source validation. Subsequent controlled acceptance passed both Indonesian scenarios with the cached `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` embedding model and Gemini `gemini-3.1-flash-lite`: grounded factual retrieval cited `menu:1`, while the unsupported allergen guarantee returned insufficiency with empty sources. Only fictional/public-safe data was used; no paid embedding API or external vector database was required. Phase 7F is therefore **VERIFIED COMPLETE**.
 
 Phase 7G implements a bounded read-only Menu Recommendation Agent over a behavior-preserving extraction of Phase 7F's retrieval/resolution layer. The agent has one useful tool, semantic `search_menu`; `get_menu_details` was deliberately omitted because search already returns complete fresh canonical `PublicMenuItem` evidence. Each request has immutable local state, no persistent memory or chain-of-thought field, at most three model decisions, two sequential distinct tool calls, and five evidence products. It may search, refine once, finish with a Phase 7C-validated grounded response, or return a validated `cannot_complete`. Decision three and every turn after tool call two are terminal-only; repeated calls, unknown actions/tools, malformed arguments, parallel calls, fabricated citations, and post-terminal execution fail closed. A narrow pre-model gate deterministically rejects mutation, account/admin/auth/cart/order/payment/SQL/shell/filesystem/browser/network/secret operations without embedding, retrieval, or Gemini.
 
@@ -715,7 +703,7 @@ The tool reuses Phase 7D embedding, Phase 7E exact search, and the extracted Pha
 
 The controlled Gemini history preserved two useful corrections. Attempt 1 showed that an empty pre-search evidence projection could be misread as an empty catalog; explicit `SEARCH_STATE: NOT_SEARCHED`/`SEARCH_COMPLETED`, a search-only initial schema, and application rejection of premature terminal actions corrected it (`68` focused agent/Gemini tests, `3` harness tests, `35` Phase 7F tests, and `283` Phase 7A–7G tests passed). Attempt 2 showed Gemini wrapping insufficiency-shaped allergen output in `finish`; explicit terminal discriminator guidance corrected it without weakening or auto-converting invalid finishes (`73` focused affected tests, `3` harness tests, and `288` Phase 7A–7G tests passed). `git diff --check` passed after each targeted fix.
 
-Final controlled acceptance passed all three public/synthetic scenarios with Gemini `gemini-3.1-flash-lite` and cached local embeddings from `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`. Simple recommendation searched once then finished with canonical product `7701` and source `menu:1`; the allergen request searched once then returned `cannot_complete`, insufficiency, empty sources, and an explicit missing-allergen limitation; the price mutation was rejected before Gemini with zero decisions and tool calls. Phase 7G is therefore ✅ **VERIFIED COMPLETE**. At that checkpoint Phase 7H still awaited local acceptance; its later completed evidence and final reconciliation are recorded below.
+Final controlled acceptance passed all three public/synthetic scenarios with Gemini `gemini-3.1-flash-lite` and cached local embeddings from `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`. Simple recommendation searched once then finished with canonical product `7701` and source `menu:1`; the allergen request searched once then returned `cannot_complete`, insufficiency, empty sources, and an explicit missing-allergen limitation; the price mutation was rejected before Gemini with zero decisions and tool calls. Phase 7G is therefore **VERIFIED COMPLETE**. At that checkpoint Phase 7H still awaited local acceptance; its later completed evidence and final reconciliation are recorded below.
 
 Phase 7H Stage 1 adds a strict repository-owned `7h-eval-v1` public/synthetic dataset with 12 retrieval, 14 RAG, 10 agent cases, and four separate system boundary probes. Frozen specialized contracts, fail-closed validation, pure retrieval/bilingual/structured/grounding/insufficiency/safety/agent aggregation, reproducible run identity, a concise scorecard, and explicitly requested non-overwriting JSON output are implemented. Deterministic offline execution uses fake embeddings only for orchestration, a temporary SQLite vector store, scripted provider-free observations, and real application parsers/canonical-resolution boundaries for representative probes. Fake results are never labeled semantic retrieval quality.
 
@@ -727,17 +715,54 @@ Retrieval optimization Experiment #1 adds `7d-catalog-text-v2` as a language-fir
 
 Retrieval optimization Experiment #2's verified MiniLM V2 hybrid result is Hit@1 `83.3%`, Hit@3 `100.0%`, Recall@5 `97.2%`, MRR `0.9167`, and bilingual both-Hit@1 `66.7%`. Its top-10 candidate set, canonical lexical coverage, `0.05` bounded bonus, deterministic deduplication, and final Top-5 remain unchanged.
 
-Retrieval optimization Experiment #3 is ✅ **SUCCESSFUL / VERIFIED COMPLETE**. The user-run `intfloat/multilingual-e5-base` benchmark used the required `7h-embedding-profile-e5-v1`, 768 dimensions, `7d-catalog-text-v2`, and unchanged `7h-retrieval-hybrid-v1`. The fixed 12 cases achieved Hit@1 `100.0%`, Hit@3 `100.0%`, Recall@5 `100.0%`, MRR `1.0000`, and bilingual both-Hit@1 `100.0%`. This exceeds every Phase 7H target on this small controlled benchmark without changing its data, gold labels, V2 projection, or hybrid formula. It does not establish universal retrieval or AI accuracy.
+Retrieval optimization Experiment #3 is **SUCCESSFUL / VERIFIED COMPLETE**. The user-run `intfloat/multilingual-e5-base` benchmark used the required `7h-embedding-profile-e5-v1`, 768 dimensions, `7d-catalog-text-v2`, and unchanged `7h-retrieval-hybrid-v1`. The fixed 12 cases achieved Hit@1 `100.0%`, Hit@3 `100.0%`, Recall@5 `100.0%`, MRR `1.0000`, and bilingual both-Hit@1 `100.0%`. This exceeds every Phase 7H target on this small controlled benchmark without changing its data, gold labels, V2 projection, or hybrid formula. It does not establish universal retrieval or AI accuracy.
 
-Phase 7H is ✅ **VERIFIED COMPLETE** with versioned evaluation contracts/data, deterministic offline evaluation, real local semantic measurements, root-cause analysis and three controlled retrieval experiments, controlled Gemini `8/8` (`4/4` RAG and `4/4` agent), hard safety gates PASS, and human faithfulness/relevance review `16/16` each. Phase 7B's offline prompt verification is also supported by downstream controlled live acceptance through 7C, 7F, 7G, and 7H, so 7A–7H are independently supported and aggregate Phase 7 is ✅ **VERIFIED COMPLETE**. Phase 8 remains planned and has not started.
+Phase 7H is **VERIFIED COMPLETE** with versioned evaluation contracts/data, deterministic offline evaluation, real local semantic measurements, root-cause analysis and three controlled retrieval experiments, controlled Gemini `8/8` (`4/4` RAG and `4/4` agent), hard safety gates PASS, and human faithfulness/relevance review `16/16` each. Phase 7B's offline prompt verification is also supported by downstream controlled live acceptance through 7C, 7F, 7G, and 7H, so 7A–7H are independently supported and aggregate Phase 7 is **VERIFIED COMPLETE**. Phase 8 remains planned and has not started.
 
 Phase 7B establishes prompt behavior over caller-supplied public catalog data only. Runtime access to current application data is intentionally deferred to Phase 8.
 
 ## Phase 8 — Full-Stack + AI Integration
 
-Status: ⏳ **PLANNED**
+Status: **VERIFIED COMPLETE**
 
 Goal: combine the application engineering foundation with Python, ML, and AI services as one coherent system.
+
+```text
+8A  VERIFIED COMPLETE
+8B  VERIFIED COMPLETE
+8C  VERIFIED COMPLETE
+8D  VERIFIED COMPLETE
+8E  VERIFIED COMPLETE
+8F  VERIFIED COMPLETE
+8G Responsive / Accessibility  VERIFIED COMPLETE
+8H  VERIFIED COMPLETE
+8I  VERIFIED COMPLETE
+8J  VERIFIED COMPLETE
+```
+
+Phase 8G is **VERIFIED COMPLETE** after automated reconciliation and user-performed manual acceptance. The menu assistant passed desktop, narrow/mobile, short-viewport, cart-bar, keyboard, native-dialog focus, citation-navigation, ID/EN presentation, touch-sized viewport, and reduced-motion checks. It retains one dedicated polite/atomic status live region: loading is announced, completion publishes a concise localized response-ready status after clearing the prior status and waiting for the next animation frame, and a sequence guard prevents stale announcements. The full AI answer is not automatically announced and focus is not moved on completion.
+
+Phase 8H is **VERIFIED COMPLETE**. 8H-1, 8H-2, and 8H-3 are each **VERIFIED COMPLETE** after automated verification and consolidated user-performed manual acceptance. The accepted system retains the 15-second Node outer deadline, 12-second complete Python budget, remaining-budget provider calls, process-local admission capacity two, reduced provider lock scope, fail-closed catalog fingerprints, sanitized correlation-aware diagnostics, static provider-configuration visibility without a provider probe, one-attempt recovery for only the dedicated generated Phase 8 index, layered process-local abuse limits, and bounded response contracts. Canonical `data/umkm.db` and the Phase 7 vector database remain forbidden recovery targets; transient/unknown failures remain fail closed. Admission and rate limiting remain process-local and reset on restart. This evidence does not claim universal reliability.
+
+Phase 8H-R1 is **VERIFIED COMPLETE**. The unchanged browser request field `language` means website/interface language and ambiguity fallback, not an unconditional response language. FastAPI makes one bounded ID/EN decision from each current message before the existing retrieval/agent path. Manual acceptance passed UI EN + EN/ID, UI ID + ID/EN, and ambiguous `Soto?` fallback in both UI languages. Panel chrome, status/error and accessibility labels, and `Menu sources`/`Sumber menu` remained tied to website language; response language remained per-message, historical answer text was not rewritten after UI-language changes, canonical product names were not translated, and citations remained grounded and functional. The first cross-language attempt used stale pre-R1 CommonJS modules in an already-running Node process; FastAPI had auto-reloaded but `npm start` does not watch Node. Read-only diagnosis confirmed correct on-disk code, and the same request passed after Node restart. This was resolved operational context, not an unresolved product defect.
+
+Phase 8H-R2 is **VERIFIED COMPLETE**. The generated Phase 8 E5 index default is anchored from the installed source file to `<repo>/python/data/sari_rasa_phase8_e5_vectors.db`; repository-root, `<repo>/python`, and unrelated startup working directories resolve the same target. Automated evidence passed 78 focused runtime/service tests without real E5, Gemini, or network initialization and preserved explicit disposable paths, import-only no-open/no-create behavior, canonical/Phase-7 database protection, and hard-link/same-file protection. Manual acceptance restarted FastAPI with the documented `<repo>/python` procedure, completed a live AI request, confirmed the intended index remained active, and confirmed the old nested artifact was untouched by R2. After FastAPI stopped, only the verified disposable `python/python/data/sari_rasa_phase8_e5_vectors.db` artifact was removed; `python/python/` no longer appears in Git status. The intended `.gitignore` rule was not broadened.
+
+Consolidated manual acceptance also passed guarded root-`.env` startup, `/health`, cold-unavailable then post-initialization-ready readiness, `provider_configuration=configured`, `provider_probe=not_performed`, live grounded EN/ID requests, malformed and over-4-KiB rejection with normal recovery, two-request concurrency, fast third-request admission saturation and slot recovery, sanitized FastAPI failure logging, Node/FastAPI correlation propagation, post-failure health, browser AI/citation navigation and highlight, cart, and auth/login smoke. `/health` proves only cheap liveness. `/ai/readiness` reports local runtime/index readiness plus static provider configuration; it does not prove provider network reachability, credential validity, quota, model availability, or successful inference. The historical temporary 502 root cause remains **UNKNOWN** and is not explained by R1 or R2. Live destructive index corruption and controlled provider timeout were intentionally not forced; their timeout/recovery edge cases retain deterministic automated evidence.
+
+A broader Phase 8H-3 Python selection previously produced **203 passed + 2 failures** associated with module-reload/order-sensitive identity behavior. Each affected file passed independently: `test_llm_client.py` **13 passed** and `test_llm_gemini_structured.py` **23 passed**. This historical evidence is not erased by Phase 8H completion; Phase 8J subsequently checked the complete 800-test combined order and the failures did not reproduce.
+
+Phase 8I is **VERIFIED COMPLETE**. Its deterministic seam sends the public Express route through the real Node AI client to a FastAPI wire-contract stub and then through strict internal validation and public mapping. It covers the canonical 11-product projection, Node-owned correlation ID, snake_case/camelCase alignment, response-language independence, and trusted source mapping. Automated evidence passed the focused seam (`1 passed`), targeted Node/frontend selection (`66 passed`), targeted Python selection (`145 passed`), and provider-free offline evaluation (`36 cases + 4 boundary probes`) with 100% RAG contract validity, safety gates PASS, agent bounds PASS, and 4/4 boundary probes. The explicit fixed 12-case E5 + V2 + hybrid benchmark repeated Hit@1 `100%`, Hit@3 `100%`, Recall@5 `100%`, MRR `1.0000`, and bilingual both-Hit@1 `100%`. The deterministic seam used localhost loopback only; automated 8I evaluation made zero Gemini and zero external-network calls. These controlled benchmark results do not establish universal accuracy.
+
+Required manual acceptance passed documented FastAPI startup from `<repo>/python` with root `.env`, FastAPI and Node health, expected cold lazy readiness, first grounded Indonesian inference, post-initialization ready state, cross-language English response under Indonesian UI with prior Indonesian content preserved, Indonesian ambiguous fallback, English UI localization, later successful English ambiguous fallback, citation navigation, private-data refusal, read-only account-role mutation refusal, unsupported-allergen insufficiency, cart smoke, authentication smoke, and final health/readiness. Canonical `Soto Ayam Kampung` names and grounded sources remained intact.
+
+During the English ambiguous case, one request produced sanitized `provider.unavailable` / `ai_runtime_unavailable` (`503`) evidence and one controlled retry produced `provider.timeout` / `upstream_timeout` (`504`). The browser displayed distinct safe public errors. FastAPI/Node health remained good and local readiness remained ready under its documented semantics. A later single retry succeeded without restarting either service. This records provider failure and recovery only; it does not infer a raw external cause, does not identify an E5/index/Node/browser defect, and does not explain the older historical temporary 502 whose root cause remains **UNKNOWN**.
+
+`/health` remains cheap liveness. `/ai/readiness` reports local runtime/index readiness plus static provider-configuration visibility with `provider_probe=not_performed`; it does not prove provider network reachability, credential validity, quota availability, model availability, or successful inference. The naturally observed provider timeout was not intentionally induced. Rate limiting/admission remains process-local; recovery remains bounded to the dedicated rebuildable Phase 8 index with canonical application and Phase 7 vector databases protected; destructive live corruption was not performed.
+
+Phase 8J is **VERIFIED COMPLETE**. The newly observed browser case `sepertinya enak ya` under English UI reproduced deterministically before the fix: all three tokens were absent from both bounded signal sets, producing a zero/zero tie and therefore the English interface fallback. A focused failing test captured the exact `en` fallback / expected `id` case before implementation. The minimal fix adds general short conversational markers to the existing ID/EN lexicons; it does not special-case the sentence, add conversation history, call a provider, or change UI/canonical-name behavior. Nearby coverage protects another Indonesian conversational utterance under EN UI, an English conversational utterance under ID UI, and genuinely ambiguous `Soto?` fallback under both UI languages. The browser continues sending only the current `{message, language}` request.
+
+Post-fix evidence passed the focused selector cases (`11 passed`), AI contract/service selection (`72 passed`), complete backend rerun (`102 passed`), complete frontend regression (`131 passed`), and complete Python regression (`800 passed`, one known logical-core fallback warning). The historical broader **203 passed + 2 failures** module-reload/order-sensitive result remains recorded, but did not reproduce in the affected 36-test combined run or the complete 800-test combined order; its historical root cause is not claimed as proven. The first complete backend attempt had one password-reset response-time-envelope outlier; that unchanged file passed independently (`16 passed`) and the complete backend rerun passed (`102 passed`). No unrelated production code was changed. User-performed browser acceptance then passed Indonesian response under English UI for `sepertinya enak ya`, English response under Indonesian UI for `looks really tasty`, and `Soto?` interface-language fallback under both UI languages. Historical answer text remained unchanged after website-language switching, canonical product names remained unchanged, and source navigation/highlighting remained functional. Phase 8J and aggregate Phase 8 are therefore **VERIFIED COMPLETE**, and the repository is **READY FOR PHASE-8 GIT CHECKPOINT**; creating that checkpoint still requires separate user approval.
 
 Expected concerns include frontend/backend/Python communication, authentication and authorization around AI capabilities, structured AI responses, loading/error states, timeouts, retries/fallbacks, rate limits, cost controls, observability, hallucination/failure handling, evaluation integration, and end-to-end regression.
 
@@ -760,7 +785,7 @@ This is conceptual, not a frozen architecture decision.
 
 ## Final Engineering — Deployment & Portfolio Finalization
 
-Status: ⏳ **PLANNED**
+Status: **PLANNED**
 
 Expected later scope includes deployment architecture, production configuration, environment/secrets management, production database considerations, logging/observability, CI when justified, backup/recovery, security/performance/accessibility review, final automated regression, final manual acceptance, architecture diagram, README/portfolio presentation, screenshots/demo, and interview-ready technical explanation.
 
@@ -768,7 +793,7 @@ Deployment belongs here unless an earlier phase needs a temporary deployment che
 
 ## Project 1 Completion Definition
 
-Project 1 may be marked ✅ **VERIFIED COMPLETE** only after Phase 1, Phase 2, Phase 3, the Quality Gate, Phase 4, Phase 5, Phase 6, Phase 6-EXT, Phase 7, Phase 8, and Final Engineering are individually verified; final regression and required manual acceptance pass; documentation is complete; and the portfolio presentation is ready.
+Project 1 may be marked **VERIFIED COMPLETE** only after Phase 1, Phase 2, Phase 3, the Quality Gate, Phase 4, Phase 5, Phase 6, Phase 6-EXT, Phase 7, Phase 8, and Final Engineering are individually verified; final regression and required manual acceptance pass; documentation is complete; and the portfolio presentation is ready.
 
 ## Scope Discipline
 
@@ -788,8 +813,8 @@ Project 1 may be marked ✅ **VERIFIED COMPLETE** only after Phase 1, Phase 2, P
 1. Read `ROADMAP.md` before planning or implementing a new phase or subphase.
 2. Update `ROADMAP.md` whenever verified project status changes.
 3. Status must reflect actual repository and verification evidence.
-4. Use 🟡 **PROVISIONALLY COMPLETE** when implementation, automated/static checks, and review pass but required integration/manual acceptance remains.
-5. Use ✅ **VERIFIED COMPLETE** only after required verification and manual acceptance pass.
+4. Use **PROVISIONALLY COMPLETE** when implementation, automated/static checks, and review pass but required integration/manual acceptance remains.
+5. Use **VERIFIED COMPLETE** only after required verification and manual acceptance pass.
 6. Approved new subphases may be added when their parent phase is formally planned.
 7. Do not invent unsupported historical phase names or statuses.
 8. Do not remove, renumber, skip, or substantially redesign approved future phases without explicit user approval.
@@ -824,92 +849,107 @@ Git Checkpoint
 Push only after explicit user approval
 ```
 
-A phase is not verified merely because code exists. Use 🟡 **PROVISIONALLY COMPLETE** when implementation, automated/static checks, and review are complete but a required manual or integration acceptance checkpoint remains. Use ✅ **VERIFIED COMPLETE** only after all required verification and manual/integration acceptance have passed.
+A phase is not verified merely because code exists. Use **PROVISIONALLY COMPLETE** when implementation, automated/static checks, and review are complete but a required manual or integration acceptance checkpoint remains. Use **VERIFIED COMPLETE** only after all required verification and manual/integration acceptance have passed.
 
 ## Current Position
 
 ```text
-Phase 1                           ✅ VERIFIED COMPLETE
-Phase 2                           ✅ VERIFIED COMPLETE
-Phase 3                           ✅ VERIFIED COMPLETE
-Quality Gate                      ✅ VERIFIED COMPLETE
-  Automated Regression            ✅ VERIFIED COMPLETE
-    A Safe Testability Seam       ✅ VERIFIED COMPLETE
-    B Backend/DB Suite            ✅ VERIFIED COMPLETE
-    C Frontend VM Suite           ✅ VERIFIED COMPLETE
-    D Final Integration           ✅ VERIFIED COMPLETE
-      Automated verification      ✅ COMPLETE
-      User Safari acceptance      ✅ COMPLETE
-  Documentation / Runbook         ✅ VERIFIED COMPLETE
-    A Documentation Audit & Plan  ✅ COMPLETE
-    B README & Architecture       ✅ VERIFIED COMPLETE
-    C Setup / Operations Runbook  ✅ VERIFIED COMPLETE
-    D Final Doc Verification      ✅ VERIFIED COMPLETE
-Phase 4 Python & Data                 ✅ VERIFIED COMPLETE
-  4A Python Foundation & Environment ✅ VERIFIED COMPLETE
-    4A-1 Python Foundation Scaffold  ✅ VERIFIED COMPLETE
-    4A-2 Core Python Fundamentals & Error Handling ✅ VERIFIED COMPLETE
-    4A-3 Python Foundation Finalization ✅ VERIFIED COMPLETE
-  4B Data Handling & Transformation  ✅ VERIFIED COMPLETE
-    4B-1 Dataset Foundation & Schema ✅ VERIFIED COMPLETE
-    4B-2 CSV/JSON Loading & Validation ✅ VERIFIED COMPLETE
-    4B-3 Cleaning & Transformation   ✅ VERIFIED COMPLETE
-    4B-4 Aggregation & Final Verification ✅ VERIFIED COMPLETE
-  4C Pandas & NumPy Analysis          ✅ VERIFIED COMPLETE
-    4C-1 Pandas Foundation & DataFrame ✅ VERIFIED COMPLETE
-    4C-2 Filtering, Grouping & Aggregation ✅ VERIFIED COMPLETE
-    4C-3 NumPy & Basic Statistics    ✅ VERIFIED COMPLETE
-    4C-4 Analysis Pipeline & Final Review ✅ VERIFIED COMPLETE
-  4D Python Data Service              ✅ VERIFIED COMPLETE
-    4D-1 FastAPI Foundation & Health Endpoint ✅ VERIFIED COMPLETE
-    4D-2 Analytics Summary API        ✅ VERIFIED COMPLETE
-    4D-3 Products & Categories API    ✅ VERIFIED COMPLETE
-    4D-4 Error Handling & Final Verification ✅ VERIFIED COMPLETE
-  4E Node.js ↔ Python Integration  ✅ VERIFIED COMPLETE
-  4F Integration & Quality Gate       ✅ VERIFIED COMPLETE
-Phase 4G Analytics Dashboard UI       ✅ VERIFIED COMPLETE
-  4G-1 Analytics Dashboard Foundation ✅ VERIFIED COMPLETE
-  4G-2 Analytics API Integration      ✅ VERIFIED COMPLETE
-  4G-3 Product & Category Visualization ✅ VERIFIED COMPLETE
-  4G-4 Responsive & Accessibility     ✅ VERIFIED COMPLETE
-  4G-5 Existing Dashboard Acceptance  ✅ VERIFIED COMPLETE
-  4G-6 Sales Trend & Date Range Analytics ✅ VERIFIED COMPLETE
-  4G-6R Sales Analytics UX & Global Date Filter Revision ✅ VERIFIED COMPLETE
-  4G-7 Final Dashboard Acceptance     ✅ MANUAL ACCEPTANCE PASSED
-  4G-R2 750K Analytics Alignment & Performance ✅ VERIFIED COMPLETE
-Phase 5 Machine Learning              ✅ VERIFIED COMPLETE
-  5A ML Problem Definition & Dataset Readiness ✅ VERIFIED COMPLETE
-  5B ML Dataset & Feature Engineering ✅ VERIFIED COMPLETE
-  5C Baseline Forecast                ✅ VERIFIED COMPLETE
-  5D Model Training & Evaluation      ✅ VERIFIED COMPLETE
-  5E Prediction Service               ✅ VERIFIED COMPLETE
-  5F Node.js ↔ ML Integration         ✅ VERIFIED COMPLETE
-  5F-R Large-Scale ML V2 Dataset, Retraining & Serving Verification ✅ VERIFIED COMPLETE
-  5F-R2 11-Product Domain Alignment & Full Pipeline Reverification ✅ VERIFIED COMPLETE
-  5G ML Dashboard UI                  ✅ VERIFIED COMPLETE
-  5H Final Integration & Quality Gate ✅ VERIFIED COMPLETE
-Phase 6 Deep Learning Fundamentals    ✅ VERIFIED COMPLETE
-  6A Neural Network Foundations       ✅ VERIFIED COMPLETE
-  6B Deep Learning Dataset & Preprocessing ✅ VERIFIED COMPLETE
-  6C Baseline Neural Network          ✅ VERIFIED COMPLETE
-  6D Training & Validation            ✅ VERIFIED COMPLETE
-  6E Final Evaluation & ML-vs-DL Comparison ✅ VERIFIED COMPLETE
-  6F Deep Learning Model Artifact & Inference ✅ VERIFIED COMPLETE
-  6G Deep Learning Service Integration ✅ VERIFIED COMPLETE
-  6H Dashboard Model Comparison       ✅ VERIFIED COMPLETE
-  6I Final Integration & Quality Gate ✅ VERIFIED COMPLETE
-Phase 6-EXT Account & Admin Extension ✅ VERIFIED COMPLETE
-  6-EXT-A Architecture & Data Contracts ✅ VERIFIED COMPLETE
-  6-EXT-B Admin Backend & Business Rules ✅ VERIFIED COMPLETE
-  6-EXT-C Admin Management UI/UX       ✅ VERIFIED COMPLETE
-  6-EXT-D Password Reset Backend & Token Lifecycle ✅ VERIFIED COMPLETE
-  6-EXT-E Password Recovery UI/UX      ✅ VERIFIED COMPLETE
-  6-EXT-F Email Delivery Integration   ✅ VERIFIED COMPLETE
-  6-EXT-G Security, Integration & Manual Acceptance ✅ VERIFIED COMPLETE
-  6-EXT-H Documentation & Final Quality Gate ✅ VERIFIED COMPLETE
-Phase 7 AI Engineering                ✅ VERIFIED COMPLETE
-Phase 8 Full-Stack + AI Integration   ⏳ PLANNED
-Final Engineering                     ⏳ PLANNED
+Phase 1                           VERIFIED COMPLETE
+Phase 2                           VERIFIED COMPLETE
+Phase 3                           VERIFIED COMPLETE
+Quality Gate                      VERIFIED COMPLETE
+  Automated Regression            VERIFIED COMPLETE
+    A Safe Testability Seam       VERIFIED COMPLETE
+    B Backend/DB Suite            VERIFIED COMPLETE
+    C Frontend VM Suite           VERIFIED COMPLETE
+    D Final Integration           VERIFIED COMPLETE
+      Automated verification      COMPLETE
+      User Safari acceptance      COMPLETE
+  Documentation / Runbook         VERIFIED COMPLETE
+    A Documentation Audit & Plan  COMPLETE
+    B README & Architecture       VERIFIED COMPLETE
+    C Setup / Operations Runbook  VERIFIED COMPLETE
+    D Final Doc Verification      VERIFIED COMPLETE
+Phase 4 Python & Data                 VERIFIED COMPLETE
+  4A Python Foundation & Environment VERIFIED COMPLETE
+    4A-1 Python Foundation Scaffold  VERIFIED COMPLETE
+    4A-2 Core Python Fundamentals & Error Handling VERIFIED COMPLETE
+    4A-3 Python Foundation Finalization VERIFIED COMPLETE
+  4B Data Handling & Transformation  VERIFIED COMPLETE
+    4B-1 Dataset Foundation & Schema VERIFIED COMPLETE
+    4B-2 CSV/JSON Loading & Validation VERIFIED COMPLETE
+    4B-3 Cleaning & Transformation   VERIFIED COMPLETE
+    4B-4 Aggregation & Final Verification VERIFIED COMPLETE
+  4C Pandas & NumPy Analysis          VERIFIED COMPLETE
+    4C-1 Pandas Foundation & DataFrame VERIFIED COMPLETE
+    4C-2 Filtering, Grouping & Aggregation VERIFIED COMPLETE
+    4C-3 NumPy & Basic Statistics    VERIFIED COMPLETE
+    4C-4 Analysis Pipeline & Final Review VERIFIED COMPLETE
+  4D Python Data Service              VERIFIED COMPLETE
+    4D-1 FastAPI Foundation & Health Endpoint VERIFIED COMPLETE
+    4D-2 Analytics Summary API        VERIFIED COMPLETE
+    4D-3 Products & Categories API    VERIFIED COMPLETE
+    4D-4 Error Handling & Final Verification VERIFIED COMPLETE
+  4E Node.js ↔ Python Integration  VERIFIED COMPLETE
+  4F Integration & Quality Gate       VERIFIED COMPLETE
+Phase 4G Analytics Dashboard UI       VERIFIED COMPLETE
+  4G-1 Analytics Dashboard Foundation VERIFIED COMPLETE
+  4G-2 Analytics API Integration      VERIFIED COMPLETE
+  4G-3 Product & Category Visualization VERIFIED COMPLETE
+  4G-4 Responsive & Accessibility     VERIFIED COMPLETE
+  4G-5 Existing Dashboard Acceptance  VERIFIED COMPLETE
+  4G-6 Sales Trend & Date Range Analytics VERIFIED COMPLETE
+  4G-6R Sales Analytics UX & Global Date Filter Revision VERIFIED COMPLETE
+  4G-7 Final Dashboard Acceptance     MANUAL ACCEPTANCE PASSED
+  4G-R2 750K Analytics Alignment & Performance VERIFIED COMPLETE
+Phase 5 Machine Learning              VERIFIED COMPLETE
+  5A ML Problem Definition & Dataset Readiness VERIFIED COMPLETE
+  5B ML Dataset & Feature Engineering VERIFIED COMPLETE
+  5C Baseline Forecast                VERIFIED COMPLETE
+  5D Model Training & Evaluation      VERIFIED COMPLETE
+  5E Prediction Service               VERIFIED COMPLETE
+  5F Node.js ↔ ML Integration         VERIFIED COMPLETE
+  5F-R Large-Scale ML V2 Dataset, Retraining & Serving Verification VERIFIED COMPLETE
+  5F-R2 11-Product Domain Alignment & Full Pipeline Reverification VERIFIED COMPLETE
+  5G ML Dashboard UI                  VERIFIED COMPLETE
+  5H Final Integration & Quality Gate VERIFIED COMPLETE
+Phase 6 Deep Learning Fundamentals    VERIFIED COMPLETE
+  6A Neural Network Foundations       VERIFIED COMPLETE
+  6B Deep Learning Dataset & Preprocessing VERIFIED COMPLETE
+  6C Baseline Neural Network          VERIFIED COMPLETE
+  6D Training & Validation            VERIFIED COMPLETE
+  6E Final Evaluation & ML-vs-DL Comparison VERIFIED COMPLETE
+  6F Deep Learning Model Artifact & Inference VERIFIED COMPLETE
+  6G Deep Learning Service Integration VERIFIED COMPLETE
+  6H Dashboard Model Comparison       VERIFIED COMPLETE
+  6I Final Integration & Quality Gate VERIFIED COMPLETE
+Phase 6-EXT Account & Admin Extension VERIFIED COMPLETE
+  6-EXT-A Architecture & Data Contracts VERIFIED COMPLETE
+  6-EXT-B Admin Backend & Business Rules VERIFIED COMPLETE
+  6-EXT-C Admin Management UI/UX       VERIFIED COMPLETE
+  6-EXT-D Password Reset Backend & Token Lifecycle VERIFIED COMPLETE
+  6-EXT-E Password Recovery UI/UX      VERIFIED COMPLETE
+  6-EXT-F Email Delivery Integration   VERIFIED COMPLETE
+  6-EXT-G Security, Integration & Manual Acceptance VERIFIED COMPLETE
+  6-EXT-H Documentation & Final Quality Gate VERIFIED COMPLETE
+Phase 7 AI Engineering                VERIFIED COMPLETE
+Phase 8 Full-Stack + AI Integration   VERIFIED COMPLETE
+  8A                              VERIFIED COMPLETE
+  8B                              VERIFIED COMPLETE
+  8C                              VERIFIED COMPLETE
+  8D                              VERIFIED COMPLETE
+  8E                              VERIFIED COMPLETE
+  8F                              VERIFIED COMPLETE
+  8G Responsive / Accessibility   VERIFIED COMPLETE
+  8H                              VERIFIED COMPLETE
+    8H-1                          VERIFIED COMPLETE
+    8H-2                          VERIFIED COMPLETE
+    8H-3                          VERIFIED COMPLETE
+    8H-R1                         VERIFIED COMPLETE
+    8H-R2                         VERIFIED COMPLETE
+  8I                              VERIFIED COMPLETE
+  8J                              VERIFIED COMPLETE
+Final Engineering                     PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), the approved post-quality-gate **Phase 4G** extension, **Phase 5 — Machine Learning**, **Phase 6 — Deep Learning Fundamentals**, **Phase 6-EXT — Account & Admin Extension**, and **Phase 7 — AI Engineering** are ✅ **VERIFIED COMPLETE**. Phase 7 reconciles independently supported 7A–7H evidence, ending with the successful fixed-benchmark E5 retrieval experiment. Phase 8 remains planned and has not started.
+The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), the approved post-quality-gate **Phase 4G** extension, **Phase 5 — Machine Learning**, **Phase 6 — Deep Learning Fundamentals**, **Phase 6-EXT — Account & Admin Extension**, **Phase 7 — AI Engineering**, Phase 8A through 8J, and aggregate **Phase 8 — Full-Stack + AI Integration** are **VERIFIED COMPLETE**. The repository is **READY FOR PHASE-8 GIT CHECKPOINT**; commit and push remain separate user-approved actions.

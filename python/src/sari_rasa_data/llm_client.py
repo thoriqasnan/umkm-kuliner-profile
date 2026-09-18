@@ -2,9 +2,13 @@
 
 from dataclasses import dataclass, field
 from os import environ
+import re
 from typing import Mapping, Protocol
 
 from .llm_contracts import LLMConfigError, LLMRequest, LLMResponse
+
+
+LLM_MODEL_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 
 @dataclass(frozen=True)
@@ -36,6 +40,8 @@ def load_llm_config(env: Mapping[str, str] | None = None) -> LLMConfig:
         raise LLMConfigError("unsupported SARI_RASA_LLM_PROVIDER")
     if not model:
         raise LLMConfigError("SARI_RASA_LLM_MODEL is required")
+    if not LLM_MODEL_PATTERN.fullmatch(model):
+        raise LLMConfigError("invalid LLM model identifier")
     if not api_key:
         raise LLMConfigError("SARI_RASA_LLM_API_KEY is required")
     try:
@@ -55,3 +61,18 @@ def create_llm_client(env: Mapping[str, str] | None = None) -> LLMClient:
 
         return GeminiLLMClient(config)
     raise LLMConfigError("unsupported SARI_RASA_LLM_PROVIDER")
+
+
+def static_llm_config_status(env: Mapping[str, str] | None = None) -> str:
+    """Classify local configuration without loading a client or contacting a provider."""
+    values = environ if env is None else env
+    required = tuple(values.get(name, "").strip() for name in (
+        "SARI_RASA_LLM_PROVIDER", "SARI_RASA_LLM_MODEL", "SARI_RASA_LLM_API_KEY",
+    ))
+    if not any(required):
+        return "unconfigured"
+    try:
+        load_llm_config(values)
+    except (LLMConfigError, AttributeError):
+        return "invalid"
+    return "configured"

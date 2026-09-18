@@ -4,7 +4,16 @@ import csv
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+from sari_rasa_data.ai_contracts import AiReadiness, InternalAiRequest, InternalAiResponse
+from sari_rasa_data.assistant_service import (
+    AssistantServiceError,
+    create_default_assistant_service,
+)
 
 from sari_rasa_data.analysis_pipeline import (
     InvalidAnalyticsRange,
@@ -45,12 +54,35 @@ ANALYTICS_DATASET_PATH = Path(os.environ.get("SARI_RASA_ANALYTICS_DATASET_PATH",
 ML_FORECAST_DATASET_PATH = Path(os.environ.get("SARI_RASA_ML_DATASET_PATH", DEFAULT_ML_DATASET_PATH))
 ML_MODEL_ARTIFACT_PATH = Path(os.environ.get("SARI_RASA_MODEL_ARTIFACT_PATH", DEFAULT_MODEL_ARTIFACT_PATH))
 DL_MODEL_ARTIFACT_PATH = Path(os.environ.get("SARI_RASA_DL_MODEL_ARTIFACT_PATH", DEFAULT_DL_ARTIFACT_PATH))
+AI_ASSISTANT_SERVICE = create_default_assistant_service()
+
+
+@app.exception_handler(RequestValidationError)
+async def phase8_ai_validation_error(request: Request, exc: RequestValidationError):
+    if request.url.path.startswith("/ai/"):
+        return JSONResponse(status_code=400, content={"detail": "invalid_request"})
+    return await request_validation_exception_handler(request, exc)
 
 
 @app.get("/health")
 async def health() -> dict[str, str]:
     """Report that the Python HTTP service is running."""
     return {"status": "ok"}
+
+
+@app.get("/ai/readiness", response_model=AiReadiness)
+def ai_readiness() -> AiReadiness:
+    """Report sanitized local AI runtime readiness, separate from liveness."""
+    return AI_ASSISTANT_SERVICE.readiness()
+
+
+@app.post("/ai/menu-assistant", response_model=InternalAiResponse)
+def menu_assistant(request: InternalAiRequest) -> InternalAiResponse:
+    """Internal Node-to-Python boundary for bounded public-menu assistance."""
+    try:
+        return AI_ASSISTANT_SERVICE.answer(request)
+    except AssistantServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.code) from None
 
 
 @app.get("/analytics/forecast/next-day")

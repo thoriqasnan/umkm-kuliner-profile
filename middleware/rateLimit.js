@@ -175,7 +175,39 @@ function resetPasswordRateLimiter(req, res, next) {
   next();
 }
 
+// Dedicated public assistant bucket. This shares the existing in-memory
+// implementation and is intentionally single-process, not a distributed quota.
+const PUBLIC_AI_WINDOW_MS = 60 * 1000;
+const PUBLIC_AI_MAX_REQUESTS = 10;
+const PUBLIC_AI_INGRESS_WINDOW_MS = 60 * 1000;
+const PUBLIC_AI_INGRESS_MAX_REQUESTS = 30;
+
+function rejectPublicAiLimit(res, retryAfterMs) {
+  res.set('Retry-After', String(Math.ceil(retryAfterMs / 1000)));
+  return res.status(429).json({ status: 'error', code: 'rate_limited' });
+}
+
+function publicAiIngressRateLimiter(req, res, next) {
+  const result = checkLimit(`public-ai-ingress:${req.ip}`, {
+    windowMs: PUBLIC_AI_INGRESS_WINDOW_MS,
+    max: PUBLIC_AI_INGRESS_MAX_REQUESTS,
+  });
+  if (!result.allowed) return rejectPublicAiLimit(res, result.retryAfterMs);
+  next();
+}
+
+function publicAiRateLimiter(req, res, next) {
+  const result = checkLimit(`public-ai:${req.ip}`, {
+    windowMs: PUBLIC_AI_WINDOW_MS,
+    max: PUBLIC_AI_MAX_REQUESTS,
+  });
+  if (!result.allowed) {
+    return rejectPublicAiLimit(res, result.retryAfterMs);
+  }
+  next();
+}
+
 module.exports = {
   adminRoleMutationRateLimiter, forgotPasswordRateLimiter, loginRateLimiter,
-  registerRateLimiter, resetPasswordRateLimiter,
+  publicAiIngressRateLimiter, publicAiRateLimiter, registerRateLimiter, resetPasswordRateLimiter,
 };

@@ -83,14 +83,33 @@ def client(handler):
 
 
 def agent_request(
-    *, terminal_only=False, search_required=False, allowed=frozenset({"menu:1"})
+    *, terminal_only=False, search_required=False, allowed=frozenset({"menu:1"}),
+    timeout_seconds=None,
 ):
     return AgentDecisionRequest(
         LLMRequest("trusted agent policy", "untrusted request", "id", 128),
         allowed,
         terminal_only,
         search_required,
+        timeout_seconds,
     )
+
+
+def test_agent_provider_timeout_is_capped_by_normal_and_remaining_budget():
+    observed = []
+
+    def handler(http_request):
+        observed.append(http_request.extensions["timeout"]["read"])
+        return httpx.Response(200, json=agent_body({
+            "action": "call_tool",
+            "tool_name": "search_menu",
+            "arguments": {"query": "nasi", "limit": 5},
+        }))
+
+    configured = client(handler)
+    configured.decide(agent_request(search_required=True, timeout_seconds=1.25))
+    configured.decide(agent_request(search_required=True, timeout_seconds=8.0))
+    assert observed == [1.25, 3.0]
 
 
 def agent_body(value):

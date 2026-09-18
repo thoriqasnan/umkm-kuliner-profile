@@ -18,6 +18,8 @@ async function createBackendHarness(options = {}) {
     DATABASE_PATH: process.env.DATABASE_PATH,
     PORT: process.env.PORT,
     PYTHON_SERVICE_URL: process.env.PYTHON_SERVICE_URL,
+    PYTHON_AI_SERVICE_URL: process.env.PYTHON_AI_SERVICE_URL,
+    PYTHON_AI_TIMEOUT_MS: process.env.PYTHON_AI_TIMEOUT_MS,
     FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN,
     APP_PUBLIC_ORIGIN: process.env.APP_PUBLIC_ORIGIN,
     EMAIL_DELIVERY_MODE: process.env.EMAIL_DELIVERY_MODE,
@@ -39,6 +41,10 @@ async function createBackendHarness(options = {}) {
     delete process.env.PORT;
     if (options.pythonServiceUrl === undefined) delete process.env.PYTHON_SERVICE_URL;
     else process.env.PYTHON_SERVICE_URL = options.pythonServiceUrl;
+    if (options.pythonAiServiceUrl === undefined) delete process.env.PYTHON_AI_SERVICE_URL;
+    else process.env.PYTHON_AI_SERVICE_URL = options.pythonAiServiceUrl;
+    if (options.pythonAiTimeoutMs === undefined) delete process.env.PYTHON_AI_TIMEOUT_MS;
+    else process.env.PYTHON_AI_TIMEOUT_MS = String(options.pythonAiTimeoutMs);
 
     const { app, startServer } = require('../../server');
     const databaseModule = require('../../db/database');
@@ -46,6 +52,7 @@ async function createBackendHarness(options = {}) {
     if (options.passwordResetDelivery) app.locals.passwordResetDelivery = options.passwordResetDelivery;
     if (options.passwordResetNow) app.locals.passwordResetNow = options.passwordResetNow;
     if (options.passwordResetRandomBytes) app.locals.passwordResetRandomBytes = options.passwordResetRandomBytes;
+    if (options.pythonAiClient) app.locals.pythonAiClient = options.pythonAiClient;
 
     if (databaseModule.DB_PATH !== databasePath || !isPathInside(temporaryDirectory, databaseModule.DB_PATH)) {
       throw new Error('Backend tidak memakai database sementara yang dipilih harness.');
@@ -84,6 +91,7 @@ async function createBackendHarness(options = {}) {
         delete app.locals.passwordResetDelivery;
         delete app.locals.passwordResetNow;
         delete app.locals.passwordResetRandomBytes;
+        delete app.locals.pythonAiClient;
         try {
           fs.rmSync(temporaryDirectory, { recursive: true, force: true });
         } catch (error) {

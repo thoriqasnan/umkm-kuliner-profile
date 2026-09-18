@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from sari_rasa_data.llm_client import create_llm_client, load_llm_config
+from sari_rasa_data.llm_client import create_llm_client, load_llm_config, static_llm_config_status
 from sari_rasa_data.llm_contracts import LLMConfigError
 from sari_rasa_data.llm_gemini import GeminiLLMClient
 
@@ -37,6 +37,15 @@ def test_config_rejects_invalid_timeout(timeout):
     env = {**BASE_ENV, "SARI_RASA_LLM_TIMEOUT_SECONDS": timeout}
     with pytest.raises(LLMConfigError, match="TIMEOUT_SECONDS"):
         load_llm_config(env)
+
+
+def test_static_config_status_is_sanitized_and_performs_no_client_or_network_work():
+    assert static_llm_config_status({}) == "unconfigured"
+    assert static_llm_config_status({"SARI_RASA_LLM_TIMEOUT_SECONDS": "10"}) == "unconfigured"
+    assert static_llm_config_status({"SARI_RASA_LLM_PROVIDER": "gemini"}) == "invalid"
+    assert static_llm_config_status({**BASE_ENV, "SARI_RASA_LLM_TIMEOUT_SECONDS": "bad"}) == "invalid"
+    assert static_llm_config_status({**BASE_ENV, "SARI_RASA_LLM_MODEL": "../bad"}) == "invalid"
+    assert static_llm_config_status(BASE_ENV) == "configured"
 
 
 def test_factory_is_lazy_and_returns_provider_adapter():

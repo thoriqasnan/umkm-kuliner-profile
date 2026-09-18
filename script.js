@@ -734,6 +734,7 @@ function createMenuCardElement(product) {
   // harus diubah/dihapus lewat API (lihat openProductDialog()/handleDeleteProduct()
   // di bagian 9 - AUTENTIKASI & ADMIN PRODUK).
   card.dataset.productId = product.id;
+  card.dataset.productSlug = product.slug;
 
   const img = document.createElement("img");
   img.className = "card-photo";
@@ -1535,6 +1536,29 @@ const translations = {
     "admin.genericError": "Terjadi kesalahan, silakan coba lagi.",
 
     "backToTop.aria": "Kembali ke atas",
+    "assistant.launcher": "Tanya Asisten", "assistant.open": "Buka Asisten Menu SariRasa", "assistant.close": "Tutup asisten menu",
+    "assistant.title": "Asisten Menu SariRasa", "assistant.subtitle": "Rekomendasi & informasi menu",
+    "assistant.welcomeTitle": "Halo! Ada yang bisa saya bantu?", "assistant.welcomeDescription": "Saya bisa membantu mencari dan merekomendasikan menu SariRasa.",
+    "assistant.tryAsking": "Coba tanyakan:", "assistant.suggestionsLabel": "Saran pertanyaan", "assistant.suggestionSoupy": "Makanan berkuah",
+    "assistant.suggestionRefreshing": "Minuman segar", "assistant.suggestionBudget": "Menu di bawah Rp30.000",
+    "assistant.informationNote": "Jawaban berdasarkan informasi menu SariRasa.", "assistant.inputLabel": "Pertanyaan tentang menu",
+    "assistant.placeholder": "Tanyakan tentang menu...", "assistant.send": "Kirim pertanyaan", "assistant.sourcesTitle": "Sumber menu",
+    "assistant.insufficient": "Saya belum memiliki informasi yang cukup untuk memastikan hal tersebut. Informasi tersebut tidak tersedia pada data menu SariRasa.",
+    "assistant.loading": "Sedang mencari menu...", "assistant.error": "Maaf, informasi menu belum dapat dimuat. Silakan coba lagi nanti.",
+    "assistant.invalidRequest": "Pertanyaan belum dapat dikirim. Periksa kembali lalu coba lagi.",
+    "assistant.rateLimited": "Terlalu banyak pertanyaan. Tunggu sebentar lalu coba lagi.",
+    "assistant.timeout": "Asisten membutuhkan waktu terlalu lama. Silakan coba lagi.",
+    "assistant.unavailable": "Asisten menu sedang tidak tersedia. Silakan coba lagi nanti.",
+    "assistant.invalidResponse": "Asisten belum dapat memberikan jawaban yang valid. Silakan coba lagi.",
+    "assistant.insufficientLabel": "Informasi menu yang tersedia belum cukup.",
+    "assistant.responseReady": "Jawaban asisten tersedia.",
+    "assistant.insufficientReady": "Jawaban asisten tersedia dengan keterbatasan informasi.",
+    "assistant.userMessage": "Anda: {message}", "assistant.assistantMessage": "Asisten: {message}",
+    "assistant.limitationsTitle": "Keterbatasan informasi",
+    "assistant.sourceNavigation": "Lihat {name} di menu",
+    "assistant.suggestionQuerySoupy": "Rekomendasikan makanan berkuah.",
+    "assistant.suggestionQueryRefreshing": "Rekomendasikan minuman yang menyegarkan.",
+    "assistant.suggestionQueryBudget": "Rekomendasikan menu di bawah Rp30.000.",
   },
   en: {
     "nav.beranda": "Home",
@@ -1825,6 +1849,29 @@ const translations = {
     "admin.genericError": "Something went wrong, please try again.",
 
     "backToTop.aria": "Back to top",
+    "assistant.launcher": "Ask Assistant", "assistant.open": "Open SariRasa Menu Assistant", "assistant.close": "Close menu assistant",
+    "assistant.title": "SariRasa Menu Assistant", "assistant.subtitle": "Menu recommendations & information",
+    "assistant.welcomeTitle": "Hello! How can I help?", "assistant.welcomeDescription": "I can help you find and choose from the SariRasa menu.",
+    "assistant.tryAsking": "Try asking:", "assistant.suggestionsLabel": "Suggested questions", "assistant.suggestionSoupy": "Soupy dishes",
+    "assistant.suggestionRefreshing": "Refreshing drinks", "assistant.suggestionBudget": "Menu under Rp30,000",
+    "assistant.informationNote": "Answers are based on SariRasa menu information.", "assistant.inputLabel": "Question about the menu",
+    "assistant.placeholder": "Ask about the menu...", "assistant.send": "Send question", "assistant.sourcesTitle": "Menu sources",
+    "assistant.insufficient": "I do not have enough information to confirm that. That information is not available in the SariRasa menu data.",
+    "assistant.loading": "Looking through the menu...", "assistant.error": "Sorry, menu information is unavailable right now. Please try again later.",
+    "assistant.invalidRequest": "Your question could not be sent. Please adjust it and try again.",
+    "assistant.rateLimited": "Too many questions were sent. Please wait briefly and try again.",
+    "assistant.timeout": "The assistant took too long to respond. Please try again.",
+    "assistant.unavailable": "The menu assistant is temporarily unavailable. Please try again later.",
+    "assistant.invalidResponse": "The assistant could not provide a valid response. Please try again.",
+    "assistant.insufficientLabel": "The available menu information is insufficient.",
+    "assistant.responseReady": "The assistant response is available.",
+    "assistant.insufficientReady": "The assistant response is available with an information limitation.",
+    "assistant.userMessage": "You: {message}", "assistant.assistantMessage": "Assistant: {message}",
+    "assistant.limitationsTitle": "Information limitations",
+    "assistant.sourceNavigation": "View {name} on the menu",
+    "assistant.suggestionQuerySoupy": "Recommend some soupy dishes.",
+    "assistant.suggestionQueryRefreshing": "Recommend some refreshing drinks.",
+    "assistant.suggestionQueryBudget": "Recommend menu items under Rp30,000.",
   },
 };
 
@@ -1859,6 +1906,8 @@ function setStoredLang(lang) {
   }
 }
 
+let refreshMenuAssistantLocalizedSemantics = () => {};
+
 function applyLanguage(lang) {
   // Query ULANG setiap kali dipanggil (bukan pakai NodeList yang di-cache di
   // top-level) - lihat catatan di atas deklarasi langButtons untuk alasannya.
@@ -1891,6 +1940,7 @@ function applyLanguage(lang) {
   // dan di createMenuCardElement() (bagian 3c) untuk alasannya.
   updateProductDescriptions(lang);
   if (cartPanel.open) renderCartPanel();
+  refreshMenuAssistantLocalizedSemantics();
 }
 
 langButtons.forEach((btn) => {
@@ -1958,6 +2008,11 @@ sections.forEach((section) => sectionObserver.observe(section));
 // masih terlihat di layar atau tidak.
 const backToTopBtn = document.getElementById("backToTopBtn");
 const heroSection = document.getElementById("beranda");
+const floatingControls = document.getElementById("floatingControls");
+const siteFooter = document.getElementById("siteFooter");
+const cartBarForFloatingControls = document.getElementById("cartBar");
+const menuAssistantDialog = document.getElementById("menuAssistantDialog");
+const floatingControlsDock = document.getElementById("floatingControlsDock");
 
 const heroObserver = new IntersectionObserver((entries) => {
   entries.forEach((entry) => {
@@ -1969,6 +2024,136 @@ const heroObserver = new IntersectionObserver((entries) => {
 });
 
 heroObserver.observe(heroSection);
+
+const narrowFloatingControlsQuery = window.matchMedia("(max-width: 768px)");
+const reducedFloatingControlsMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+let dockZoneReached = false;
+let floatingControlsDocked = false;
+let floatingControlsFlipAnimation = null;
+
+function clearFloatingControlsFlip() {
+  if (floatingControlsFlipAnimation !== null) {
+    floatingControlsFlipAnimation.cancel();
+    floatingControlsFlipAnimation = null;
+  }
+  floatingControls.classList.remove("is-flipping");
+  floatingControls.style.transform = "";
+}
+
+function setFloatingControlsMode(shouldDock, animate = true) {
+  if (shouldDock === floatingControlsDocked) return;
+
+  // FIRST includes the current compositor transform, so a reversed request
+  // continues from the wrapper's visible in-flight position.
+  const firstRect = floatingControls.getBoundingClientRect();
+  clearFloatingControlsFlip();
+
+  // LAST uses the target orientation and positioning mode.
+  floatingControls.classList.toggle("is-docked", shouldDock);
+  floatingControlsDocked = shouldDock;
+  const lastRect = floatingControls.getBoundingClientRect();
+
+  if (!animate || reducedFloatingControlsMotionQuery.matches ||
+      typeof floatingControls.animate !== "function") return;
+
+  // INVERT only the measured X/Y displacement; target width/height and
+  // orientation remain natural, avoiding stretched circular controls.
+  const deltaX = firstRect.left - lastRect.left;
+  const deltaY = firstRect.top - lastRect.top;
+  if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) return;
+
+  floatingControls.classList.add("is-flipping");
+  const animation = floatingControls.animate([
+    { transform: `translate(${deltaX}px, ${deltaY}px)` },
+    { transform: "translate(0, 0)" },
+  ], {
+    duration: 200,
+    easing: "cubic-bezier(0.2, 0, 0, 1)",
+  });
+  floatingControlsFlipAnimation = animation;
+  animation.addEventListener("finish", () => {
+    if (floatingControlsFlipAnimation !== animation) return;
+    floatingControlsFlipAnimation = null;
+    floatingControls.classList.remove("is-flipping");
+    floatingControls.style.transform = "";
+  }, { once: true });
+}
+
+function applyFloatingControlsMode() {
+  setFloatingControlsMode(narrowFloatingControlsQuery.matches && dockZoneReached);
+}
+
+function reconcileFloatingControlsBreakpoint() {
+  clearFloatingControlsFlip();
+  const shouldDock = narrowFloatingControlsQuery.matches && dockZoneReached;
+  floatingControls.classList.toggle("is-docked", shouldDock);
+  floatingControlsDocked = shouldDock;
+}
+
+function handleFloatingControlsResize() {
+  // Resizing can invalidate both measured rectangles. Settle directly into
+  // the correct responsive mode rather than playing a stale long-distance FLIP.
+  reconcileFloatingControlsBreakpoint();
+  updateFloatingClearance();
+}
+
+const floatingControlsDockObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    // Once the Maps boundary passes above the observer band, remain docked at
+    // the bottom of the document. Scrolling back above it makes the boundary
+    // fall below the band and restores the fixed controls.
+    dockZoneReached = entry.isIntersecting || entry.boundingClientRect.top < 0;
+    applyFloatingControlsMode();
+  });
+}, { rootMargin: "0px 0px -25% 0px" });
+floatingControlsDockObserver.observe(floatingControlsDock);
+if (typeof narrowFloatingControlsQuery.addEventListener === "function") {
+  narrowFloatingControlsQuery.addEventListener("change", reconcileFloatingControlsBreakpoint);
+}
+if (typeof reducedFloatingControlsMotionQuery.addEventListener === "function") {
+  reducedFloatingControlsMotionQuery.addEventListener("change", reconcileFloatingControlsBreakpoint);
+}
+
+let isFooterVisible = false;
+
+function floatingViewportHeight() {
+  return window.visualViewport ? window.visualViewport.height : window.innerHeight;
+}
+
+function updateFloatingClearance() {
+  const viewportHeight = floatingViewportHeight();
+  const cartRect = cartBarForFloatingControls.getBoundingClientRect();
+  const cartClearance = cartBarForFloatingControls.hidden || cartRect.height <= 0
+    ? 0
+    : Math.max(0, viewportHeight - cartRect.top);
+  const footerRect = siteFooter.getBoundingClientRect();
+  const footerClearance = isFooterVisible ? Math.max(0, viewportHeight - footerRect.top) : 0;
+  const safeClearance = Math.ceil(Math.max(cartClearance, footerClearance));
+
+  floatingControls.style.setProperty("--floating-safe-clearance", `${safeClearance}px`);
+  menuAssistantDialog.style.setProperty("--floating-cart-clearance", `${Math.ceil(cartClearance)}px`);
+}
+
+const footerObserver = new IntersectionObserver((entries) => {
+  isFooterVisible = entries.some((entry) => entry.isIntersecting);
+  updateFloatingClearance();
+}, {
+  threshold: Array.from({ length: 21 }, (_, index) => index / 20),
+});
+footerObserver.observe(siteFooter);
+
+if (typeof ResizeObserver === "function") {
+  const floatingClearanceObserver = new ResizeObserver(updateFloatingClearance);
+  floatingClearanceObserver.observe(cartBarForFloatingControls);
+  floatingClearanceObserver.observe(siteFooter);
+}
+window.addEventListener("resize", handleFloatingControlsResize);
+window.addEventListener("orientationchange", handleFloatingControlsResize);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", handleFloatingControlsResize);
+  window.visualViewport.addEventListener("scroll", updateFloatingClearance);
+}
+updateFloatingClearance();
 
 // Klik tombol -> scroll halus ke paling atas halaman.
 //
@@ -1986,6 +2171,346 @@ backToTopBtn.addEventListener("click", () => {
     behavior: prefersReducedMotion ? "auto" : "smooth",
   });
 });
+
+const menuAssistantLauncher = document.getElementById("menuAssistantLauncher");
+const menuAssistantCloseBtn = document.getElementById("menuAssistantCloseBtn");
+const menuAssistantInput = document.getElementById("menuAssistantInput");
+const menuAssistantComposer = document.getElementById("menuAssistantComposer");
+const menuAssistantSendBtn = document.getElementById("menuAssistantSendBtn");
+const menuAssistantContent = document.getElementById("menuAssistantContent");
+const menuAssistantWelcome = document.querySelector("[data-assistant-view='idle']");
+const menuAssistantConversation = document.querySelector("[data-assistant-region='conversation']");
+const menuAssistantLoading = document.querySelector("[data-assistant-region='loading']");
+const menuAssistantLegacySources = document.querySelector("[data-assistant-region='sources']");
+const menuAssistantLegacyInsufficient = document.querySelector("[data-assistant-region='insufficient']");
+const menuAssistantLegacyError = document.querySelector("[data-assistant-region='error']");
+const menuAssistantAnnouncement = document.getElementById("menuAssistantAnnouncement");
+const menuAssistantSuggestions = document.querySelectorAll(".menu-assistant-suggestion");
+const MENU_ASSISTANT_MAX_LENGTH = 1000;
+const MENU_ASSISTANT_MAX_EXCHANGES = 8;
+const menuAssistantState = {
+  view: "idle", returnFocus: null, restoreFocusOnClose: true,
+  activeRequest: null, requestSequence: 0, exchanges: [],
+};
+
+function assistantText(key, language = document.documentElement.lang) {
+  return translations[language][key] || translations.id[key] || "";
+}
+
+function updateMenuAssistantSendState() {
+  const message = menuAssistantInput.value.trim();
+  const disabled = Boolean(menuAssistantState.activeRequest) || !message || message.length > MENU_ASSISTANT_MAX_LENGTH;
+  menuAssistantSendBtn.disabled = disabled;
+  menuAssistantSendBtn.setAttribute("aria-disabled", String(disabled));
+}
+
+function createAssistantTextElement(className, author, text) {
+  const element = document.createElement("p");
+  element.className = className;
+  if (author) {
+    element.dataset.author = author;
+    const labelKey = author === "user" ? "assistant.userMessage" : "assistant.assistantMessage";
+    element.setAttribute("aria-label", assistantText(labelKey).replace("{message}", text));
+  }
+  element.textContent = text;
+  return element;
+}
+
+let menuAssistantAnnouncementSequence = 0;
+
+function announceMenuAssistant(key) {
+  const message = key ? assistantText(key) : "";
+  const sequence = ++menuAssistantAnnouncementSequence;
+  if (!message || !menuAssistantAnnouncement.textContent || menuAssistantAnnouncement.textContent === message) {
+    menuAssistantAnnouncement.textContent = message;
+    return;
+  }
+  menuAssistantAnnouncement.textContent = "";
+  requestAnimationFrame(() => {
+    if (sequence === menuAssistantAnnouncementSequence) menuAssistantAnnouncement.textContent = message;
+  });
+}
+
+function findMenuCardForSource(source) {
+  return Array.from(document.querySelectorAll(".menu-card")).find((card) =>
+    String(card.dataset.productId) === String(source.productId) || card.dataset.productSlug === source.slug
+  ) || null;
+}
+
+let highlightedMenuCard = null;
+let menuHighlightTimer = null;
+
+function focusAssistantSourceDestination(card) {
+  const destination = card.querySelector("h3") || card;
+  const previousTabindex = destination.getAttribute("tabindex");
+  destination.setAttribute("tabindex", "-1");
+  destination.addEventListener("blur", () => {
+    if (previousTabindex === null) destination.removeAttribute("tabindex");
+    else destination.setAttribute("tabindex", previousTabindex);
+  }, { once: true });
+  destination.focus({ preventScroll: true });
+}
+
+function navigateToAssistantSource(source) {
+  const card = findMenuCardForSource(source);
+  if (!card) return;
+  if (menuAssistantDialog.open) {
+    menuAssistantState.restoreFocusOnClose = false;
+    menuAssistantDialog.close();
+  }
+  if (card.classList.contains("hide")) {
+    const allProductsFilter = document.querySelector(".filter-btn[data-filter='semua']");
+    if (allProductsFilter) allProductsFilter.click();
+  }
+  if (highlightedMenuCard) highlightedMenuCard.classList.remove("is-assistant-highlighted");
+  if (menuHighlightTimer) clearTimeout(menuHighlightTimer);
+  highlightedMenuCard = card;
+  card.classList.add("is-assistant-highlighted");
+  const reduceHighlightMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const previousTransition = card.style.transition;
+  if (reduceHighlightMotion) card.style.transition = "none";
+  card.scrollIntoView({
+    block: "center",
+    behavior: reduceHighlightMotion ? "auto" : "smooth",
+  });
+  focusAssistantSourceDestination(card);
+  menuHighlightTimer = setTimeout(() => {
+    card.classList.remove("is-assistant-highlighted");
+    if (reduceHighlightMotion) card.style.transition = previousTransition || "";
+    if (highlightedMenuCard === card) highlightedMenuCard = null;
+    menuHighlightTimer = null;
+  }, 2400);
+}
+
+function renderMenuAssistantExchange(exchange) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "menu-assistant-exchange";
+  wrapper.appendChild(createAssistantTextElement("menu-assistant-message", "user", exchange.message));
+  if (exchange.answer) wrapper.appendChild(createAssistantTextElement("menu-assistant-message", "assistant", exchange.answer));
+  if (exchange.insufficientInformation) {
+    wrapper.appendChild(createAssistantTextElement("menu-assistant-notice", null, assistantText("assistant.insufficientLabel")));
+  }
+  if (exchange.limitations && exchange.limitations.length) {
+    const limitations = document.createElement("div");
+    limitations.className = "menu-assistant-limitations";
+    limitations.appendChild(createAssistantTextElement("menu-assistant-meta-title", null, assistantText("assistant.limitationsTitle")));
+    const list = document.createElement("ul");
+    exchange.limitations.forEach((limitation) => {
+      const item = document.createElement("li");
+      item.textContent = limitation;
+      list.appendChild(item);
+    });
+    limitations.appendChild(list);
+    wrapper.appendChild(limitations);
+  }
+  if (exchange.sources && exchange.sources.length) {
+    const sources = document.createElement("section");
+    sources.className = "menu-assistant-sources";
+    const sourcesTitle = document.createElement("h3");
+    sourcesTitle.className = "menu-assistant-meta-title";
+    sourcesTitle.id = `menuAssistantSources-${exchange.requestId}`;
+    sourcesTitle.textContent = assistantText("assistant.sourcesTitle");
+    sources.setAttribute("aria-labelledby", sourcesTitle.id);
+    sources.appendChild(sourcesTitle);
+    const chips = document.createElement("div");
+    chips.className = "menu-assistant-source-list";
+    exchange.sources.forEach((source) => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "menu-assistant-source-chip";
+      chip.dataset.productId = String(source.productId);
+      chip.dataset.productSlug = source.slug;
+      chip.textContent = source.name;
+      chip.setAttribute("aria-label", assistantText("assistant.sourceNavigation").replace("{name}", source.name));
+      chip.addEventListener("click", () => navigateToAssistantSource(source));
+      chips.appendChild(chip);
+    });
+    sources.appendChild(chips);
+    wrapper.appendChild(sources);
+  }
+  if (exchange.errorKey) {
+    wrapper.appendChild(createAssistantTextElement("menu-assistant-error", null, assistantText(exchange.errorKey)));
+  }
+  return wrapper;
+}
+
+function renderMenuAssistantConversation() {
+  menuAssistantConversation.textContent = "";
+  menuAssistantState.exchanges.forEach((exchange) => {
+    menuAssistantConversation.appendChild(renderMenuAssistantExchange(exchange));
+  });
+  const hasConversation = menuAssistantState.exchanges.length > 0;
+  menuAssistantWelcome.hidden = hasConversation;
+  menuAssistantConversation.hidden = !hasConversation;
+  menuAssistantLoading.hidden = menuAssistantState.view !== "loading";
+  menuAssistantLegacySources.hidden = true;
+  menuAssistantLegacyInsufficient.hidden = true;
+  menuAssistantLegacyError.hidden = true;
+  menuAssistantContent.scrollTop = menuAssistantContent.scrollHeight;
+}
+
+refreshMenuAssistantLocalizedSemantics = function () {
+  renderMenuAssistantConversation();
+  if (menuAssistantState.activeRequest) {
+    announceMenuAssistant("assistant.loading");
+    return;
+  }
+  const latestExchange = menuAssistantState.exchanges[menuAssistantState.exchanges.length - 1];
+  if (!latestExchange) {
+    announceMenuAssistant(null);
+    return;
+  }
+  announceMenuAssistant(latestExchange.errorKey || (latestExchange.insufficientInformation
+    ? "assistant.insufficientReady"
+    : "assistant.responseReady"));
+};
+
+function isValidMenuAssistantResponse(value) {
+  const expectedKeys = ["status", "answer", "language", "insufficientInformation", "limitations", "sources"];
+  return value && typeof value === "object" && !Array.isArray(value) &&
+    Object.keys(value).length === expectedKeys.length && expectedKeys.every((key) => Object.hasOwn(value, key)) &&
+    value.status === "success" && typeof value.answer === "string" && Boolean(value.answer.trim()) &&
+    (value.language === "id" || value.language === "en") &&
+    typeof value.insufficientInformation === "boolean" && Array.isArray(value.limitations) &&
+    value.limitations.every((item) => typeof item === "string" && Boolean(item.trim())) && Array.isArray(value.sources) &&
+    value.sources.every((source) => source && typeof source === "object" &&
+      !Array.isArray(source) && Object.keys(source).length === 3 &&
+      ["productId", "slug", "name"].every((key) => Object.hasOwn(source, key)) &&
+      Number.isInteger(source.productId) && source.productId > 0 &&
+      typeof source.slug === "string" && Boolean(source.slug.trim()) &&
+      typeof source.name === "string" && Boolean(source.name.trim())) &&
+    (!value.insufficientInformation || value.sources.length === 0);
+}
+
+function menuAssistantErrorKey(status, code) {
+  if (status === 400 || code === "invalid_request") return "assistant.invalidRequest";
+  if (status === 429 || code === "rate_limited") return "assistant.rateLimited";
+  if (status === 504 || code === "upstream_timeout") return "assistant.timeout";
+  if (code === "invalid_upstream_response") return "assistant.invalidResponse";
+  if (status === 502 || code === "upstream_unavailable" || code === "ai_runtime_unavailable") return "assistant.unavailable";
+  return "assistant.error";
+}
+
+async function submitMenuAssistantMessage(candidate = menuAssistantInput.value) {
+  const message = String(candidate).trim();
+  if (menuAssistantState.activeRequest || !message || message.length > MENU_ASSISTANT_MAX_LENGTH) return false;
+  const language = document.documentElement.lang;
+  const requestId = ++menuAssistantState.requestSequence;
+  const controller = new AbortController();
+  // Closing the dialog deliberately does not abort this page-session request;
+  // its guarded result remains available when the customer reopens the assistant.
+  const exchange = { requestId, message, language };
+  menuAssistantState.exchanges.push(exchange);
+  if (menuAssistantState.exchanges.length > MENU_ASSISTANT_MAX_EXCHANGES) menuAssistantState.exchanges.shift();
+  menuAssistantState.activeRequest = { requestId, controller };
+  menuAssistantState.view = "loading";
+  menuAssistantInput.value = "";
+  menuAssistantInput.style.height = "auto";
+  updateMenuAssistantSendState();
+  renderMenuAssistantConversation();
+  announceMenuAssistant("assistant.loading");
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/ai/menu-assistant`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, language }),
+      signal: controller.signal,
+    });
+    let value = null;
+    try { value = await response.json(); } catch (error) { value = null; }
+    if (!menuAssistantState.activeRequest || menuAssistantState.activeRequest.requestId !== requestId) return false;
+    if (!response.ok) {
+      exchange.errorKey = menuAssistantErrorKey(response.status, value && value.code);
+      if (!menuAssistantInput.value) menuAssistantInput.value = message;
+      menuAssistantState.view = "error";
+    } else if (!isValidMenuAssistantResponse(value)) {
+      exchange.errorKey = "assistant.invalidResponse";
+      if (!menuAssistantInput.value) menuAssistantInput.value = message;
+      menuAssistantState.view = "error";
+    } else {
+      exchange.answer = value.answer.trim();
+      exchange.responseLanguage = value.language;
+      exchange.insufficientInformation = value.insufficientInformation;
+      exchange.limitations = value.limitations.slice();
+      exchange.sources = value.sources.map((source) => ({ ...source }));
+      menuAssistantState.view = value.insufficientInformation ? "insufficient" : "success";
+    }
+  } catch (error) {
+    if (!menuAssistantState.activeRequest || menuAssistantState.activeRequest.requestId !== requestId) return false;
+    exchange.errorKey = "assistant.error";
+    if (!menuAssistantInput.value) menuAssistantInput.value = message;
+    menuAssistantState.view = "error";
+  } finally {
+    if (menuAssistantState.activeRequest && menuAssistantState.activeRequest.requestId === requestId) {
+      menuAssistantState.activeRequest = null;
+      updateMenuAssistantSendState();
+      renderMenuAssistantConversation();
+      announceMenuAssistant(exchange.errorKey || (exchange.insufficientInformation
+        ? "assistant.insufficientReady"
+        : "assistant.responseReady"));
+    }
+  }
+  return true;
+}
+
+function openMenuAssistant(event) {
+  if (menuAssistantDialog.open) return;
+  menuAssistantState.returnFocus = document.activeElement;
+  menuAssistantState.restoreFocusOnClose = true;
+  menuAssistantDialog.showModal();
+  floatingControls.classList.add("is-assistant-open");
+  menuAssistantLauncher.setAttribute("aria-expanded", "true");
+  // Pointer opening on a narrow screen should not summon the virtual keyboard
+  // immediately. Keyboard opening and wider layouts keep the composer-first flow.
+  const narrowPointerOpen = narrowFloatingControlsQuery.matches && event && event.detail > 0;
+  requestAnimationFrame(() => (narrowPointerOpen ? menuAssistantCloseBtn : menuAssistantInput).focus());
+}
+
+function closeMenuAssistant() {
+  if (menuAssistantDialog.open) menuAssistantDialog.close();
+}
+
+menuAssistantLauncher.addEventListener("click", openMenuAssistant);
+menuAssistantCloseBtn.addEventListener("click", closeMenuAssistant);
+menuAssistantDialog.addEventListener("cancel", (event) => { event.preventDefault(); closeMenuAssistant(); });
+menuAssistantDialog.addEventListener("close", () => {
+  floatingControls.classList.remove("is-assistant-open");
+  menuAssistantLauncher.setAttribute("aria-expanded", "false");
+  const returnTarget = menuAssistantState.returnFocus;
+  const shouldRestoreFocus = menuAssistantState.restoreFocusOnClose;
+  menuAssistantState.returnFocus = null;
+  menuAssistantState.restoreFocusOnClose = true;
+  if (shouldRestoreFocus) {
+    if (returnTarget && returnTarget.isConnected) returnTarget.focus();
+    else menuAssistantLauncher.focus();
+  }
+});
+menuAssistantInput.addEventListener("input", () => {
+  menuAssistantInput.style.height = "auto";
+  menuAssistantInput.style.height = `${Math.min(menuAssistantInput.scrollHeight, 104)}px`;
+  updateMenuAssistantSendState();
+});
+menuAssistantInput.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing || event.keyCode === 229) return;
+  event.preventDefault();
+  submitMenuAssistantMessage();
+});
+menuAssistantComposer.addEventListener("submit", (event) => {
+  event.preventDefault();
+  submitMenuAssistantMessage();
+});
+menuAssistantSuggestions.forEach((button) => {
+  button.addEventListener("click", () => {
+    const keyBySuggestion = {
+      soupy: "assistant.suggestionQuerySoupy",
+      refreshing: "assistant.suggestionQueryRefreshing",
+      "under-30000": "assistant.suggestionQueryBudget",
+    };
+    submitMenuAssistantMessage(assistantText(keyBySuggestion[button.dataset.suggestion]));
+  });
+});
+updateMenuAssistantSendState();
 
 // Dua percobaan sebelumnya di sini mencoba membuat tombol ini "berlabuh"
 // (pindah dari position:fixed ke position:absolute) begitu footer terlihat,

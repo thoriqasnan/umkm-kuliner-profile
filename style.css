@@ -92,6 +92,11 @@ section[id] {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .floating-controls,
+  .back-to-top-btn { transition: none; }
+}
+
 .section {
   padding: 80px 0;
 }
@@ -395,6 +400,7 @@ h2 {
   transform: translateY(-4px);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
 }
+.menu-card.is-assistant-highlighted { outline: 3px solid var(--color-accent-dark); outline-offset: 4px; box-shadow: 0 0 0 6px rgba(139, 69, 19, 0.14); }
 
 .card-photo {
   aspect-ratio: 3 / 2;
@@ -567,6 +573,14 @@ h2 {
   align-items: start;
 }
 
+.floating-controls-dock {
+  display: block;
+  width: 100%;
+  height: 1px;
+}
+
+.floating-controls-slot { display: contents; }
+
 .kontak-list {
   margin: 24px 0;
   display: flex;
@@ -619,6 +633,7 @@ h2 {
 }
 
 .kontak-map iframe {
+  display: block;
   border-radius: var(--radius);
   border: 0;
 }
@@ -919,32 +934,30 @@ h2 {
    transform (pola yang sama seperti .nav-menu di bagian 13 RESPONSIVE),
    bukan lewat "display: none", supaya kemunculannya terasa halus.
    ========================================================== */
-.back-to-top-btn {
+.floating-controls {
+  --floating-safe-clearance: 84px;
   position: fixed;
-  right: 24px;
-  /* Dua percobaan sebelumnya mencoba mengubah tombol ini jadi "position:
-     absolute" begitu footer terlihat (lihat riwayat komentar di git), supaya
-     tidak menimpa .footer-links ("Kontak") - keduanya malah bikin tombol
-     terlihat "melompat"/menghilang sesaat saat discroll, karena mengganti
-     skema posisi di tengah animasi scroll itu sendiri sulit dibuat mulus.
+  right: max(24px, env(safe-area-inset-right));
+  bottom: calc(var(--floating-safe-clearance) + 12px + env(safe-area-inset-bottom));
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  transition: bottom 0.2s ease;
+}
 
-     Solusinya disederhanakan: tombol ini SELALU "position: fixed", tidak
-     pernah berubah skema. Angka 94px di bawah ini dipilih supaya, begitu
-     discroll sampai paling bawah, tombol selalu jatuh tepat di celah kosong
-     antara dua elemen yang sama-sama "fixed"/selalu ada di bawah layar:
-     - .cart-bar (bar keranjang): tepi atasnya ada di 84px dari dasar layar
-       (lihat "padding-bottom: 84px" pada body di bagian 1).
-     - .footer-links ("Kontak" dkk): baris teks ini baru mulai kelihatan di
-       148px dari dasar layar, berkat padding-bottom footer yang sengaja
-       dilebihkan jadi 64px (lihat komentar di ".footer" di bagian 11).
-     Celah kosong di antara keduanya = 148 - 84 = 64px, sedangkan tombol
-     tingginya 44px - jadi 94px (tepat di tengah celah itu: 84 + (64-44)/2)
-     memberi jarak aman ~10px ke KEDUA sisi, bukan cuma nempel di satu sisi.
-     Perhitungan sama juga berlaku di breakpoint mobile (lihat override di
-     bagian RESPONSIVE), karena rasio jarak yang dipakai di sana sengaja
-     dibuat serupa. */
-  bottom: 94px;
-  z-index: 95; /* di atas .cart-bar (90), tapi di bawah .navbar (100) */
+/* The cart surface is layer 90. Only while travelling, place the controls one
+   layer beneath it so the real cart naturally occludes their crossing path. */
+.floating-controls.is-flipping {
+  z-index: 89;
+  will-change: transform;
+}
+
+.back-to-top-btn {
+  /* It remains in normal stack flow even while transparent, keeping the
+     launcher below it completely stationary. */
+  flex: 0 0 44px;
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -975,8 +988,77 @@ h2 {
   transform: translateY(0);
 }
 
+/* Opening the assistant only suppresses the upper control. Its reserved
+   flex slot remains intact, so the launcher stays visible and stationary. */
+.floating-controls.is-assistant-open .back-to-top-btn.is-visible {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(8px);
+}
+
 .back-to-top-btn:hover {
   filter: brightness(0.9);
+}
+
+.menu-assistant-launcher { min-height: 48px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 0; border-radius: 999px; background: var(--color-accent-dark); color: #fff; box-shadow: 0 6px 20px rgba(43, 43, 43, 0.2); font: inherit; font-weight: 700; cursor: pointer; }
+.menu-assistant-dialog {
+  --assistant-edge: 24px;
+  --assistant-inline-end: max(var(--assistant-edge), env(safe-area-inset-right));
+  --assistant-bottom: calc(var(--floating-cart-clearance, 84px) + 72px + env(safe-area-inset-bottom));
+  width: min(390px, calc(100vw - var(--assistant-edge) - var(--assistant-inline-end)));
+  width: min(390px, calc(100dvw - var(--assistant-edge) - var(--assistant-inline-end)));
+  height: min(600px, calc(100vh - var(--assistant-edge) - var(--assistant-bottom)));
+  height: min(600px, calc(100dvh - var(--assistant-edge) - var(--assistant-bottom)));
+  max-width: none;
+  max-height: none;
+  margin: auto var(--assistant-inline-end) var(--assistant-bottom) auto;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 16px 48px rgba(43, 43, 43, 0.22);
+  overflow: hidden;
+}
+.menu-assistant-dialog::backdrop { background: transparent; }
+.menu-assistant-shell { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.menu-assistant-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--color-border); }
+.menu-assistant-header > div { min-width: 0; }
+.menu-assistant-header h2 { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
+.menu-assistant-header p { color: var(--color-text-muted); font-size: 0.82rem; }
+.menu-assistant-mark, .menu-assistant-welcome-mark { color: var(--color-accent-dark); font-size: 1.25rem; }
+.menu-assistant-close, .menu-assistant-send { width: 44px; height: 44px; border: 0; border-radius: 50%; font: inherit; cursor: pointer; }
+.menu-assistant-close { background: var(--color-bg-soft); color: var(--color-text); font-size: 1.5rem; }
+.menu-assistant-content { min-height: 0; overflow-y: auto; padding: 24px 20px; }
+.menu-assistant-welcome { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.menu-assistant-welcome h3 { margin: 8px 0; font-size: 1.12rem; }
+.menu-assistant-welcome > p { color: var(--color-text-muted); font-size: 0.92rem; }
+.menu-assistant-prompt { margin-top: 22px; font-weight: 700; color: var(--color-text) !important; }
+.menu-assistant-suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 10px 0 20px; }
+.menu-assistant-suggestion { max-width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-bg-soft); color: var(--color-accent-dark); font: inherit; font-size: 0.84rem; overflow-wrap: anywhere; cursor: pointer; }
+.menu-assistant-note { padding-top: 14px; border-top: 1px solid var(--color-border); font-size: 0.78rem !important; }
+.menu-assistant-conversation { display: flex; flex-direction: column; gap: 12px; }
+.menu-assistant-exchange { display: flex; min-width: 0; flex-direction: column; gap: 8px; }
+.menu-assistant-message { min-width: 0; max-width: 84%; padding: 10px 13px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.menu-assistant-message[data-author="user"] { align-self: flex-end; background: var(--color-accent-dark); color: #fff; }
+.menu-assistant-message[data-author="assistant"] { align-self: flex-start; background: var(--color-bg-soft); border: 1px solid var(--color-border); }
+.menu-assistant-sources { margin-top: 2px; }
+.menu-assistant-meta-title { margin: 4px 0 6px; color: var(--color-text-muted); font-size: 0.78rem; font-weight: 700; }
+.menu-assistant-source-list { display: flex; flex-wrap: wrap; gap: 7px; margin: -3px; padding: 3px; }
+.menu-assistant-source-chip { display: inline-flex; max-width: 100%; min-width: 0; min-height: 44px; align-items: center; padding: 7px 10px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-bg); color: var(--color-accent-dark); font: inherit; font-size: 0.82rem; overflow-wrap: anywhere; cursor: pointer; }
+.menu-assistant-limitations { color: var(--color-text-muted); font-size: 0.8rem; }
+.menu-assistant-limitations ul { margin: 0; padding-left: 18px; }
+.menu-assistant-notice, .menu-assistant-status, .menu-assistant-error { padding: 12px; border-radius: 10px; background: var(--color-bg-soft); border: 1px solid var(--color-border); }
+.menu-assistant-notice { border-color: #d8c9b7; }
+.menu-assistant-error { border-color: #d7aaa0; }
+.menu-assistant-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; padding: 12px 14px; border-top: 1px solid var(--color-border); background: var(--color-bg); }
+.menu-assistant-composer textarea { width: 100%; min-height: 42px; max-height: 104px; padding: 9px 12px; resize: none; overflow-y: auto; border: 1px solid var(--color-border); border-radius: 12px; font: inherit; line-height: 1.4; }
+.menu-assistant-send { background: var(--color-accent-dark); color: #fff; }
+.menu-assistant-send:disabled { background: var(--color-border); color: var(--color-text-muted); cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-card.is-assistant-highlighted { transition: none; }
 }
 
 /* ==========================================================
@@ -1749,6 +1831,12 @@ h2 {
 .cart-panel-close:focus-visible,
 .cart-panel-item-note:focus-visible,
 .back-to-top-btn:focus-visible,
+.menu-assistant-launcher:focus-visible,
+.menu-assistant-close:focus-visible,
+.menu-assistant-suggestion:focus-visible,
+.menu-assistant-source-chip:focus-visible,
+.menu-assistant-send:focus-visible,
+.menu-assistant-composer textarea:focus-visible,
 .auth-login-btn:focus-visible,
 .auth-logout-btn:focus-visible,
 .dialog-close-btn:focus-visible,
@@ -1866,6 +1954,8 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+  .kontak-inner { row-gap: 20px; }
+
   .hero-inner {
     padding: 48px 24px;
   }
@@ -1884,6 +1974,15 @@ h2 {
 
   .section {
     padding: 56px 0;
+  }
+
+  .kontak { padding-bottom: 20px; }
+
+  .floating-controls-slot {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+    min-block-size: 50px;
   }
 
   /* Layar sempit: ringkasan teks dan tombol checkout tidak cukup berjajar
@@ -1919,16 +2018,45 @@ h2 {
     padding-bottom: 150px;
   }
 
-  /* Sama seperti perhitungan versi desktop (lihat komentar lengkap di
-     ".back-to-top-btn" di bagian 10): di layar sempit, .cart-bar jadi lebih
-     tinggi (tepi atasnya di 150px, samakan dengan "padding-bottom" body di
-     atas) dan baris teks .footer-links yang wrap jadi 2 baris juga baru
-     kelihatan lebih jauh dari dasar layar (~214px). 160px dipilih di
-     tengah-tengah celah itu supaya tetap dapat jarak aman ~10px ke kedua sisi. */
-  .back-to-top-btn {
-    bottom: 160px;
-    right: 16px;
+  /* Narrow mode floats vertically until the rendered Maps boundary reaches
+     its dock zone. The measured cart clearance remains the bottom anchor. */
+  .floating-controls {
+    position: fixed;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: calc(var(--floating-safe-clearance) + 16px + env(safe-area-inset-bottom));
+    z-index: 95;
+    width: max-content;
+    max-width: 100%;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    transition: bottom 0.2s ease;
   }
+
+  /* Dock the same wrapper as the final Contact-grid item below Maps. */
+  .floating-controls.is-docked {
+    position: static;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
+    flex-direction: row;
+    align-items: center;
+    transition: none;
+  }
+  .back-to-top-btn { flex-basis: 50px; width: 50px; height: 50px; }
+  .menu-assistant-launcher { width: 50px; min-height: 50px; padding: 0; }
+  .menu-assistant-launcher-label { display: none; }
+  .menu-assistant-dialog {
+    --assistant-inline-start: max(12px, env(safe-area-inset-left));
+    --assistant-inline-end: max(12px, env(safe-area-inset-right));
+    width: calc(100vw - var(--assistant-inline-start) - var(--assistant-inline-end));
+    width: calc(100dvw - var(--assistant-inline-start) - var(--assistant-inline-end));
+    height: calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    margin: calc(12px + env(safe-area-inset-top)) var(--assistant-inline-end) calc(12px + env(safe-area-inset-bottom)) var(--assistant-inline-start);
+    border-radius: 18px;
+  }
+  .menu-assistant-dialog::backdrop { background: rgba(43, 43, 43, 0.42); }
 
   .admin-shell {
     padding: 36px 0;
@@ -2006,6 +2134,11 @@ h2 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .floating-controls,
+  .back-to-top-btn {
+    transition: none;
+  }
+
   .admin-sales-chart.is-entering {
     animation: none;
   }

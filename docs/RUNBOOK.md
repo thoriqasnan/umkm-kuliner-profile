@@ -37,12 +37,12 @@ Browser / static frontend (localhost:5500)
         v
 Node / Express (localhost:3000) <----> SQLite (data/umkm.db)
         |
-        | server-to-server HTTP/JSON, analytics/forecast routes only
+        | server-to-server HTTP/JSON, analytics/forecast/AI routes
         v
 Python FastAPI (127.0.0.1:8000) ---> trusted local datasets/model artifacts
 ```
 
-The Python process is not involved in authentication, account/admin management, products, carts, password recovery, email delivery, or ordinary menu browsing. It is a separately started long-running service only when the Admin Analytics, production forecast, or experimental model-comparison features are needed. Node remains the only application-facing backend; the browser never calls FastAPI directly.
+The Python process is not involved in authentication, account/admin management, products, carts, password recovery, email delivery, or ordinary menu browsing. It is a separately started long-running service when Admin Analytics, forecasting/model comparison, or the AI menu assistant is needed. Node remains the only application-facing backend; the browser never calls FastAPI directly.
 
 ### One-time prerequisites
 
@@ -76,17 +76,17 @@ Fill the local `.env` according to [Environment configuration](#environment-conf
 - Health check: open the URL and confirm product cards replace the loading state.
 - Stop: use Live Server's **Port: 5500 / Stop Live Server** action.
 
-### Process 3 — Python FastAPI analytics service (feature-specific)
+### Process 3 — Python FastAPI analytics and AI service (feature-specific)
 
 - Working directory: `python/`.
-- Prerequisite: create `.venv` once, install `python/requirements.txt`, and activate it with `source ../.venv/bin/activate` after entering `python/`.
-- Command: `uvicorn sari_rasa_data.service:app --reload --app-dir src`.
-- Long-running: yes, but only for Admin Analytics, next-day forecast, and model comparison.
+- Prerequisite: create `.venv` once, install `python/requirements.txt`, and activate it with `source ../.venv/bin/activate`.
+- Command: `(set -a && source ../.env && exec uvicorn sari_rasa_data.service:app --reload --app-dir src)`. The subshell exports the ignored root `.env` only to FastAPI and refuses to start Uvicorn if loading that file fails.
+- Long-running: yes, but only for Admin Analytics, next-day forecast, model comparison, and the AI menu assistant.
 - Address: `http://127.0.0.1:8000`.
 - Health check: `curl http://127.0.0.1:8000/health`.
 - Stop: press `Ctrl-C` in its terminal.
 
-Normal website development therefore needs two live processes: Node and Live Server. Analytics/forecast work needs a third live process, FastAPI. Python tests, dataset generation, model training/export, and the sample `python -m sari_rasa_data` entry point are batch/testing/maintenance commands; they do not remain running and are not prerequisites for ordinary website startup.
+Normal website development therefore needs two live processes: Node and Live Server. Analytics, forecast, or AI-assistant work needs a third live process, FastAPI. Python tests, dataset generation, model training/export, and the sample `python -m sari_rasa_data` entry point are batch/testing/maintenance commands; they do not remain running and are not prerequisites for ordinary website startup.
 
 ## First-time installation
 
@@ -289,7 +289,7 @@ The Python workspace uses a project-local virtual environment (`.venv`) at the r
 
 ### Phase 7A Gemini live acceptance
 
-Phase 7A is ✅ **VERIFIED COMPLETE**. Its real Gemini Developer API live acceptance passed with the environment-configured `gemini-3.1-flash-lite` model: `finish_reason: stop`, 37 input / 34 output / 71 total normalized tokens, and 1032 ms latency. The response was successfully normalized through the provider-neutral LLM contract. The focused Gemini adapter tests passed (`24 passed`), as did the complete Phase 7A targeted suite (`47 passed`) and its then-current full Python regression (`388 passed`). At that checkpoint, Phase 7B was automated/technically verified and Phase 7C was verified complete; later downstream evidence and final reconciliation completed Phase 7.
+Phase 7A is **VERIFIED COMPLETE**. Its real Gemini Developer API live acceptance passed with the environment-configured `gemini-3.1-flash-lite` model: `finish_reason: stop`, 37 input / 34 output / 71 total normalized tokens, and 1032 ms latency. The response was successfully normalized through the provider-neutral LLM contract. The focused Gemini adapter tests passed (`24 passed`), as did the complete Phase 7A targeted suite (`47 passed`) and its then-current full Python regression (`388 passed`). At that checkpoint, Phase 7B was automated/technically verified and Phase 7C was verified complete; later downstream evidence and final reconciliation completed Phase 7.
 
 Normal website, analytics, forecast, and the full automated Python suite require no Gemini configuration. The verified model remains environment-configurable through `SARI_RASA_LLM_MODEL`; `gemini-3.1-flash-lite` is the acceptance record, not a code default. For an explicitly authorized future smoke check, select a currently supported Free Tier text model in Google AI Studio, set the four `SARI_RASA_LLM_*` variables in the local environment (never commit or paste the key), then run from the repository root:
 
@@ -303,7 +303,7 @@ The latest Phase 7A+7B+7C targeted regression result is `130 passed`.
 
 ### Phase 7B offline prompt verification
 
-Phase 7B is ✅ **AUTOMATED/TECHNICALLY VERIFIED**. It has no live-provider or manual acceptance step. Run its deterministic public-menu domain, ID/EN prompt, trust-boundary, grounding, privacy/authority, injection, recommendation, versioning, and Phase 7A compatibility tests from the repository root:
+Phase 7B is **AUTOMATED/TECHNICALLY VERIFIED**. It has no live-provider or manual acceptance step. Run its deterministic public-menu domain, ID/EN prompt, trust-boundary, grounding, privacy/authority, injection, recommendation, versioning, and Phase 7A compatibility tests from the repository root:
 
 ```sh
 PYTHONPATH=python/src .venv/bin/python -m pytest python/tests/test_menu_prompts.py -q
@@ -313,7 +313,7 @@ The focused result is `23 passed`. The Phase 7A+7B offline regression at that ch
 
 ### Phase 7C structured/tool verification and live acceptance
 
-Phase 7C is ✅ **VERIFIED COMPLETE**. Its focused structured/Gemini/live-acceptance/prompt tests passed, the latest Phase 7A+7B+7C regression passed (`130 passed`), and `git diff --check` passed. Offline tests cover the strict response/source contract, deterministic read-only tool, bounded loop, zero-tool requests, final tool-disabled turn, and mocked Gemini mapping without credentials or network.
+Phase 7C is **VERIFIED COMPLETE**. Its focused structured/Gemini/live-acceptance/prompt tests passed, the latest Phase 7A+7B+7C regression passed (`130 passed`), and `git diff --check` passed. Offline tests cover the strict response/source contract, deterministic read-only tool, bounded loop, zero-tool requests, final tool-disabled turn, and mocked Gemini mapping without credentials or network.
 
 ```sh
 PYTHONPATH=python/src .venv/bin/python -m pytest python/tests/test_llm_structured.py python/tests/test_menu_tools.py python/tests/test_llm_gemini_structured.py python/tests/test_llm_structured_live_acceptance.py python/tests/test_menu_prompts.py -q
@@ -336,7 +336,7 @@ PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.llm_structured_live_acc
 
 ### Phase 7D embedding verification and local acceptance
 
-Phase 7D is ✅ **VERIFIED COMPLETE**. Normal tests use the deterministic fake or mocked model objects and require no network or model:
+Phase 7D is **VERIFIED COMPLETE**. Normal tests use the deterministic fake or mocked model objects and require no network or model:
 
 ```sh
 PYTHONPATH=python/src .venv/bin/python -m pytest python/tests/test_embeddings.py python/tests/test_embedding_sentence_transformers.py -q
@@ -368,7 +368,7 @@ If a future offline run reports that model files are unavailable, confirm that t
 
 ### Phase 7E vector-store verification and local acceptance
 
-Phase 7E is ✅ **VERIFIED COMPLETE**. Its SQLite/NumPy unit path uses temporary databases, deterministic synthetic vectors, no model load, and no network:
+Phase 7E is **VERIFIED COMPLETE**. Its SQLite/NumPy unit path uses temporary databases, deterministic synthetic vectors, no model load, and no network:
 
 ```sh
 PYTHONPATH=python/src .venv/bin/python -m pytest python/tests/test_vector_contracts.py python/tests/test_vector_store.py -q
@@ -404,7 +404,7 @@ Phase 7E does not implement persistence of canonical product truth, RAG orchestr
 
 ### Phase 7F RAG verification and controlled live acceptance
 
-Phase 7F is ✅ **VERIFIED COMPLETE**. Run its offline contract, canonical-resolution, freshness, bilingual fallback, evidence/source, insufficiency, security, and live-harness tests from the repository root:
+Phase 7F is **VERIFIED COMPLETE**. Run its offline contract, canonical-resolution, freshness, bilingual fallback, evidence/source, insufficiency, security, and live-harness tests from the repository root:
 
 ```sh
 PYTHONPATH=python/src .venv/bin/python -m pytest python/tests/test_rag_contracts.py python/tests/test_rag.py python/tests/test_rag_live_acceptance.py -q
@@ -431,7 +431,7 @@ RAG queries are read-only: they do not synchronize/prune the vector store, rebui
 
 ### Phase 7G agent verification and controlled live acceptance
 
-Phase 7G is ✅ **VERIFIED COMPLETE**. The agent has one read-only semantic `search_menu` tool; `get_menu_details` is intentionally absent because fresh search results already contain complete canonical public evidence. Each request has immutable local state, at most three decisions, two distinct sequential searches, and five evidence products, with no persistent memory or chain-of-thought field.
+Phase 7G is **VERIFIED COMPLETE**. The agent has one read-only semantic `search_menu` tool; `get_menu_details` is intentionally absent because fresh search results already contain complete canonical public evidence. Each request has immutable local state, at most three decisions, two distinct sequential searches, and five evidence products, with no persistent memory or chain-of-thought field.
 
 Run the offline agent contracts, controller, acceptance-harness, Gemini mapping, and Phase 7F preservation tests from the repository root:
 
@@ -462,7 +462,7 @@ This 3/3 gate proves bounded decisions, application-owned search, canonical grou
 
 ### Phase 7H deterministic evaluation Stage 1
 
-Phase 7H is ✅ **VERIFIED COMPLETE**. Its offline path needs no `.env`, secret, network, Gemini call, or sentence-transformer model load. Run the focused foundation tests from the repository root:
+Phase 7H is **VERIFIED COMPLETE**. Its offline path needs no `.env`, secret, network, Gemini call, or sentence-transformer model load. Run the focused foundation tests from the repository root:
 
 ```bash
 cd python && PYTHONPATH=src python -m pytest -q tests/test_eval_contracts.py tests/test_eval_dataset.py tests/test_eval_metrics.py tests/test_eval_runner.py
@@ -492,7 +492,60 @@ The controlled evaluation subsequently passed `8/8`, all hard gates passed, and 
 
 Retrieval Experiment #2's verified MiniLM V2 hybrid result is Hit@1 `83.3%`, Hit@3 `100.0%`, Recall@5 `97.2%`, MRR `0.9167`, and bilingual both-Hit@1 `66.7%`. Its `7h-retrieval-hybrid-v1` formula and `0.05` maximum lexical bonus remain unchanged.
 
-Retrieval Experiment #3 is ✅ **SUCCESSFUL / VERIFIED COMPLETE**. The user manually downloaded and evaluated `intfloat/multilingual-e5-base` with `7h-embedding-profile-e5-v1`, 768 dimensions, `7d-catalog-text-v2`, and unchanged `7h-retrieval-hybrid-v1`. The fixed 12-case result was Hit@1 `100.0%`, Hit@3 `100.0%`, Recall@5 `100.0%`, MRR `1.0000`, and bilingual both-Hit@1 `100.0%`. Every case had a gold product at rank one; category recall was complete. E5 + V2 + hybrid is the preferred verified Phase 8 handoff, while MiniLM defaults remain unchanged and reproducible. E5 is materially heavier and doubles vector dimensions from 384 to 768. These scores describe only the small controlled benchmark and do not guarantee arbitrary-query or system-wide accuracy. Phase 7H and aggregate Phase 7 are ✅ **VERIFIED COMPLETE**; Phase 8 has not started.
+Retrieval Experiment #3 is **SUCCESSFUL / VERIFIED COMPLETE**. The user manually downloaded and evaluated `intfloat/multilingual-e5-base` with `7h-embedding-profile-e5-v1`, 768 dimensions, `7d-catalog-text-v2`, and unchanged `7h-retrieval-hybrid-v1`. The fixed 12-case result was Hit@1 `100.0%`, Hit@3 `100.0%`, Recall@5 `100.0%`, MRR `1.0000`, and bilingual both-Hit@1 `100.0%`. Every case had a gold product at rank one; category recall was complete. E5 + V2 + hybrid is the preferred verified Phase 8 handoff, while MiniLM defaults remain unchanged and reproducible. E5 is materially heavier and doubles vector dimensions from 384 to 768. These scores describe only the small controlled benchmark and do not guarantee arbitrary-query or system-wide accuracy. Phase 7H and aggregate Phase 7 are **VERIFIED COMPLETE**; Phase 8 has not started.
+
+### Phase 8G responsive and accessibility acceptance
+
+Phase 8G is **VERIFIED COMPLETE**. Manual acceptance passed desktop, narrow/mobile (`375x812` included), short-height, cart-bar/floating-control, keyboard, native-dialog focus, citation-navigation, ID/EN presentation, touch-sized viewport, reduced-motion, and VoiceOver checks. Citations remain keyboard focusable and transfer focus/highlight to their menu destination; ordinary dialog close restores focus normally.
+
+VoiceOver announces loading and then the concise localized completion status (for example, “The assistant response is available.”) from the one polite/atomic status live region. The complete AI answer is not automatically read and completion does not move focus. The targeted post-fix checks passed `node --check script.js`, the 35 focused menu-assistant foundation/interaction tests, and `git diff --check`. Phase 8A through 8J and aggregate Phase 8 are **VERIFIED COMPLETE**.
+
+### Phase 8I verified deterministic and manual evaluation
+
+Run the focused integrated selection from the repository root. The Node selection needs permission to bind isolated ephemeral loopback ports; it neither contacts Gemini nor uses a live FastAPI process.
+
+```bash
+node --test --test-concurrency=1 tests/backend/ai-contracts.test.js tests/backend/python-ai-client.test.js tests/backend/ai-gateway.test.js tests/backend/ai-integrated-evaluation.test.js tests/frontend/menu-assistant-foundation.test.js tests/frontend/menu-assistant-interaction.test.js
+PYTHONPATH=python/src .venv/bin/pytest -q python/tests/test_ai_contracts.py python/tests/test_assistant_runtime.py python/tests/test_assistant_service.py python/tests/test_embedding_profiles.py python/tests/test_hybrid_retrieval.py python/tests/test_eval_contracts.py python/tests/test_eval_dataset.py python/tests/test_eval_metrics.py python/tests/test_eval_runner.py
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.eval_runner --mode offline
+PYTHONPATH=python/src .venv/bin/python -m sari_rasa_data.eval_runner --mode local-model --embedding-model intfloat/multilingual-e5-base --embedding-profile 7h-embedding-profile-e5-v1 --semantic-text-version 7d-catalog-text-v2 --retrieval-policy 7h-retrieval-hybrid-v1
+```
+
+Recorded 8I deterministic evidence is 66/66 Node/frontend tests, 145/145 Python tests, offline RAG contract validity 100% with safety/agent gates passing and 4/4 boundary probes, and the 12-case explicit E5 profile at 100% Hit@1, Hit@3, Recall@5, and bilingual both-Hit@1 with MRR 1.0000. The local model is loaded with `local_files_only=True`. Gemini/network call count is zero.
+
+Phase 8I is **VERIFIED COMPLETE**. Manual acceptance started FastAPI from `<repo>/python` with root `.env`, then confirmed FastAPI `/health` and Node `/api/health`. Cold readiness correctly returned `not_ready`, profile `phase-8.customer-menu-e5-v1`, reason `runtime_prerequisite_unavailable`, configured provider, and no provider probe. The first Indonesian grounded request lazily initialized the runtime and recommended canonical Soto Ayam Kampung; readiness then became `ready` with empty reasons while provider configuration remained configured and unprobed.
+
+The browser passed English response under Indonesian UI with the prior Indonesian response preserved, Indonesian `Soto?` fallback, English assistant chrome, and a later successful English `Soto?` fallback with English `Menu sources`. The panel was closed and reopened for the English-chrome screenshot, so that screenshot was not treated as new historical-answer-preservation evidence; preservation was already accepted separately and covered automatically. Canonical product naming and grounding were preserved, citation activation navigated/scrolled/highlighted the corresponding card, private registered-user email disclosure was refused, account-role mutation was refused as outside read-only public-menu authority, and the assistant did not claim peanut-allergy safety when catalog ingredient/allergen facts were unavailable. Cart and authentication smoke passed. Final FastAPI health, ready local runtime/index state, configured/unprobed provider visibility, and Node health all passed.
+
+During the English ambiguous check, an initial request produced matching sanitized `provider.unavailable` / `ai_runtime_unavailable` (`503`) evidence, and one controlled retry produced `provider.timeout` / `upstream_timeout` (`504`). The browser showed distinct safe public errors. Without service restart, health stayed good, readiness stayed locally ready, and a later single retry succeeded. Record this only as observed provider failure and later recovery; do not infer a raw external cause or classify it as an E5/index/Node/browser defect. These events do not explain the older historical temporary 502, whose root cause remains **UNKNOWN**.
+
+`/health` is cheap liveness. `/ai/readiness` reports local runtime/index readiness and static provider configuration with `provider_probe=not_performed`; it does not prove provider reachability, credential validity, quota, model availability, or successful inference. The naturally observed timeout was not intentionally forced. Destructive live index corruption was not performed. Admission/rate limiting remains process-local, and recovery remains bounded to the dedicated rebuildable Phase 8 index with canonical application and Phase 7 vector databases protected. Controlled benchmark results are not universal accuracy or reliability evidence.
+
+Phase 8H-R1 is **VERIFIED COMPLETE**. The browser still sends `{ "message": "...", "language": "id|en" }`, where `language` is the interface/fallback language. Manual acceptance passed UI EN + EN/ID, UI ID + ID/EN, and ambiguous `Soto?` fallback in both UI languages. Panel chrome, accessibility/status/error labels, and `Menu sources`/`Sumber menu` remain website-localized; response language is per-message, historical answers are not rewritten, canonical product names are not translated, and citations remain grounded and functional. Because `npm start` does not watch CommonJS modules, restart Node after Node/lib changes; the first cross-language attempt used stale pre-R1 modules and passed after restart.
+
+Phase 8H-R2 is **VERIFIED COMPLETE**. The Phase 8 generated E5 index is source-anchored to `<repo>/python/data/sari_rasa_phase8_e5_vectors.db`; the startup command below resolves that file from `<repo>/python`, and arbitrary startup working directories do not change the default. Automated verification passed 78 focused runtime/service tests without real E5/Gemini/network initialization. Manual acceptance restarted FastAPI using the documented procedure, completed a live request, and confirmed the intended index remained active while the old nested artifact was untouched. After FastAPI stopped, only the verified disposable nested artifact was removed; `python/python/` no longer appears in Git status. Do not broaden `.gitignore` beyond the intended generated-index target.
+
+For 8H-3, never delete `data/umkm.db` or manually substitute it for the generated index. Recovery may rebuild only `python/data/sari_rasa_phase8_e5_vectors.db` after recognized corruption or incompatibility, once per synchronized request path and under its process lock; transient/unknown failures remain unavailable rather than destructive. Live destructive corruption and controlled provider timeout were intentionally not forced, while deterministic automated tests cover those edges. The public route applies 30 requests/60 seconds before the 4 KiB parser and retains 10 accepted requests/60 seconds before expensive work; both are process-local and reset on restart. FastAPI output is bounded to a 4,000-character answer, ten 256-character limitations, and five sources, while Node rejects FastAPI bodies above 32 KiB.
+
+The completed consolidated manual run passed guarded root-`.env` startup, `/health`, cold-unavailable and initialized-ready readiness, `provider_configuration=configured`, `provider_probe=not_performed`, live grounded EN/ID requests, safe malformed and over-4-KiB rejection followed by normal recovery, two concurrent successes, fast third-request saturation and slot recovery, sanitized FastAPI failure logging, Node/FastAPI correlation propagation, healthy service after failure/saturation, and browser AI/citation navigation-highlight/cart/auth-login smoke. The historical temporary 502 root cause remains **UNKNOWN**; do not attribute it to R1 or R2.
+
+A broader Phase 8H-3 Python selection previously produced **203 passed + 2 failures** associated with module-reload/order-sensitive identity behavior. Both affected files passed independently: `test_llm_client.py` **13 passed** and `test_llm_gemini_structured.py` **23 passed**. Phase 8J checked the complete combined order: the full Python run passed `800` tests and did not reproduce the historical identity failures.
+
+### Phase 8J final regression and completed browser language gate
+
+Phase 8J is **VERIFIED COMPLETE**. Before the fix, the exact selector test for UI fallback `en` plus `sepertinya enak ya` failed because none of its tokens existed in either bounded signal set; the zero/zero tie fell back to English. The selector now includes a small set of general Indonesian and English conversational markers. It still selects per current message, retains UI language only as genuine ambiguity fallback, sends no conversation history, and makes no detection network/provider call.
+
+Focused results are `11 passed` for selector cases, `72 passed` for AI contracts/service, and `36 passed` for the historically affected Python pair. Complete results are backend `102 passed`, frontend `131 passed`, and Python `800 passed` with one known logical-core fallback warning. The historical `203 passed + 2 failures` did not reproduce in either combined run, and its historical root cause is not claimed as proven. One unrelated password-reset response-time-envelope assertion failed on the first complete backend attempt, then passed in the unchanged isolated file (`16 passed`) and unchanged complete backend rerun (`102 passed`).
+
+The user completed the browser gate after restarting the changed Python service:
+
+1. Under English UI, `sepertinya enak ya` produced an Indonesian answer while panel chrome remained English — PASS.
+2. Under Indonesian UI, `looks really tasty` produced an English answer while panel chrome remained Indonesian — PASS.
+3. `Soto?` followed English fallback under English UI and Indonesian fallback under Indonesian UI — PASS.
+4. Earlier assistant answer text was not rewritten after website-language changes — PASS.
+5. Canonical product names remained unchanged, and product-source navigation/highlighting remained functional — PASS.
+
+Phase 8J and aggregate Phase 8 are **VERIFIED COMPLETE**. The repository is **READY FOR PHASE-8 GIT CHECKPOINT**; commit and push require separate explicit user approval.
 
 ### Start and check the Python service
 
@@ -502,7 +555,7 @@ Start the local-only service on `http://127.0.0.1:8000` using the repository's
 ```sh
 cd ~/umkm-kuliner-profile/python
 source ../.venv/bin/activate
-uvicorn sari_rasa_data.service:app --reload --app-dir src
+(set -a && source ../.env && exec uvicorn sari_rasa_data.service:app --reload --app-dir src)
 ```
 
 In another terminal, check the service health endpoint:
@@ -516,6 +569,8 @@ Expect HTTP `200`, a JSON content type, and this response body:
 ```json
 {"status":"ok"}
 ```
+
+For AI diagnostics, `GET /ai/readiness` remains a cheap local/static check. Its top-level `status` and `reasons` describe only the local E5/index runtime state. `provider_configuration` is a sanitized static configuration classification and `provider_probe` is always `not_performed`. It does not contact Gemini and does not prove network reachability, credential validity, quota, model availability, or successful inference. The startup command above loads the same ignored root `.env` used by `npm start`; it does not print its values.
 
 The URL can also be opened at `http://127.0.0.1:8000/health` in a browser. Return to the Uvicorn terminal and press `Ctrl-C` to stop the service safely. The health route proves only that the Python HTTP service is running: it does not read either transaction dataset, access SQLite, perform analytics, or depend on Node/Express.
 
@@ -634,7 +689,7 @@ Final recorded cold timings: 2.208 s summary, 2.189 s products, 2.195 s categori
 
 Activating or leaving `.venv` has no effect on the Node.js backend, frontend, or SQLite database, and does not require restarting them. This Python workspace is unrelated to the Node `.env`/`.env.example` files described earlier in this runbook; `.venv` is a Python virtual environment directory, not an environment-variable file.
 
-Phase 4A is ✅ **VERIFIED COMPLETE** after automated tests, deterministic package execution, the user-performed runtime smoke test, and independent final verification. Conceptual explanations are not a technical completion gate; they can be consolidated separately into Learning Notes using the implementation and commands documented here.
+Phase 4A is **VERIFIED COMPLETE** after automated tests, deterministic package execution, the user-performed runtime smoke test, and independent final verification. Conceptual explanations are not a technical completion gate; they can be consolidated separately into Learning Notes using the implementation and commands documented here.
 
 ### Inspect the synthetic transaction dataset
 

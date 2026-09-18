@@ -25,7 +25,7 @@ const { requireAuth } = require('./middleware/auth');
 const { requireAdmin } = require('./middleware/authorize');
 const {
   adminRoleMutationRateLimiter, forgotPasswordRateLimiter, loginRateLimiter,
-  registerRateLimiter, resetPasswordRateLimiter,
+  publicAiIngressRateLimiter, publicAiRateLimiter, registerRateLimiter, resetPasswordRateLimiter,
 } = require('./middleware/rateLimit');
 const {
   getAnalyticsSummary,
@@ -35,6 +35,11 @@ const {
   getNextDayForecast,
   getModelComparison,
 } = require('./lib/pythonAnalyticsClient');
+const {
+  AiContractError, aiErrorHttpStatus, buildInternalAiRequest, createCorrelationId, publicAiError,
+  toPublicAiResponse, validateBrowserAiRequest,
+} = require('./lib/aiContracts');
+const { requestMenuAssistant } = require('./lib/pythonAiClient');
 
 const app = express();
 const DEFAULT_PORT = 3000;
@@ -198,6 +203,9 @@ app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
 //
 // Dipasang di sini (sebelum semua route) supaya berlaku untuk SEMUA route,
 // termasuk POST /api/products di bawah.
+// This earlier route-scoped parser bounds public AI payloads at 4 KiB. The
+// global parser skips an already parsed body, preserving all unrelated limits.
+app.use('/api/ai/menu-assistant', publicAiIngressRateLimiter, express.json({ limit: '4kb' }));
 app.use(express.json());
 
 // --- Phase 3C-4: header response keamanan tambahan (manual, tanpa `helmet`) ---
@@ -1773,6 +1781,57 @@ app.get('/api/analytics/forecast/model-comparison', async (req, res) => {
   }
 });
 
+function readTrustedPublicCatalog() {
+  return db.prepare(`
+    SELECT id AS product_id, slug, name, category, price AS price_rupiah,
+           description_id, description_en
+    FROM products
+    ORDER BY id, slug
+  `).all();
+}
+
+app.post('/api/ai/menu-assistant', publicAiRateLimiter, async (req, res) => {
+  const startedAt = Date.now();
+  let correlationId = null;
+  let browserRequest;
+  try {
+    // Reject untrusted shape before any database read or upstream construction.
+    browserRequest = validateBrowserAiRequest(req.body);
+  } catch {
+    return res.status(400).json(publicAiError('invalid_request'));
+  }
+
+  const disconnectController = new AbortController();
+  const onAborted = () => disconnectController.abort();
+  const onClosed = () => { if (!res.writableEnded) disconnectController.abort(); };
+  req.once('aborted', onAborted);
+  res.once('close', onClosed);
+  try {
+    correlationId = createCorrelationId();
+    const catalog = readTrustedPublicCatalog();
+    const internalRequest = buildInternalAiRequest(browserRequest, catalog, correlationId);
+    const client = app.locals.pythonAiClient || requestMenuAssistant;
+    const internalResponse = await client(internalRequest, { signal: disconnectController.signal });
+    if (!res.writableEnded && !disconnectController.signal.aborted) {
+      return res.json(toPublicAiResponse(internalResponse, catalog));
+    }
+  } catch (error) {
+    if (disconnectController.signal.aborted || res.writableEnded) return;
+    const code = error instanceof AiContractError
+      ? error.code
+      : (typeof error?.code === 'string' ? error.code : 'internal_error');
+    const safe = publicAiError(code);
+    console.error(
+      `[ai_request_failure] correlation_id=${correlationId || 'not_created'} ` +
+      `subsystem=node.gateway category=${safe.code} elapsed_ms=${Math.max(0, Date.now() - startedAt)}`
+    );
+    return res.status(aiErrorHttpStatus(safe.code)).json(safe);
+  } finally {
+    req.removeListener('aborted', onAborted);
+    res.removeListener('close', onClosed);
+  }
+});
+
 // --- 404 handler ---
 // Jalan kalau tidak ada route di atas yang cocok dengan request-nya (baik
 // route API seperti GET /api/nonexistent atau GET /api/products/unknown/
@@ -1794,6 +1853,11 @@ app.use((req, res) => {
 // mengenali middleware ini SEBAGAI error handler karena punya 4 parameter
 // (err, req, res, next) - bukan karena namanya atau urutan definisinya.
 app.use((err, req, res, next) => {
+  if (req.path === '/api/ai/menu-assistant' &&
+      ((err.type === 'entity.too.large' && err.status === 413) ||
+       (err.type === 'entity.parse.failed' && err.status === 400))) {
+    return res.status(400).json(publicAiError('invalid_request'));
+  }
   if (err.type === 'entity.too.large' && err.status === 413) {
     console.error('[JSON body too large]', err.message);
     return res.status(413).json({ status: 'error', message: 'Body request terlalu besar' });

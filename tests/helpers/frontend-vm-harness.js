@@ -30,8 +30,12 @@ class FakeElement {
     this.attributes = new Map();
     this.listeners = new Map();
     this.classList = new FakeClassList(this);
-    this.style = {};
-    this.textContent = '';
+    this.style = {
+      setProperty(name, value) { this[name] = String(value); },
+      getPropertyValue(name) { return this[name] || ''; },
+    };
+    this._textContent = '';
+    this.textContentWrites = [];
     this.value = '';
     this.disabled = false;
     this.hidden = false;
@@ -44,9 +48,12 @@ class FakeElement {
     this.isConnected = true;
     this._className = '';
     this._innerHTML = '';
+    this.scrollIntoViewCalls = [];
   }
   set className(value) { this._className = String(value); this.classList.replaceFrom(value); }
   get className() { return this._className; }
+  set textContent(value) { this._textContent = value; this.textContentWrites.push(value); this.children.forEach((child) => { child.parentNode = null; child.isConnected = false; }); this.children = []; }
+  get textContent() { return this._textContent; }
   set innerHTML(value) { this._innerHTML = String(value); this.children.forEach((child) => { child.parentNode = null; child.isConnected = false; }); this.children = []; }
   get innerHTML() { return this._innerHTML; }
   get firstChild() { return this.children[0] || null; }
@@ -91,6 +98,7 @@ class FakeElement {
     for (const listener of this.listeners.get(type) || []) await listener(event);
     return event;
   }
+  click() { return this.dispatch('click'); }
   querySelectorAll(selector) { return queryTree(this.children, selector); }
   querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
   focus() { if (this.ownerDocument) this.ownerDocument.activeElement = this; }
@@ -98,6 +106,7 @@ class FakeElement {
   close() { this.open = false; }
   reset() { this.value = ''; }
   getBoundingClientRect() { return this.rect || { left: 0, right: 800, top: 0, bottom: 300, width: 800, height: 300 }; }
+  scrollIntoView(options) { this.scrollIntoViewCalls.push(options); }
 }
 
 function dataName(attribute) {
@@ -252,10 +261,27 @@ async function createFrontendHarness(options = {}) {
     button.dataset.lang = language;
     document.body.appendChild(button);
   }
+  const assistantContent = document.getElementById('menuAssistantContent');
+  const assistantWelcome = document.createElement('section');
+  assistantWelcome.setAttribute('data-assistant-view', 'idle');
+  assistantContent.appendChild(assistantWelcome);
+  for (const region of ['conversation', 'sources', 'insufficient', 'loading', 'error']) {
+    const element = document.createElement(region === 'conversation' || region === 'sources' ? 'div' : 'p');
+    element.setAttribute('data-assistant-region', region);
+    element.hidden = true;
+    assistantContent.appendChild(element);
+  }
+  for (const suggestion of ['soupy', 'refreshing', 'under-30000']) {
+    const button = document.createElement('button');
+    button.className = 'menu-assistant-suggestion';
+    button.dataset.suggestion = suggestion;
+    assistantWelcome.appendChild(button);
+  }
   const storage = createStorage(options.storage, options.failStorageWrites);
   const sessionStorage = createStorage(options.sessionStorage, options.failSessionStorageWrites);
   const timers = createTimers();
   const calls = [];
+  const intersectionObservers = [];
   const routes = [];
   const opened = [];
   const historyCalls = [];
@@ -301,8 +327,21 @@ async function createFrontendHarness(options = {}) {
     setInterval: () => 1, clearInterval() {},
     queueMicrotask,
     requestAnimationFrame: (callback) => callback(),
-    IntersectionObserver: class { observe() {} unobserve() {} disconnect() {} },
-    Headers, URL, URLSearchParams, TextEncoder, Uint8Array,
+    IntersectionObserver: class {
+      constructor(callback, observerOptions = {}) {
+        this.callback = callback;
+        this.options = observerOptions;
+        this.targets = new Set();
+        intersectionObservers.push(this);
+      }
+      observe(target) { this.targets.add(target); }
+      unobserve(target) { this.targets.delete(target); }
+      disconnect() { this.targets.clear(); }
+      trigger(target, isIntersecting, values = {}) {
+        this.callback([{ target, isIntersecting, boundingClientRect: { top: 0 }, ...values }]);
+      }
+    },
+    Headers, URL, URLSearchParams, TextEncoder, Uint8Array, AbortController,
     crypto: { randomUUID: () => FIXED_UUID, getRandomValues: (array) => array.fill(1) },
     console: options.console || { log() {}, error() {}, warn() {} },
     confirm: () => true,
@@ -336,6 +375,7 @@ async function createFrontendHarness(options = {}) {
     productDialog, productForm, productSlugInput, productNameInput, productDescriptionIdInput, productDescriptionEnInput, productPriceInput, productCategoryInput, productImageSrcInput, productImageAltInput, productImageWidthInput, productImageHeightInput, productImageSrcsetInput, productImageSizesInput, productSubmitBtn, menuStatus,
     adminUsers, adminUsersSearchForm, adminUsersSearchInput, adminUsersRoleFilter, adminUsersResetBtn, adminUsersStatus, adminUsersResults, adminUsersBody, adminUsersPrevBtn, adminUsersNextBtn, adminUsersPageContext,
     adminRoleDialog, adminRoleDialogDescription, adminRoleDialogMessage, adminRoleCancelBtn, adminRoleConfirmBtn,
+    menuAssistantDialog, menuAssistantInput, menuAssistantComposer, menuAssistantSendBtn, menuAssistantConversation, menuAssistantLoading,
     adminAnalyticsRevenue: adminAnalyticsRevenueEl, adminAnalyticsOrders: adminAnalyticsOrdersEl, adminAnalyticsQuantity: adminAnalyticsQuantityEl, adminAnalyticsAOV: adminAnalyticsAOVEl,
     adminAnalyticsProductBody: adminAnalyticsProductBodyEl, adminAnalyticsCategoryChart: adminAnalyticsCategoryChartEl,
     adminAnalyticsStatus: adminAnalyticsStatusEl, adminAnalyticsProductsStatus: adminAnalyticsProductsStatusEl, adminAnalyticsCategoriesStatus: adminAnalyticsCategoriesStatusEl,
@@ -351,7 +391,9 @@ async function createFrontendHarness(options = {}) {
     adminModelBaselineMae: adminModelBaselineMaeEl, adminModelBaselineRmse: adminModelBaselineRmseEl, adminModelMlpDifference: adminModelMlpDifferenceEl, adminModelTestPeriod: adminModelTestPeriodEl, adminModelInference: adminModelInferenceEl,
     adminModelHgbRole: adminModelHgbRoleEl, adminModelMlpRole: adminModelMlpRoleEl, adminModelBaselineRole: adminModelBaselineRoleEl, adminModelConclusion: adminModelConclusionEl,
     startCalendarTrigger: startCalendar.trigger, startCalendarPopover: startCalendar.calendar, startCalendarMonth: startCalendar.month, startCalendarYear: startCalendar.year, startCalendarPrev: startCalendar.prev, startCalendarNext: startCalendar.next, startCalendarGrid: startCalendar.grid,
-    endCalendarTrigger: endCalendar.trigger, endCalendarPopover: endCalendar.calendar, endCalendarMonth: endCalendar.month, endCalendarYear: endCalendar.year, endCalendarPrev: endCalendar.prev, endCalendarNext: endCalendar.next, endCalendarGrid: endCalendar.grid}
+    endCalendarTrigger: endCalendar.trigger, endCalendarPopover: endCalendar.calendar, endCalendarMonth: endCalendar.month, endCalendarYear: endCalendar.year, endCalendarPrev: endCalendar.prev, endCalendarNext: endCalendar.next, endCalendarGrid: endCalendar.grid},
+  assistant: () => ({view: menuAssistantState.view, active: !!menuAssistantState.activeRequest, exchanges: menuAssistantState.exchanges.map(exchange => ({...exchange}))}),
+  submitMenuAssistantMessage, navigateToAssistantSource, updateMenuAssistantSendState
 };`;
   vm.createContext(context);
   vm.runInContext(fs.readFileSync(SCRIPT_PATH, 'utf8') + probeSource, context, { filename: SCRIPT_PATH });
@@ -359,7 +401,7 @@ async function createFrontendHarness(options = {}) {
 
   const rawProbe = context.__frontendProbe;
   const probe = { ...rawProbe, state: () => JSON.parse(JSON.stringify(rawProbe.state())) };
-  return { context, probe, document, storage, sessionStorage, timers, calls, opened, historyCalls, addRoute, response, deferred, settle };
+  return { context, probe, document, storage, sessionStorage, timers, calls, opened, historyCalls, intersectionObservers, addRoute, response, deferred, settle };
 }
 
 async function settle(turns = 8) {
