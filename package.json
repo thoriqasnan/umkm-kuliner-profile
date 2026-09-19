@@ -9,6 +9,7 @@
     "db:backup": "node scripts/database-maintenance.js backup",
     "db:verify": "node scripts/database-maintenance.js verify",
     "db:restore": "node scripts/database-maintenance.js restore",
+    "vercel:static:build": "node scripts/build-vercel-static.js",
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "node --test --test-concurrency=1 tests/backend/*.test.js",
     "test:frontend": "node --test --test-concurrency=1 tests/frontend/*.test.js"
