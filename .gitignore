@@ -40,3 +40,4 @@ python/data/sari_rasa_phase8_e5_vectors.db
 
 # Trusted generated Phase 5E sklearn/joblib model artifacts.
 python/models/
+.vercel
