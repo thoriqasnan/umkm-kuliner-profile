@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
     "admin:provision": "node scripts/provision-admin.js",
+    "db:backup": "node scripts/database-maintenance.js backup",
+    "db:verify": "node scripts/database-maintenance.js verify",
+    "db:restore": "node scripts/database-maintenance.js restore",
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "node --test --test-concurrency=1 tests/backend/*.test.js",
     "test:frontend": "node --test --test-concurrency=1 tests/frontend/*.test.js"

@@ -5,6 +5,10 @@
 
 const express = require('express');
 const cors = require('cors');
+const {
+  loadRuntimeConfig, parseConfiguredHost, parseConfiguredOrigin, parseConfiguredPort,
+} = require('./lib/runtimeConfig');
+const RUNTIME_CONFIG = loadRuntimeConfig();
 const { db } = require('./db/database');
 const { hashPassword, verifyPassword, SALT_ROUNDS } = require('./lib/password');
 const { normalizeEmail, findUserByEmail } = require('./lib/user');
@@ -42,47 +46,10 @@ const {
 const { requestMenuAssistant } = require('./lib/pythonAiClient');
 
 const app = express();
-const DEFAULT_PORT = 3000;
-
-function parseConfiguredPort(value) {
-  if (value === undefined) return DEFAULT_PORT;
-  if (typeof value !== 'string' || !/^\d+$/.test(value)) {
-    throw new Error('PORT harus berupa angka bulat antara 1 dan 65535.');
-  }
-  const port = Number(value);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error('PORT harus berupa angka bulat antara 1 dan 65535.');
-  }
-  return port;
-}
-
-const PORT = parseConfiguredPort(process.env.PORT);
-
-function parseConfiguredOrigin(value, name = 'FRONTEND_ORIGIN', fallback = 'http://localhost:5500') {
-  const configured = value === undefined ? fallback : value;
-  let parsed;
-  try {
-    parsed = new URL(configured);
-  } catch {
-    throw new Error(`${name} harus berupa origin HTTP/HTTPS absolut yang valid.`);
-  }
-  if (
-    (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') ||
-    parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash
-  ) {
-    throw new Error(`${name} harus berupa origin HTTP/HTTPS absolut tanpa path, credentials, query, atau fragment.`);
-  }
-  if (process.env.NODE_ENV === 'production' && parsed.protocol !== 'https:') {
-    throw new Error(`${name} production wajib memakai HTTPS.`);
-  }
-  return parsed.origin;
-}
-
-const FRONTEND_ORIGIN = parseConfiguredOrigin(process.env.FRONTEND_ORIGIN);
-if (process.env.NODE_ENV === 'production' && process.env.APP_PUBLIC_ORIGIN === undefined) {
-  throw new Error('APP_PUBLIC_ORIGIN wajib dikonfigurasi secara eksplisit pada production.');
-}
-const APP_PUBLIC_ORIGIN = parseConfiguredOrigin(process.env.APP_PUBLIC_ORIGIN, 'APP_PUBLIC_ORIGIN', FRONTEND_ORIGIN);
+const PORT = RUNTIME_CONFIG.port;
+const HOST = RUNTIME_CONFIG.host;
+const FRONTEND_ORIGIN = RUNTIME_CONFIG.frontendOrigin;
+const APP_PUBLIC_ORIGIN = RUNTIME_CONFIG.appPublicOrigin;
 const defaultPasswordResetDelivery = createPasswordResetDeliveryFromEnv();
 
 // --- Phase 3C-4: matikan header X-Powered-By ---
@@ -93,6 +60,10 @@ const defaultPasswordResetDelivery = createPasswordResetDeliveryFromEnv();
 // app.disable('x-powered-by') mematikan header ini - bukan perubahan
 // fungsional apa pun, murni pengurangan informasi yang dibocorkan.
 app.disable('x-powered-by');
+
+// Production has exactly one trusted edge. Keep trust bounded to that one
+// hop; never replace this with unrestricted `true`.
+app.set('trust proxy', RUNTIME_CONFIG.trustProxy);
 
 // --- Dummy hash untuk timing-safety anti-enumeration email (Phase 3C-2) ---
 // Dipakai di POST /api/auth/login: kalau email yang di-submit TIDAK ADA di
@@ -1890,13 +1861,14 @@ app.use((err, req, res, next) => {
   res.status(500).json({ status: 'error', message: 'Internal Server Error' });
 });
 
-function startServer(port = PORT) {
+function startServer(port = PORT, host = HOST) {
   if (!Number.isInteger(port) || port < 0 || port > 65535) {
     throw new Error('Port listener harus berupa angka bulat antara 0 dan 65535.');
   }
-  const server = app.listen(port, () => {
+  const configuredHost = parseConfiguredHost(host);
+  const server = app.listen(port, configuredHost, () => {
     const address = appServerAddress(server);
-    console.log(`Server jalan di http://localhost:${address.port}`);
+    console.log(`Server jalan pada ${configuredHost}:${address.port}`);
   });
   return server;
 }
@@ -1910,4 +1882,4 @@ if (require.main === module) {
   startServer();
 }
 
-module.exports = { app, startServer, parseConfiguredPort };
+module.exports = { app, startServer, parseConfiguredHost, parseConfiguredOrigin, parseConfiguredPort };

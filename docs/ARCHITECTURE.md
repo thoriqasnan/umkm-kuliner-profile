@@ -65,7 +65,7 @@ Guest storage contains no product name, price, or totals. Rendering and WhatsApp
 
 The product dialog supports creation and full update; product cards expose edit/delete controls for a current admin. This visibility is a user-experience decision only. All product mutations still use credentialed API requests and are enforced by backend authorization.
 
-The frontend API base URL is currently the constant `http://localhost:3000`. Browser authentication and cart requests use `credentials: "include"`. The product list itself is public and does not require credentials.
+The frontend resolves its API base from the current HTTP(S) origin in production, so the trusted edge routes `/api/*` to Node without exposing the private Python service. The explicit local Live Server development contract remains `localhost:5500` → `localhost:3000`. Browser authentication and cart requests use `credentials: "include"`. The product list itself is public and does not require credentials.
 
 ## Backend architecture
 
@@ -108,7 +108,7 @@ Product handlers validate identifiers and request fields before using parameteri
 
 ## Database architecture
 
-`db/database.js` opens SQLite through `better-sqlite3`. Normal runtime defaults to `data/umkm.db`; `DATABASE_PATH` can select another path. Every connection enables and verifies SQLite foreign-key enforcement.
+`db/database.js` opens SQLite through `better-sqlite3`. Development defaults to `data/umkm.db`; production requires an explicit absolute `DATABASE_PATH` for the FE-A durable-storage mount. Every connection enables and verifies SQLite foreign-key enforcement.
 
 There is **no server-side session table**. The signed cookie carries the session payload, while protected requests validate it against the current `users` row and its `token_version`.
 
@@ -322,7 +322,7 @@ Relevant boundaries remain:
 - production-like browser authentication requires HTTPS because cookies remain Secure outside explicit development mode;
 - rate-limit state is in process memory and resets on restart;
 - there is no bundled administrator credential; an operator promotes an existing account locally;
-- there is no documented development-database reset, backup, or recovery command; and
+- canonical database backup, verification, and conservative offline restore use the FE-C repository-native operator commands; there remains no destructive reset/reseed command; and
 - these controls are not a claim of complete production hardening.
 
 ## Testing architecture
@@ -925,5 +925,15 @@ Phase 8J is **VERIFIED COMPLETE**. The bounded selector originally recognized no
 An exact regression failed before the fix and passed afterward. Nearby tests cover short Indonesian under EN UI, short English under ID UI, and neutral fallback under both UI languages. Focused selector tests passed `11`, contract/service tests passed `72`, the affected historical pair passed `36`, backend passed `102`, frontend passed `131`, and the full Python suite passed `800` with the known logical-core fallback warning. The historical `203 passed + 2 failures` combined-order behavior did not reproduce in either combined rerun; its historical root cause is not claimed as proven. An unrelated password-reset timing-envelope outlier on the first backend run passed independently (`16`) and in the unchanged full rerun (`102`). No production behavior outside deterministic response-language selection changed. User-performed browser acceptance confirmed the intended cross-language responses and ambiguous fallback, preserved historical answers and canonical names, and functional citation navigation/highlighting. Phase 8J and aggregate Phase 8 are verified complete.
 
 See the [Project Roadmap](../ROADMAP.md) for the approved sequence and current status.
+
+### Final Engineering FE-A production deployment contract
+
+FE-A is **VERIFIED COMPLETE** as a documentation-only architecture decision. The approved production posture is a small single-instance portfolio application behind a trusted HTTPS edge: browser traffic reaches Node/Express only, and Node calls one private FastAPI process that owns the local E5 runtime/index and Gemini boundary. Canonical SQLite uses durable storage; Phase 7 vector data stays protected; the dedicated Phase 8 E5 index remains generated and rebuildable. Horizontal replicas are not approved under the current SQLite, process-local rate-limit/admission, in-process E5, and local-index contracts.
+
+The complete topology, HTTPS/origin/cookie and proxy assumptions, environment/secrets boundary, data classification, runtime constraints, Docker/CI decisions, and vendor-neutral platform criteria are recorded in the [Production Deployment Architecture Contract](PRODUCTION_DEPLOYMENT_ARCHITECTURE.md). No hosting vendor or deployment infrastructure was selected in FE-A; the subsequently approved FE-B work implemented only the runtime/configuration requirements summarized below.
+
+FE-B is **VERIFIED COMPLETE**. `lib/runtimeConfig.js` centralizes sanitized production validation and Node bind/origin/private-service configuration. Production requires explicit `HOST`, HTTPS `FRONTEND_ORIGIN`, HTTPS `APP_PUBLIC_ORIGIN`, absolute `DATABASE_PATH`, and `PYTHON_SERVICE_URL`; an optional `PYTHON_AI_SERVICE_URL` remains compatible and otherwise inherits the shared Python URL. Express trusts one proxy hop only in production and none in development/test. Existing session-cookie, email-provider, Gemini, timeout, readiness, and E5/index safety contracts were preserved. Automated evidence passed 60 focused tests, 106 complete backend tests, and 132 complete frontend tests without external-provider access; no manual gate was required.
+
+FE-C is **VERIFIED COMPLETE**. Production startup will not create a missing canonical database unless `DATABASE_BOOTSTRAP_ALLOWED=true` explicitly marks a deliberate first bootstrap. `lib/databaseMaintenance.js` provides SQLite-native online backup, integrity and required-schema verification, and a conservative offline restore transaction at the filesystem boundary: it verifies the candidate and current target, refuses live sidecars or existing destinations, stages and verifies the replacement in the target directory, preserves the old database as an operator-named rollback copy, and restores that copy if promotion fails. All paths are absolute; restore can target only the configured canonical `DATABASE_PATH`; canonical source, backup, target, and rollback must be distinct as applicable; and Phase 7/Phase 8 databases and sidecars are forbidden targets. The approved topology remains one Node writer process over durable local SQLite. Focused temporary-fixture evidence passed 11 tests and complete backend evidence passed 113 tests; no manual gate was required.
 
 For local installation, startup, testing, troubleshooting, and safe shutdown procedures, see the [Local Development Runbook](RUNBOOK.md).

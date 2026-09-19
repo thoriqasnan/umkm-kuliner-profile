@@ -785,11 +785,103 @@ This is conceptual, not a frozen architecture decision.
 
 ## Final Engineering — Deployment & Portfolio Finalization
 
+Status: **IN PROGRESS**
+
+Goal: move the verified application toward production deployment and portfolio completion through progressive, evidence-led engineering. Deployment belongs here unless an earlier phase needs a temporary deployment checkpoint for a concrete reason.
+
+The production architecture must preserve these boundaries unless a later demonstrated requirement justifies a change:
+
+```text
+Browser
+   ↓
+Node / Express
+   ↓
+FastAPI
+   ↓
+AI runtime / provider
+```
+
+The browser must never call FastAPI directly. Node remains the canonical application and public-product-data authority; FastAPI remains the AI composition/runtime boundary. The customer AI assistant remains public, read-only, and grounded in public menu data. Canonical SQLite and Phase 7 vector data remain protected. The Phase 8 E5 index remains generated, rebuildable, and non-canonical. Real `.env` files and credentials remain outside Git. Existing readiness semantics remain unchanged unless a later demonstrated requirement justifies a change: readiness is not provider-success proof. Historical provider incidents retain their recorded evidence without invented root causes, and controlled AI benchmarks must not be presented as universal accuracy or reliability.
+
+### FE-A — Production Architecture & Deployment Plan
+
+Status: **VERIFIED COMPLETE**
+
+Goal: establish the production topology and deployment contracts before choosing or implementing deployment infrastructure.
+
+Scope: document the production topology for the frontend, Node, FastAPI, the local E5 runtime, Gemini, and SQLite; public versus private service boundaries; the Browser → Node → FastAPI invariant; HTTPS, origin, and cookie expectations; environment and secrets boundaries; persistence requirements; the generated Phase 8 E5 index lifecycle; expected compute and memory characteristics; deployment-platform requirements and constraints; reverse-proxy and trusted-IP considerations; and the implications of process-local rate limiting and admission control. Define evidence-based decision criteria for whether containerization and CI are justified, and record an architecture diagram or deployment contract where useful.
+
+FE-A is **VERIFIED COMPLETE**. The durable decision record is [`docs/PRODUCTION_DEPLOYMENT_ARCHITECTURE.md`](docs/PRODUCTION_DEPLOYMENT_ARCHITECTURE.md). It approves a conservative single-instance Project 1 posture: one public HTTPS origin at a trusted edge, one Node process as the browser-facing/canonical authority, and one private FastAPI process containing the local E5 runtime and Gemini boundary. Canonical SQLite requires durable storage; the Phase 8 E5 index remains generated/rebuildable; Phase 7 vector data remains protected. Containerization is optional and platform-dependent. A minimal deterministic CI quality gate is justified in principle, but its implementation and any deployment automation remain deferred to FE-D. No hosting vendor or infrastructure was selected or implemented, and FE-A has no manual acceptance gate.
+
+### FE-B — Production Runtime & Configuration
+
+Status: **VERIFIED COMPLETE**
+
+Goal: make application runtime and configuration behavior explicitly production-ready according to the architecture selected in FE-A.
+
+Scope: implement only requirements demonstrated by FE-A, as applicable: production startup contracts, environment validation, secrets and configuration handling, production origins, secure session and cookie behavior, Node-to-FastAPI configuration, AI-provider configuration boundaries, generated-index path and runtime behavior, and deployment/runtime configuration. Preserve behavior that is already correct rather than duplicating it.
+
+FE-B is **VERIFIED COMPLETE**. Production frontend requests now use the current HTTPS origin while the existing `localhost:5500` → `localhost:3000` development split remains intact. Node production startup requires explicit `HOST`, HTTPS `FRONTEND_ORIGIN`, HTTPS `APP_PUBLIC_ORIGIN`, an absolute `DATABASE_PATH`, and `PYTHON_SERVICE_URL`; invalid URLs and configuration fail closed without echoing credential values. Node binding is configurable, production trusts exactly one proxy hop under the FE-A private-edge contract, and development/test trusts no proxy. Existing Secure/HttpOnly/SameSite=Lax cookies, email production guards, Gemini lazy configuration and sanitized errors, timeout ordering, readiness semantics, protected Phase 7 data, and dedicated Phase 8 index recovery remain unchanged. Focused verification passed `60/60`, the complete backend suite passed `106/106`, and the complete frontend suite passed `132/132`; no Python executable changed and no external provider was contacted. FE-B has no manual acceptance gate.
+
+### FE-C — Data Persistence, Backup & Recovery
+
+Status: **VERIFIED COMPLETE**
+
+Goal: define and verify safe production persistence for canonical application data.
+
+Scope: specify SQLite durability and persistent-storage requirements; protect the canonical database; document and verify backup and restore/recovery procedures; distinguish canonical data from generated/rebuildable data; define Phase 7 vector and Phase 8 index treatment; record concurrency and topology limitations; and provide operational recovery documentation. The generated Phase 8 E5 index must never be treated as canonical user or application data.
+
+FE-C is **VERIFIED COMPLETE** with no manual acceptance gate. Production now refuses to create a missing canonical database unless `DATABASE_BOOTSTRAP_ALLOWED=true` explicitly authorizes a first bootstrap at the configured durable path. Repository-native maintenance commands use SQLite's online backup API, native integrity checking, canonical-schema verification, protected-artifact path guards, non-overwriting destinations, offline restore confirmation, same-directory staging, and a preserved rollback copy. Restore is restricted to the configured canonical `DATABASE_PATH`; Phase 7 vector data and the dedicated Phase 8 generated index are forbidden targets and are excluded from canonical backups. Isolated temporary-fixture verification passed `11/11` focused tests; the complete backend regression passed `113/113`. No browser or Python executable changed, no repository database or vector/index artifact changed, and no external service was contacted.
+
+### FE-D — Deployment Implementation
+
+Status: **NEXT / NOT STARTED**
+
+Goal: implement the deployment architecture approved by FE-A.
+
+Scope: add only infrastructure justified by FE-A. Depending on that decision, implementation may include hosting/runtime configuration, a reverse proxy, containerization, deployment manifests, build/start commands, and CI/deployment automation. None is mandatory merely because it is listed. Docker or other containerization is permitted only when FE-A demonstrates its value, and CI is permitted only when justified by the repository and deployment workflow. Hosting-vendor selection is deferred to the appropriate later decision and is not made by this roadmap definition.
+
+### FE-E — Observability & Operational Readiness
+
 Status: **PLANNED**
 
-Expected later scope includes deployment architecture, production configuration, environment/secrets management, production database considerations, logging/observability, CI when justified, backup/recovery, security/performance/accessibility review, final automated regression, final manual acceptance, architecture diagram, README/portfolio presentation, screenshots/demo, and interview-ready technical explanation.
+Goal: make deployed operation diagnosable and maintainable without leaking sensitive data.
 
-Deployment belongs here unless an earlier phase needs a temporary deployment checkpoint for a concrete reason.
+Scope: define logging expectations; preserve and assess existing sanitized AI logs; document health/liveness and AI-readiness semantics; retain correlation IDs; make startup and runtime failures visible; provide an operational troubleshooting runbook; document provider-boundary limitations; and reference backup/recovery operations. Readiness must not be redefined as proof of provider reachability, credential validity, quota, model availability, or successful inference.
+
+### FE-F — Security, Performance & Accessibility Review
+
+Status: **PLANNED**
+
+Goal: perform a focused final engineering review across the completed application.
+
+Scope: review production security; secrets and configuration exposure; authentication and session boundaries; origin and HTTPS behavior; reverse-proxy and IP assumptions; process-local rate-limit and admission limitations; AI authority boundaries; database protections; relevant dependency and configuration concerns; application performance; E5 memory and runtime characteristics; responsive behavior; and accessibility. Fix only demonstrated issues and do not opportunistically redesign the application.
+
+### FE-G — Final Regression & Production Acceptance
+
+Status: **PLANNED**
+
+Goal: verify the complete deployed Project 1 system before portfolio closure.
+
+Scope: run final backend, frontend, and Python/AI regressions; perform appropriate deterministic AI evaluation; execute production/deployment smoke tests; verify health and readiness; exercise core browser flows, authentication, administration, cart behavior, AI-assistant behavior, and citations; complete responsive and accessibility acceptance; and record all required user-performed manual acceptance. FE-G is the primary final technical verification gate, and Project 1 must not be called technically complete before it passes.
+
+### FE-H — Portfolio Presentation & Technical Documentation
+
+Status: **PLANNED**
+
+Goal: turn the verified project into a strong portfolio artifact.
+
+Scope: finalize the README presentation, architecture diagram, production/deployment explanation, screenshots, demo instructions or link where applicable, feature summary, technology stack, testing and evaluation evidence, known limitations, security and architecture decisions, interview-ready technical explanation, engineering trade-offs, and an honest account of what the user personally learned and built. Do not exaggerate controlled benchmark results or production reliability.
+
+### FE-I — Project 1 Final Closure
+
+Status: **PLANNED**
+
+Goal: perform the final source-of-truth reconciliation and formally close Project 1.
+
+Scope: reconcile `ROADMAP.md`, `README.md`, `docs/ARCHITECTURE.md`, and `docs/RUNBOOK.md`; verify that no Final Engineering acceptance gate remains pending; verify repository and checkpoint readiness; record the final Project 1 status; and prepare the final Git checkpoint. Project 1 may become **VERIFIED COMPLETE** only after all required FE-A through FE-I evidence and manual gates are satisfied. Commit and push remain separately user-approved actions.
+
+Progressive-engineering rule: make Project 1 production-capable without adding technology for its own sake. Docker, Kubernetes, Redis, queues/workers, cloud-managed databases, microservice expansion, and elaborate CI/CD are not roadmap requirements. Any such technology may be selected only when a later architecture decision demonstrates a concrete need; more aggressive modern-stack progression belongs primarily to later portfolio projects.
 
 ## Project 1 Completion Definition
 
@@ -949,7 +1041,16 @@ Phase 8 Full-Stack + AI Integration   VERIFIED COMPLETE
     8H-R2                         VERIFIED COMPLETE
   8I                              VERIFIED COMPLETE
   8J                              VERIFIED COMPLETE
-Final Engineering                     PLANNED
+Final Engineering                     IN PROGRESS
+  FE-A Production Architecture & Deployment Plan VERIFIED COMPLETE
+  FE-B Production Runtime & Configuration VERIFIED COMPLETE
+  FE-C Data Persistence, Backup & Recovery VERIFIED COMPLETE
+  FE-D Deployment Implementation      NEXT / NOT STARTED
+  FE-E Observability & Operational Readiness PLANNED
+  FE-F Security, Performance & Accessibility Review PLANNED
+  FE-G Final Regression & Production Acceptance PLANNED
+  FE-H Portfolio Presentation & Technical Documentation PLANNED
+  FE-I Project 1 Final Closure         PLANNED
 ```
 
-The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), the approved post-quality-gate **Phase 4G** extension, **Phase 5 — Machine Learning**, **Phase 6 — Deep Learning Fundamentals**, **Phase 6-EXT — Account & Admin Extension**, **Phase 7 — AI Engineering**, Phase 8A through 8J, and aggregate **Phase 8 — Full-Stack + AI Integration** are **VERIFIED COMPLETE**. The repository is **READY FOR PHASE-8 GIT CHECKPOINT**; commit and push remain separate user-approved actions.
+The **Quality Gate — Engineering Foundation**, **Phase 4 — Python & Data** (4A through 4F), the approved post-quality-gate **Phase 4G** extension, **Phase 5 — Machine Learning**, **Phase 6 — Deep Learning Fundamentals**, **Phase 6-EXT — Account & Admin Extension**, **Phase 7 — AI Engineering**, Phase 8A through 8J, and aggregate **Phase 8 — Full-Stack + AI Integration** are **VERIFIED COMPLETE**. The Phase 8 checkpoint is recorded at `a7e5061`. Final Engineering remains **IN PROGRESS**. FE-A, FE-B, and FE-C are **VERIFIED COMPLETE**, each with no manual acceptance gate, and the repository is **READY TO START FE-D**. FE-D is **NEXT / NOT STARTED**; FE-E through FE-I remain **PLANNED**. Commit and push remain separate user-approved actions.

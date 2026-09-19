@@ -8,6 +8,21 @@ const product = {
   description: { id: 'Ada', en: 'Existing' },
 };
 
+test('API addressing preserves local split development and uses the current production origin', async () => {
+  const local = await createFrontendHarness();
+  assert.equal(local.probe.apiBaseUrl, 'http://localhost:3000');
+  assert.equal(local.probe.resolveApiBaseUrl({
+    protocol: 'https:', hostname: 'portfolio.example', port: '', origin: 'https://portfolio.example',
+  }), 'https://portfolio.example');
+
+  const production = await createFrontendHarness({
+    locationProtocol: 'https:', locationHostname: 'portfolio.example', locationPort: '',
+  });
+  assert.equal(production.probe.apiBaseUrl, 'https://portfolio.example');
+  assert.equal(production.calls.every((call) => call.url.startsWith('https://portfolio.example/api/')), true);
+  assert.equal(production.calls.some((call) => /8000|fastapi|python/i.test(call.url)), false);
+});
+
 test('registration request uses the production route, method, credentials, and body', async () => {
   const harness = await createFrontendHarness({ products: [product] });
   let registrationCall;

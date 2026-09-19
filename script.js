@@ -518,11 +518,22 @@ cartCheckoutBtn.addEventListener("click", () => {
 // ----------------------------------------------------------
 // 3c. AMBIL DATA PRODUK DARI BACKEND (fetch) & RENDER MENU GRID
 // ----------------------------------------------------------
-// Alamat backend Express (lihat server.js) - sengaja ditulis eksplisit
-// (bukan path relatif seperti "/api/products") karena frontend dan backend
-// jalan di ORIGIN yang berbeda (frontend di :5500 lewat Live Server, backend
-// di :3000), jadi fetch() perlu tahu persis ke mana harus mengirim request.
-const API_BASE_URL = "http://localhost:3000";
+// Production uses the current HTTPS origin: the trusted edge routes /api/* to
+// Node, and the browser never learns any private internal-service address. Local Live
+// Server development remains split across :5500 (frontend) and :3000 (Node).
+function resolveApiBaseUrl(locationLike = window.location) {
+  const protocol = locationLike && locationLike.protocol;
+  const hostname = locationLike && locationLike.hostname;
+  const port = locationLike && locationLike.port;
+  if ((protocol === "http:" || protocol === "https:") && locationLike.origin) {
+    if (port === "5500" && (hostname === "localhost" || hostname === "127.0.0.1")) {
+      return `${protocol}//${hostname}:3000`;
+    }
+    return locationLike.origin;
+  }
+  return "http://localhost:3000";
+}
+const API_BASE_URL = resolveApiBaseUrl();
 let productsLoadState = "loading"; // "loading" | "success" | "empty" | "error" - status presentasi produk
 const menuGrid = document.getElementById("menuGrid");
 const menuStatus = document.getElementById("menuStatus");

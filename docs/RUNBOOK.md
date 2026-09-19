@@ -109,15 +109,18 @@ The application does not include `dotenv`. For local development, `npm start` us
 |---|---|
 | `SESSION_SECRET` | Required. Startup rejects missing, blank, or shorter-than-16-character values. Use a much longer random local value and never commit it. |
 | `NODE_ENV` | Set to `development` for explicit local mode. `production` enables the session cookie's `Secure` flag; local development keeps the signed HttpOnly cookie usable over HTTP. |
+| `HOST` | Development defaults to `127.0.0.1`. Production requires an explicit Node bind address compatible with the single trusted edge/private-hop topology. |
+| `PORT` | Optional. Defaults to `3000`; valid values are integer strings from 1 through 65535. |
 | `FRONTEND_ORIGIN` | Optional locally; defaults to `http://localhost:5500`. It controls CORS and must exactly match the browser `Origin` for privileged admin mutations. Set it explicitly for deployment; production requires HTTPS. |
 | `APP_PUBLIC_ORIGIN` | Optional locally; defaults to `FRONTEND_ORIGIN`. Required explicitly in production. Trusted server origin used to compose reset links; never derived from request headers. It must contain no credentials/path/query/fragment, and production requires HTTPS. |
 | `EMAIL_DELIVERY_MODE` | Defaults to `disabled` outside production. Set to `resend` for real delivery; production refuses a missing/disabled provider mode. |
 | `RESEND_API_KEY` | Required in `resend` mode. Supply through runtime secrets; never expose it to frontend, logs, source, or examples. |
 | `EMAIL_FROM` | Required valid and provider-verified sender address in `resend` mode. |
 | `EMAIL_FROM_NAME` | Optional sender display name; defaults to `Sari Rasa`. |
-| `DATABASE_PATH` | Normally omit it. Runtime then uses `data/umkm.db`. Tests require an explicit isolated path internally. |
-| `PORT` | Optional. Defaults to `3000`; valid values are integer strings from 1 through 65535. |
-| `PYTHON_SERVICE_URL` | Optional. Trusted operator-controlled FastAPI base URL used by Node analytics and forecast routes; defaults to `http://127.0.0.1:8000`. Use HTTP/HTTPS without credentials, query, or fragment; never derive it from browser/request input. |
+| `DATABASE_PATH` | Optional in development, which defaults to `data/umkm.db`. Production requires an explicit absolute path on durable storage. Tests require an explicit isolated path internally. |
+| `DATABASE_BOOTSTRAP_ALLOWED` | Production first-bootstrap guard. Leave `false`/unset for every normal start. Set exactly `true` only when intentionally creating the first canonical database after verifying that `DATABASE_PATH` is the intended empty durable volume. |
+| `PYTHON_SERVICE_URL` | Optional locally and required in production. Trusted operator-controlled private FastAPI base URL used by Node; use HTTP/HTTPS without credentials, query, or fragment and never derive it from browser/request input. |
+| `PYTHON_AI_SERVICE_URL` | Optional compatible AI-only override. When absent, AI uses `PYTHON_SERVICE_URL`; it remains server-only and must never reach browser code. |
 | `SARI_RASA_ANALYTICS_DATASET_PATH` | Optional trusted FastAPI analytics CSV path. Development defaults to generated `python/data/transactions_ml_v2.csv`; tests pass the canonical fixture explicitly. Never derive this path from HTTP input. |
 | `SARI_RASA_ML_DATASET_PATH` | Optional trusted V2 source used by production HGB and experimental MLP inference. Defaults to `python/data/transactions_ml_v2.csv`. |
 | `SARI_RASA_MODEL_ARTIFACT_PATH` | Optional trusted production HGB artifact path. Defaults to `python/models/next_day_quantity_v2.joblib`. |
@@ -140,7 +143,7 @@ npm start
 
 If the variable is unset, blank, or too short, the server refuses to start. Do not replace this pattern with a public example value: any public string that meets the length check is still predictable and cryptographically unsafe. Never add the local value to documentation, source code, shell scripts committed to Git, or command output shared with others.
 
-For ordinary development, leave `DATABASE_PATH` and `FRONTEND_ORIGIN` unset. The latter defaults to `http://localhost:5500`. Although the backend accepts another `PORT`, `script.js` currently calls `http://localhost:3000`; changing the backend port alone breaks browser-to-API communication.
+For ordinary development, leave `DATABASE_PATH` and `FRONTEND_ORIGIN` unset. The latter defaults to `http://localhost:5500`, and the local Live Server contract continues to call Node at `http://localhost:3000`. Outside that explicit local split, `script.js` uses the page's current HTTP(S) origin so the production edge can route `/api/*` to Node.
 
 ## Start the backend
 
@@ -546,6 +549,14 @@ The user completed the browser gate after restarting the changed Python service:
 5. Canonical product names remained unchanged, and product-source navigation/highlighting remained functional — PASS.
 
 Phase 8J and aggregate Phase 8 are **VERIFIED COMPLETE**. The repository is **READY FOR PHASE-8 GIT CHECKPOINT**; commit and push require separate explicit user approval.
+
+### Final Engineering FE-A production planning handoff
+
+FE-A is **VERIFIED COMPLETE** and created no production commands, manifests, containers, services, or cloud resources. Its [Production Deployment Architecture Contract](PRODUCTION_DEPLOYMENT_ARCHITECTURE.md) is the operator-facing source for the approved single-instance topology, persistent-versus-rebuildable classification, proxy/origin requirements, E5 sizing evidence, and vendor-neutral platform criteria. Existing commands in this runbook remain local-development and verified historical procedures; they must not be presented as a completed production deployment.
+
+FE-B is **VERIFIED COMPLETE** with no manual acceptance gate. Production startup now fails closed unless `HOST`, HTTPS `FRONTEND_ORIGIN`, HTTPS `APP_PUBLIC_ORIGIN`, absolute persistent `DATABASE_PATH`, and private `PYTHON_SERVICE_URL` are explicit. Production trusts exactly one edge proxy hop; development/test trusts none. Focused tests passed 60/60, backend passed 106/106, and frontend passed 132/132.
+
+FE-C is **VERIFIED COMPLETE** with no manual acceptance gate. It adds guarded first bootstrap plus repository-native canonical SQLite backup, verification, and conservative offline restore. Focused temporary-fixture tests passed 11/11 and the complete backend suite passed 113/113. These commands are persistence maintenance, not a completed production deployment; FE-D remains **NEXT / NOT STARTED**.
 
 ### Start and check the Python service
 
@@ -1038,9 +1049,71 @@ It is persistent local data and is ignored by Git through `data/*.db`. Normal ap
 - seeds the 11 initial products only when the `products` table is empty; and
 - preserves existing rows and product descriptions that have already been edited.
 
-Do not casually delete or replace this file. Tests do not require a development-database reset and are designed to avoid opening it.
+Do not casually delete or replace this file. Tests do not require a development-database reset and are designed to avoid opening it. Production is stricter: if the configured canonical file is missing, startup refuses to create it unless `DATABASE_BOOTSTRAP_ALLOWED=true`. Use that flag only for a verified, intentional first bootstrap on the correct empty durable volume; never use it as recovery from unexplained data loss. After first creation, remove the flag. Application code cannot prove that an underlying mount is durable, so storage durability remains an operator/deployment obligation.
 
-There is no officially supported development-database reset, reseed, backup, or recovery command. Before any separately planned manual database maintenance, make an appropriate backup using your own reviewed procedure. Recovery and destructive reset operations are outside this runbook.
+There is no supported destructive reset or reseed command. FE-C provides the following canonical SQLite maintenance workflow. Every path shown is a placeholder; choose explicit absolute paths on the intended host. Never point these commands at Phase 7 `python/data/sari_rasa_vectors.db`, Phase 8 `python/data/sari_rasa_phase8_e5_vectors.db`, their sidecars, or repository fixtures.
+
+### Backup
+
+Node may remain running while `better-sqlite3` creates a consistent online backup through SQLite's backup API. The destination parent directory must already exist, and the command refuses to overwrite an existing file or use the source as its destination.
+
+```sh
+npm run db:backup -- --source /absolute/persistent/umkm.db --destination /absolute/backups/umkm-YYYYMMDDTHHMMSS.sqlite
+```
+
+Use the configured production `DATABASE_PATH` as `--source`. Prefer a restricted backup directory separate from the live database directory. Never use a raw copy of an actively written database as the supported backup procedure; WAL state may make such a copy inconsistent.
+
+### Verify
+
+The backup command verifies its output automatically. The standalone command reopens a candidate read-only, runs SQLite `PRAGMA integrity_check`, and requires the canonical tables (`users`, `products`, `cart_items`, `cart_merges`, and `password_reset_tokens`):
+
+```sh
+npm run db:verify -- --file /absolute/backups/umkm-YYYYMMDDTHHMMSS.sqlite
+```
+
+Successful integrity/schema verification proves the checked SQLite artifact is structurally usable under this application contract; it does not prove storage durability or business-level correctness.
+
+### Restore
+
+Restore is deliberately offline. Stop Node through the normal service control first and confirm that no application or database tool is using the canonical database. FastAPI does not own canonical SQLite, but it may also be stopped during coordinated recovery. The command requires `--confirm-offline`, verifies both candidate and current target before replacement, refuses a target with `-wal`, `-shm`, or `-journal` sidecars, stages the candidate in the target directory, and preserves the former target at the explicit non-existing rollback path.
+
+```sh
+DATABASE_PATH=/absolute/persistent/umkm.db npm run db:restore -- \
+  --backup /absolute/backups/umkm-YYYYMMDDTHHMMSS.sqlite \
+  --rollback /absolute/persistent/umkm.before-restore-YYYYMMDDTHHMMSS.sqlite \
+  --confirm-offline
+```
+
+Restore can target only `DATABASE_PATH`; it cannot select another target from the command line. Candidate, target, and rollback must be distinct absolute paths. The rollback parent is intentionally the canonical database directory so the replacement and preservation renames remain within one filesystem. Do not use `DATABASE_BOOTSTRAP_ALLOWED` during restore.
+
+### Post-restore validation
+
+1. While Node is still stopped, run `npm run db:verify -- --file /absolute/persistent/umkm.db`.
+2. Start Node normally, with `DATABASE_BOOTSTRAP_ALLOWED` false/unset.
+3. Check `GET /api/health`, public products, authentication, the expected admin boundary, and persistent cart behavior appropriate to the incident. Do not expose or record private data during verification.
+4. Keep the rollback file until operational acceptance is complete.
+5. Treat the Phase 8 index through its existing generated/rebuildable lifecycle. It is not restored from the canonical backup; on later AI use its existing integrity/catalog fingerprint checks determine whether the dedicated index is reused or rebuilt. Never broaden that recovery to Phase 7 or canonical SQLite.
+
+### Rollback after a failed restore
+
+Stop Node again. Use the preserved pre-restore database as the next verified `--backup`, and choose a new, non-existing rollback destination so the failed restored database is retained for investigation:
+
+```sh
+DATABASE_PATH=/absolute/persistent/umkm.db npm run db:restore -- \
+  --backup /absolute/persistent/umkm.before-restore-YYYYMMDDTHHMMSS.sqlite \
+  --rollback /absolute/persistent/umkm.failed-restore-YYYYMMDDTHHMMSS.sqlite \
+  --confirm-offline
+```
+
+Repeat post-restore validation before resuming normal operation. Do not delete either retained copy until the incident is resolved under the operator's retention policy.
+
+### Backup storage and retention
+
+- Store backups with restricted access and without credentials or exported logs alongside them.
+- Use a finite, documented retention schedule appropriate to the deployment's change rate and recovery objective.
+- Ensure backups survive application redeploys/restarts. For a real production deployment, keep at least one recovery copy outside the live database filesystem's failure domain.
+- Periodically verify retained backups and rehearse the documented restore only with isolated fixtures or an approved non-production copy—not the live canonical database.
+- FE-C does not choose or integrate a cloud backup vendor.
 
 ## Safe operational boundaries
 
@@ -1060,7 +1133,7 @@ Begin with read-only checks. Preserve the development database and avoid changin
 
 | Symptom | Likely cause | Safe checks | Resolution |
 |---|---|---|---|
-| Frontend loads, but products do not appear | Backend is stopped, not on port 3000, or the API request failed | Open `http://localhost:3000/api/health`; inspect the browser Network/Console output; confirm `script.js` still targets port 3000 | Start the backend with the documented environment on port 3000, then reload the frontend |
+| Frontend loads, but products do not appear | Backend is stopped/unrouted, or the API request failed | Locally open `http://localhost:3000/api/health`; in production inspect the current origin's `/api/health`; inspect browser Network/Console output | Start or route Node using the documented origin and bind configuration, then reload the frontend |
 | Login returns success, but the UI appears logged out | A stale pre-fix Secure localhost cookie or mismatched local origin may still be present | Confirm `NODE_ENV=development`, use `localhost` consistently, and inspect the login response plus `/api/auth/me` without exposing cookie values | Restart the backend with the documented development command, clear the stale localhost session cookie if needed, then log in again |
 | Authentication behaves inconsistently | `localhost` and `127.0.0.1` were mixed, backend state changed, or browser cookie state is stale | Confirm both documented URLs use `localhost`; verify health; inspect only the Sari Rasa site's cookie presence and request status | Return to the exact documented origins and retry login; remove only the local Sari Rasa session cookie if a stale cookie remains |
 | Browser reports a CORS error | Frontend origin is not exactly `http://localhost:5500` | Read the address bar and the failed request's Origin header | Serve the repository root from the documented localhost port; arbitrary frontend ports are not supported by current CORS configuration |
@@ -1125,8 +1198,8 @@ This historical checklist covers the established web application and documentati
 ## Known limitations
 
 - The supported instructions target local development, not production deployment.
-- The frontend API URL is fixed to `http://localhost:3000`; CORS/admin mutation checks default to `http://localhost:5500` and can use trusted `FRONTEND_ORIGIN` configuration.
+- The frontend uses `http://localhost:3000` only for the explicit local `localhost:5500` development split; production uses the current HTTPS origin. CORS/admin mutation checks use exact trusted `FRONTEND_ORIGIN` configuration.
 - The repository has a local operator provisioning command and a verified admin-management UI, but no bundled admin account or credential.
-- The repository has no supported development-database reset, backup, or recovery workflow.
+- The repository has no destructive database reset/reseed workflow. It does have verified canonical backup, integrity/schema verification, and conservative offline restore commands; underlying durable storage, scheduling, retention, and off-host copying remain operator/deployment responsibilities.
 - Authentication and registration rate limits are stored in process memory and reset with the backend.
 - A production deployment runbook has not been implemented.

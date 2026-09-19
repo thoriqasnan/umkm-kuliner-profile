@@ -155,9 +155,12 @@ Python is not needed for authentication, admin management, password recovery, em
 |---|---|---|
 | `SESSION_SECRET` | Yes | HMAC key for signed session cookies. Startup rejects missing, blank, or shorter-than-16-character values. Use a much longer random value and never commit it. |
 | `NODE_ENV` | Yes for explicit runtime mode | `production` enables the cookie's `Secure` flag for HTTPS deployments; `development` keeps the signed HttpOnly cookie usable over local HTTP. |
-| `DATABASE_PATH` | No for normal runtime | Defaults to `data/umkm.db`. Under `NODE_ENV=test`, an explicit isolated path is mandatory and aliases to the development database are rejected. |
+| `HOST` | Yes in production | Node bind address for the trusted-edge private hop; development defaults to `127.0.0.1`. |
+| `DATABASE_PATH` | Yes in production | Production requires an absolute durable-storage path. Development defaults to `data/umkm.db`; tests require an isolated path. |
+| `DATABASE_BOOTSTRAP_ALLOWED` | Only for intentional first production bootstrap | Keep false/unset normally. Exact `true` permits creation of a missing production canonical database after the operator verifies the intended empty durable volume. |
 | `PORT` | No | Defaults to `3000`; accepted values are integers from 1 through 65535. |
-| `PYTHON_SERVICE_URL` | No | FastAPI base URL used only by Node analytics routes; defaults to `http://127.0.0.1:8000`. |
+| `PYTHON_SERVICE_URL` | Yes in production | Private FastAPI base URL used only by Node; local development defaults to `http://127.0.0.1:8000`. |
+| `PYTHON_AI_SERVICE_URL` | No | Optional AI-only private override; otherwise AI uses `PYTHON_SERVICE_URL`. Never exposed to the browser. |
 | `FRONTEND_ORIGIN` | No locally; yes for deployment | Exact trusted browser origin for CORS and protected mutations; defaults to `http://localhost:5500`, and production requires HTTPS. |
 | `APP_PUBLIC_ORIGIN` | No locally; yes in production | Trusted origin for reset links; defaults to `FRONTEND_ORIGIN`, never comes from request headers, and requires HTTPS in production. |
 | `EMAIL_DELIVERY_MODE` | No locally; yes in production | `disabled` is the non-network local/test default; production requires `resend`. |
@@ -175,7 +178,7 @@ Python is not needed for authentication, admin management, password recovery, em
 
 Phase 7D embeddings are local-first and use no API key or paid embedding API. The verified configurable model is `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` on CPU; loading is lazy, and the offline acceptance uses its provisioned local cache.
 
-The backend port is configurable, but the current frontend API base URL is fixed to `http://localhost:3000`. Changing `PORT` alone therefore breaks frontend API communication unless the frontend implementation is changed too.
+The explicit local Live Server split uses `http://localhost:5500` for frontend assets and `http://localhost:3000` for Node. Production browser requests use the current HTTPS origin, where the trusted edge routes `/api/*` to Node; browser code never addresses FastAPI.
 
 See [.env.example](.env.example) for the safe local template and additional environment notes. `.env` is intentionally ignored by Git.
 
@@ -313,12 +316,14 @@ These controls are appropriate to the current learning project; they are not a c
 - Phase 8A–8H: verified complete. Phase 8H reconciles verified deadline/admission, diagnostics/readiness, generated-index recovery, abuse/response bounds, per-message ID/EN answer selection independent of website-language chrome, and a cwd-independent generated E5 index at `<repo>/python/data/sari_rasa_phase8_e5_vectors.db`.
 - Phase 8I: **verified complete**. Deterministic integrated evaluation reuses the Phase 7H dataset/metrics and Phase 8 suites, adds a real loopback Node → FastAPI HTTP-contract seam, and repeats the local-only E5 + V2 + hybrid benchmark at 100% Hit@1/Hit@3/Recall@5/bilingual both-Hit@1 and MRR 1.0000. Automated evaluation made no Gemini or external network calls; required live/manual acceptance subsequently passed grounded bilingual and ambiguous-fallback behavior, citation navigation, public-data/read-only boundaries, unsupported-allergen handling, cart/auth smoke, and final health/readiness. These controlled results are not universal accuracy or reliability claims.
 - Phase 8J and aggregate Phase 8: **verified complete**. A pre-8J browser finding showed that short Indonesian conversational text could tie the bounded language selector and incorrectly use English UI fallback. The selector now recognizes a small set of general ID/EN conversational markers; focused and complete regressions passed. User-performed browser acceptance confirmed Indonesian response under English UI, English response under Indonesian UI, ambiguous `Soto?` fallback in both UI languages, preserved historical answer text and canonical product names, and functional source navigation/highlighting. The repository is ready for the separately approved Phase-8 Git checkpoint.
+- Final Engineering FE-A, FE-B, and FE-C: **verified complete**. FE-A records the conservative single-instance production contract. FE-B adds same-origin production API addressing, explicit sanitized production configuration validation, configurable Node binding, one-hop production proxy trust, and an absolute persistent production database path. FE-C adds guarded first bootstrap plus SQLite-native canonical backup/verification and conservative offline restore with protected Phase 7/Phase 8 boundaries and rollback preservation. FE-C focused tests passed 11/11 and the complete backend suite passed 113/113 without provider calls; FE-D is next and has not started.
 
 See the [Project Roadmap](ROADMAP.md) for the approved phase sequence and current source of truth.
 
 ## Detailed documentation
 
 - [Architecture](docs/ARCHITECTURE.md) — components, data flows, trust boundaries, and testing design
+- [Production Deployment Architecture](docs/PRODUCTION_DEPLOYMENT_ARCHITECTURE.md) — FE-A production topology, persistence/runtime constraints, and vendor-neutral platform criteria
 - [Account & Admin Extension](docs/ACCOUNT_ADMIN_EXTENSION.md) — detailed Phase 6-EXT contracts, implementation, and acceptance evidence
 - [Local Development Runbook](docs/RUNBOOK.md) — setup, startup, testing, troubleshooting, and safe shutdown
 - [Project Roadmap](ROADMAP.md) — verified status and approved future learning direction
@@ -326,9 +331,9 @@ See the [Project Roadmap](ROADMAP.md) for the approved phase sequence and curren
 ## Known operational limitations
 
 - The application is currently oriented around local development, not a documented production deployment.
-- The frontend API URL is fixed to `http://localhost:3000`. Backend CORS and privileged mutation origin checks default to `http://localhost:5500` and may be configured through trusted `FRONTEND_ORIGIN`; production requires HTTPS.
+- The frontend uses `http://localhost:3000` for the explicit local Live Server split and the current HTTPS origin in production. Backend CORS and privileged mutation checks use exact trusted `FRONTEND_ORIGIN`; production requires HTTPS.
 - Registration creates normal users. An operator can promote an existing account with `npm run admin:provision -- --email <email>`; there is no bundled admin credential or public promotion endpoint.
-- There is no supported development-database reset, backup, or recovery command. `data/umkm.db` contains persistent local data and is intentionally ignored by Git.
+- There is no destructive database reset/reseed command. `data/umkm.db` contains persistent local data and is intentionally ignored by Git. Canonical backup, integrity/schema verification, and conservative offline restore commands are documented in the runbook; they refuse protected Phase 7/Phase 8 targets.
 - Authentication and registration rate limits are in memory and reset when the backend process restarts.
 - Production hardening may add a shared rate-limit store, reviewed reverse-proxy/IP configuration, durable email queue/retry, broader browser coverage, and a production deployment runbook. Local startup orchestration (for example, a future `npm run dev`) is also deferred; current manual multi-process startup is documented in the runbook.
 - The PyTorch MLP is an educational experiment, not the production forecasting model. Its generated local artifact is intentionally Git-ignored and must be exported before using the comparison endpoint.

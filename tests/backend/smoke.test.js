@@ -72,13 +72,17 @@ test('isolated backend smoke: health, register, login, and auth restoration', as
   const harness = await createBackendHarness();
   const temporaryDirectory = harness.temporaryDirectory;
   try {
-    const { parseConfiguredPort } = require('../../server');
+    const { parseConfiguredHost, parseConfiguredOrigin, parseConfiguredPort } = require('../../server');
     assert.equal(parseConfiguredPort(undefined), 3000);
     assert.equal(parseConfiguredPort('1'), 1);
     assert.equal(parseConfiguredPort('65535'), 65535);
     for (const value of ['', '0', '65536', '-1', '1.5', 'abc', 3000]) {
       assert.throws(() => parseConfiguredPort(value), /PORT harus berupa angka bulat/);
     }
+    assert.equal(parseConfiguredHost(undefined), '127.0.0.1');
+    assert.equal(parseConfiguredHost('0.0.0.0'), '0.0.0.0');
+    assert.equal(parseConfiguredOrigin('https://portfolio.example'), 'https://portfolio.example');
+    assert.equal(require('../../server').app.get('trust proxy'), false);
 
     assert.equal(path.isAbsolute(harness.databasePath), true);
     assert.equal(isPathInside(temporaryDirectory, harness.databasePath), true);

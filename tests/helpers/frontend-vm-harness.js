@@ -308,12 +308,19 @@ async function createFrontendHarness(options = {}) {
     addEventListener(type, listener) { if (!visualViewportListeners.has(type)) visualViewportListeners.set(type, []); visualViewportListeners.get(type).push(listener); },
     async dispatch(type) { for (const listener of visualViewportListeners.get(type) || []) await listener({ type }); },
   } : null;
+  const locationProtocol = options.locationProtocol || 'http:';
+  const locationHostname = options.locationHostname || 'localhost';
+  const locationPort = options.locationPort === undefined ? '5500' : String(options.locationPort);
+  const locationOrigin = options.locationOrigin || `${locationProtocol}//${locationHostname}${locationPort ? `:${locationPort}` : ''}`;
   const window = {
     document,
     innerWidth: options.viewportWidth || 1024,
     innerHeight: options.viewportHeight || 768,
     visualViewport,
-    location: { hash: options.hash || '', search: options.search || '', pathname: options.pathname || '/' },
+    location: {
+      protocol: locationProtocol, hostname: locationHostname, port: locationPort, origin: locationOrigin,
+      hash: options.hash || '', search: options.search || '', pathname: options.pathname || '/',
+    },
     history: { replaceState(...args) { historyCalls.push(args); window.location.search = ''; } },
     matchMedia: () => ({ matches: true }),
     addEventListener(type, listener) { if (!windowListeners.has(type)) windowListeners.set(type, []); windowListeners.get(type).push(listener); },
@@ -393,7 +400,8 @@ async function createFrontendHarness(options = {}) {
     startCalendarTrigger: startCalendar.trigger, startCalendarPopover: startCalendar.calendar, startCalendarMonth: startCalendar.month, startCalendarYear: startCalendar.year, startCalendarPrev: startCalendar.prev, startCalendarNext: startCalendar.next, startCalendarGrid: startCalendar.grid,
     endCalendarTrigger: endCalendar.trigger, endCalendarPopover: endCalendar.calendar, endCalendarMonth: endCalendar.month, endCalendarYear: endCalendar.year, endCalendarPrev: endCalendar.prev, endCalendarNext: endCalendar.next, endCalendarGrid: endCalendar.grid},
   assistant: () => ({view: menuAssistantState.view, active: !!menuAssistantState.activeRequest, exchanges: menuAssistantState.exchanges.map(exchange => ({...exchange}))}),
-  submitMenuAssistantMessage, navigateToAssistantSource, updateMenuAssistantSendState
+  submitMenuAssistantMessage, navigateToAssistantSource, updateMenuAssistantSendState,
+  apiBaseUrl: API_BASE_URL, resolveApiBaseUrl
 };`;
   vm.createContext(context);
   vm.runInContext(fs.readFileSync(SCRIPT_PATH, 'utf8') + probeSource, context, { filename: SCRIPT_PATH });

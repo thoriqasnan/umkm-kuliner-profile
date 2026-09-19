@@ -15,12 +15,15 @@
 const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
+const { validateProductionDatabasePath } = require('../lib/runtimeConfig');
 
 // __dirname di sini = folder db/, jadi '..' naik satu tingkat ke root project,
 // lalu masuk ke folder data/. Kalau folder data/ belum ada, better-sqlite3
 // TIDAK otomatis membuat foldernya (cuma file-nya) - makanya folder data/
 // harus kita buat sendiri lebih dulu di bawah.
 const DEFAULT_DB_PATH = path.join(__dirname, '..', 'data', 'umkm.db');
+
+validateProductionDatabasePath();
 
 if (process.env.NODE_ENV === 'test' && !process.env.DATABASE_PATH) {
   throw new Error('DATABASE_PATH wajib di-set secara eksplisit ketika NODE_ENV=test.');
@@ -29,6 +32,20 @@ if (process.env.NODE_ENV === 'test' && !process.env.DATABASE_PATH) {
 const DB_PATH = process.env.DATABASE_PATH
   ? path.resolve(process.env.DATABASE_PATH)
   : DEFAULT_DB_PATH;
+
+// A missing production file is ambiguous: it may be an intentional first
+// bootstrap, or evidence that the durable mount/path is wrong or lost. Never
+// guess. Creation is permitted only with an explicit one-time operator
+// acknowledgement; normal restarts require the canonical file to exist.
+if (
+  process.env.NODE_ENV === 'production' && !fs.existsSync(DB_PATH) &&
+  process.env.DATABASE_BOOTSTRAP_ALLOWED !== 'true'
+) {
+  throw new Error(
+    'Canonical production database tidak ditemukan. Verifikasi durable DATABASE_PATH; ' +
+    'gunakan DATABASE_BOOTSTRAP_ALLOWED=true hanya untuk bootstrap pertama yang disengaja.'
+  );
+}
 
 if (process.env.NODE_ENV === 'test') {
   const canonicalDatabasePath = fs.existsSync(DB_PATH) ? fs.realpathSync(DB_PATH) : DB_PATH;
